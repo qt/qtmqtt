@@ -20,6 +20,9 @@ public:
 private slots:
     void on_buttonConnect_clicked();
     void on_buttonQuit_clicked();
+    void updateLogStateChange();
+
+    void brokerDisconnected();
 
 private:
     Ui::MainWindow *ui;
