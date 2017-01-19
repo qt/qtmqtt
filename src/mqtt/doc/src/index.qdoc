@@ -1,0 +1,29 @@
+/****************************************************************************
+**
+** Copyright (C) 2017 The Qt Company Ltd.
+** Contact: http://www.qt.io/licensing/
+**
+****************************************************************************/
+
+/*!
+    \page qtmqtt-index.html
+    \title Qt MQTT
+    \brief Provides an API to make MQTT programming simple and portable.
+
+    To use these classes in your application, use the following include statement:
+
+    \code
+    #include <QtMqtt/QtMqtt>
+    \endcode
+
+    To link against the module, add this line to your \l qmake \c .pro file:
+
+    \code
+    QT += mqtt
+    \endcode
+
+    \section1 Related Information
+    \list
+    \li \l{Qt MQTT C++ Classes}{C++ Classes}
+    \endlist
+*/

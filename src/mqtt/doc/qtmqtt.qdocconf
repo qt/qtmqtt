@@ -1,0 +1,34 @@
+include($QT_INSTALL_DOCS/global/qt-module-defaults.qdocconf)
+
+project                 = QtMqtt
+description             = Qt MQTT Reference Documentation
+version                 = $QT_VERSION
+
+qhp.projects            = QtMqtt
+
+qhp.QtMqtt.file                = qtmqtt.qhp
+qhp.QtMqtt.namespace           = org.qt-project.qtmqtt.$QT_VERSION_TAG
+qhp.QtMqtt.virtualFolder       = qtmqtt
+qhp.QtMqtt.indexTitle          = Qt MQTT
+qhp.QtMqtt.indexRoot           =
+
+qhp.QtMqtt.filterAttributes    = qtmqtt $QT_VERSION qtrefdoc
+qhp.QtMqtt.customFilters.Qt.name = QtMqtt $QT_VERSION
+qhp.QtMqtt.customFilters.Qt.filterAttributes = qtmqtt $QT_VERSION
+
+qhp.QtMqtt.subprojects         = classes
+
+qhp.QtMqtt.subprojects.classes.title = C++ Classes
+qhp.QtMqtt.subprojects.classes.indexTitle = Qt MQTT C++ Classes
+qhp.QtMqtt.subprojects.classes.selectors = class fake:headerfile
+qhp.QtMqtt.subprojects.classes.sortPages = true
+
+headerdirs  += ..
+sourcedirs  += ..
+imagedirs   += images
+excludedirs += ../qt4support
+
+depends += qtcore qtdoc qtnetwork qmake
+
+navigation.landingpage = "Qt MQTT"
+navigation.cppclassespage = "Qt MQTT C++ Classes"
