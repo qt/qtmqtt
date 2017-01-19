@@ -27,6 +27,7 @@
 **
 ****************************************************************************/
 #include "qmqttclient.h"
+#include "qmqttclient_p.h"
 
 #include <QTcpSocket>
 #include <QUuid>
@@ -35,14 +36,25 @@
 
 QT_BEGIN_NAMESPACE
 
-QMqttClient::QMqttClient(QObject *parent) : QObject(parent)
+QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate), parent)
 {
-    if (m_clientId.isEmpty()) {
-        m_clientId = QUuid::createUuid().toString();
-        m_clientId.remove(QChar('{'), Qt::CaseInsensitive);
-        m_clientId.remove(QChar('}'), Qt::CaseInsensitive);
-        m_clientId.remove(QChar('-'), Qt::CaseInsensitive);
-    }
+}
+
+void QMqttClient::setTransport(QIODevice *device, QMqttClient::TransportType transport)
+{
+    Q_D(QMqttClient);
+    if (d->m_transport && d->m_ownTransport)
+        delete d->m_transport;
+
+    d->m_transport = device;
+    d->m_transportType = transport;
+    d->m_ownTransport = false;
+}
+
+QIODevice *QMqttClient::transport() const
+{
+    Q_D(const QMqttClient);
+    return d->m_transport;
 }
 
 bool QMqttClient::subscribe(const QString &topic)
@@ -60,12 +72,14 @@ void QMqttClient::unsubscribe(const QString &topic)
 
 QString QMqttClient::hostname() const
 {
-    return m_hostname;
+    Q_D(const QMqttClient);
+    return d->m_hostname;
 }
 
 quint16 QMqttClient::port() const
 {
-    return m_port;
+    Q_D(const QMqttClient);
+    return d->m_port;
 }
 
 inline void addInt(QByteArray &data, quint16 n)
@@ -79,29 +93,30 @@ inline void addInt(QByteArray &data, quint16 n)
 
 void QMqttClient::connectToHost()
 {
-    if (m_transport == nullptr) {
+    Q_D(QMqttClient);
+    if (d->m_transport == nullptr) {
         // We are asked to create a transport layer
-        if (m_hostname.isEmpty() || m_port == 0) {
+        if (d->m_hostname.isEmpty() || d->m_port == 0) {
             qWarning("No hostname specified");
             return;
         }
         auto socket = new QTcpSocket();
-        m_transport = socket;
-        m_ownTransport = true;
-        m_transportType = TransportType::AbstractSocket;
+        d->m_transport = socket;
+        d->m_ownTransport = true;
+        d->m_transportType = TransportType::AbstractSocket;
     }
 
     // Check for open / connected
-    if (!m_transport->isOpen()) {
-        if (m_transportType == TransportType::IODevice) {
-            if (m_transport->open(QIODevice::ReadWrite)) {
+    if (!d->m_transport->isOpen()) {
+        if (d->m_transportType == TransportType::IODevice) {
+            if (d->m_transport->open(QIODevice::ReadWrite)) {
                 qWarning("Could not open Transport IO device");
                 return;
             }
-        } else if (m_transportType == TransportType::AbstractSocket) {
-            auto socket = dynamic_cast<QTcpSocket*>(m_transport);
+        } else if (d->m_transportType == TransportType::AbstractSocket) {
+            auto socket = dynamic_cast<QTcpSocket*>(d->m_transport);
             Q_ASSERT(socket);
-            socket->connectToHost(m_hostname, m_port);
+            socket->connectToHost(d->m_hostname, d->m_port);
             if (!socket->waitForConnected()) {
                 qWarning("Could not establish socket connection for transport");
                 return;
@@ -117,12 +132,12 @@ void QMqttClient::connectToHost()
     // Variable header
     // 3.1.2.1 Protocol Name
     // 3.1.2.2 Protocol Level
-    if (m_protocolVersion == 3) {
+    if (d->m_protocolVersion == 3) {
         const QByteArray other("MQIsdp");
         addInt(connectFrame, other.size());
         connectFrame += other.data();
         connectFrame += char(3); // Version 3.1
-    } else if (m_protocolVersion == 4) {
+    } else if (d->m_protocolVersion == 4) {
         connectFrame += char(0); // Length MSB
         connectFrame += 4; // Length LSB
         connectFrame += "MQTT";
@@ -138,17 +153,17 @@ void QMqttClient::connectToHost()
     connectFrame += char(flags);
 
     // 3.1.2.10 Keep Alive
-    addInt(connectFrame, m_keepAlive);
+    addInt(connectFrame, d->m_keepAlive);
 
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
 
-    if (m_protocolVersion == 3) { // no username
+    if (d->m_protocolVersion == 3) { // no username
         connectFrame += char(0);
         connectFrame += char(0);
-    } else if (m_protocolVersion == 4) {
+    } else if (d->m_protocolVersion == 4) {
         // Client id maximum left is 23
-        const QByteArray clientStringArray = m_clientId.left(23).toUtf8();
+        const QByteArray clientStringArray = d->m_clientId.left(23).toUtf8();
         if (clientStringArray.size()) {
             addInt(connectFrame, clientStringArray.size());
             connectFrame += clientStringArray;
@@ -161,20 +176,20 @@ void QMqttClient::connectToHost()
     const quint8 frameLength = connectFrame.size();
     connectFrame[1] = char(frameLength - 2); // The header bytes are not included
 
-    m_transport->write(connectFrame.constData(), frameLength);
-    if (!m_transport->waitForBytesWritten(30 * 1000)) {
+    d->m_transport->write(connectFrame.constData(), frameLength);
+    if (!d->m_transport->waitForBytesWritten(30 * 1000)) {
         qWarning("Could not send data");
-        qDebug() << "Error:" << m_transport->errorString();
+        qDebug() << "Error:" << d->m_transport->errorString();
         return;
     }
 
-    if (!m_transport->waitForReadyRead(30 * 1000)) {
+    if (!d->m_transport->waitForReadyRead(30 * 1000)) {
         qWarning("Did not get an ACK within time");
-        qDebug() << "Error:" << m_transport->errorString();
+        qDebug() << "Error:" << d->m_transport->errorString();
         return;
     }
 
-    QByteArray result = m_transport->readAll();
+    QByteArray result = d->m_transport->readAll();
     qDebug() << "Result content:" << result;
 }
 
@@ -185,62 +200,86 @@ void QMqttClient::disconnectFromHost()
 
 quint8 QMqttClient::protocolVersion() const
 {
-    return m_protocolVersion;
+    Q_D(const QMqttClient);
+    return d->m_protocolVersion;
 }
 
 QString QMqttClient::clientId() const
 {
-    return m_clientId;
+    Q_D(const QMqttClient);
+    return d->m_clientId;
 }
 
 quint16 QMqttClient::keepAlive() const
 {
-    return m_keepAlive;
+    Q_D(const QMqttClient);
+    return d->m_keepAlive;
 }
 
 void QMqttClient::setHostname(QString hostname)
 {
-    if (m_hostname == hostname)
+    Q_D(QMqttClient);
+    if (d->m_hostname == hostname)
         return;
 
-    m_hostname = hostname;
+    d->m_hostname = hostname;
     emit hostnameChanged(hostname);
 }
 
 void QMqttClient::setPort(quint16 port)
 {
-    if (m_port == port)
+    Q_D(QMqttClient);
+    if (d->m_port == port)
         return;
 
-    m_port = port;
+    d->m_port = port;
     emit portChanged(port);
 }
 
 void QMqttClient::setClientId(QString clientId)
 {
-    if (m_clientId == clientId)
+    Q_D(QMqttClient);
+    if (d->m_clientId == clientId)
         return;
 
-    m_clientId = clientId;
+    d->m_clientId = clientId;
     emit clientIdChanged(clientId);
 }
 
 void QMqttClient::setKeepAlive(quint16 keepAlive)
 {
-    if (m_keepAlive == keepAlive)
+    Q_D(QMqttClient);
+    if (d->m_keepAlive == keepAlive)
         return;
 
-    m_keepAlive = keepAlive;
+    d->m_keepAlive = keepAlive;
     emit keepAliveChanged(keepAlive);
 }
 
 void QMqttClient::setProtocolVersion(quint8 protocolVersion)
 {
-    if (m_protocolVersion == protocolVersion)
+    Q_D(QMqttClient);
+    if (d->m_protocolVersion == protocolVersion)
         return;
 
-    m_protocolVersion = protocolVersion;
+    d->m_protocolVersion = protocolVersion;
     emit protocolVersionChanged(protocolVersion);
+}
+
+QMqttClientPrivate::QMqttClientPrivate()
+    : QObjectPrivate()
+{
+    m_clientId = QUuid::createUuid().toString();
+    m_clientId.remove(QChar('{'), Qt::CaseInsensitive);
+    m_clientId.remove(QChar('}'), Qt::CaseInsensitive);
+    m_clientId.remove(QChar('-'), Qt::CaseInsensitive);
+}
+
+QMqttClientPrivate::~QMqttClientPrivate()
+{
+    // ### TODO: check for open connection and quit gracefully
+    if (m_ownTransport && m_transport)
+        delete m_transport;
 }
 
 QT_END_NAMESPACE

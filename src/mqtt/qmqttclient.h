@@ -30,21 +30,23 @@
 #ifndef QTMQTTCLIENT_H
 #define QTMQTTCLIENT_H
 
-#include "qmqttglobal.h"
+#include <QtMqtt/qmqttglobal.h>
 
 #include <QObject>
 #include <QtCore/QIODevice>
-#include <QtNetwork/QAbstractSocket>
 
 QT_BEGIN_NAMESPACE
 
+class QMqttClientPrivate;
+
 class Q_MQTT_EXPORT QMqttClient : public QObject
 {
+public:
     enum TransportType {
         IODevice = 0,
         AbstractSocket
     };
-
+private:
     Q_OBJECT
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
@@ -55,7 +57,7 @@ public:
     explicit QMqttClient(QObject *parent = 0);
 
     void setTransport(QIODevice *device, TransportType transport);
-    QIODevice *transport() const { return m_transport; }
+    QIODevice *transport() const;
 
     bool subscribe(const QString& topic);
     void unsubscribe(const QString& topic);
@@ -70,7 +72,6 @@ public:
 
     void connectToHost();
     void disconnectFromHost();
-
 
 signals:
     void connected();
@@ -93,16 +94,7 @@ public slots:
     void setProtocolVersion(quint8 protocolVersion);
 
 private:
-    QString m_hostname;
-    quint16 m_port{0};
-    QIODevice *m_transport{nullptr};
-    TransportType m_transportType{IODevice};
-    bool m_ownTransport{false};
-    QString m_clientId; // auto-generated
-    quint16 m_keepAlive{60};
-    // 3 == MQTT Standard 3.1
-    // 4 == MQTT Standard 3.1.1
-    quint8 m_protocolVersion{3};
+    Q_DECLARE_PRIVATE(QMqttClient)
 };
 
 QT_END_NAMESPACE
