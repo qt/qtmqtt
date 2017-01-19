@@ -104,13 +104,18 @@ void QMqttClient::connectToHost()
         d->m_transport = socket;
         d->m_ownTransport = true;
         d->m_transportType = TransportType::AbstractSocket;
+
+        connect(d->m_transport, &QIODevice::aboutToClose, this, &QMqttClient::disconnected);
     }
+
+    setState(Connecting);
 
     // Check for open / connected
     if (!d->m_transport->isOpen()) {
         if (d->m_transportType == TransportType::IODevice) {
             if (d->m_transport->open(QIODevice::ReadWrite)) {
                 qWarning("Could not open Transport IO device");
+                setState(Disconnected);
                 return;
             }
         } else if (d->m_transportType == TransportType::AbstractSocket) {
@@ -119,6 +124,7 @@ void QMqttClient::connectToHost()
             socket->connectToHost(d->m_hostname, d->m_port);
             if (!socket->waitForConnected()) {
                 qWarning("Could not establish socket connection for transport");
+                setState(Disconnected);
                 return;
             }
         }
@@ -191,11 +197,20 @@ void QMqttClient::connectToHost()
 
     QByteArray result = d->m_transport->readAll();
     qDebug() << "Result content:" << result;
+
+    // For now we assume everything is fine...
+    setState(Connected);
 }
 
 void QMqttClient::disconnectFromHost()
 {
 
+}
+
+QMqttClient::State QMqttClient::state() const
+{
+    Q_D(const QMqttClient);
+    return d->m_state;
 }
 
 quint8 QMqttClient::protocolVersion() const
@@ -264,6 +279,16 @@ void QMqttClient::setProtocolVersion(quint8 protocolVersion)
 
     d->m_protocolVersion = protocolVersion;
     emit protocolVersionChanged(protocolVersion);
+}
+
+void QMqttClient::setState(QMqttClient::State state)
+{
+    Q_D(QMqttClient);
+    if (d->m_state == state)
+        return;
+
+    d->m_state = state;
+    emit stateChanged(state);
 }
 
 QMqttClientPrivate::QMqttClientPrivate()

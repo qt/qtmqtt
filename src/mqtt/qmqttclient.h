@@ -46,6 +46,12 @@ public:
         IODevice = 0,
         AbstractSocket
     };
+    enum State {
+        Disconnected = 0,
+        Connecting,
+        Connected
+    };
+
 private:
     Q_OBJECT
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
@@ -53,6 +59,7 @@ private:
     Q_PROPERTY(quint16 keepAlive READ keepAlive WRITE setKeepAlive NOTIFY keepAliveChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(quint8 protocolVersion READ protocolVersion WRITE setProtocolVersion NOTIFY protocolVersionChanged)
+    Q_PROPERTY(State state READ state WRITE setState NOTIFY stateChanged)
 public:
     explicit QMqttClient(QObject *parent = 0);
 
@@ -73,6 +80,8 @@ public:
     void connectToHost();
     void disconnectFromHost();
 
+    State state() const;
+
 signals:
     void connected();
     void disconnected();
@@ -86,12 +95,16 @@ signals:
     void keepAliveChanged(quint16 keepAlive);
     void protocolVersionChanged(quint8 protocolVersion);
 
+    void stateChanged(State state);
+
 public slots:
     void setHostname(QString hostname);
     void setPort(quint16 port);
     void setClientId(QString clientId);
     void setKeepAlive(quint16 keepAlive);
     void setProtocolVersion(quint8 protocolVersion);
+
+    void setState(State state);
 
 private:
     Q_DECLARE_PRIVATE(QMqttClient)

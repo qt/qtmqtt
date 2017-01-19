@@ -65,6 +65,7 @@ public:
     // 3 == MQTT Standard 3.1
     // 4 == MQTT Standard 3.1.1
     quint8 m_protocolVersion{3};
+    QMqttClient::State m_state{QMqttClient::Disconnected};
 };
 
 QT_END_NAMESPACE
