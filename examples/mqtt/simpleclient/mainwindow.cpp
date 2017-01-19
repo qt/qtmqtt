@@ -17,9 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_client, &QMqttClient::stateChanged, this, &MainWindow::updateLogStateChange);
     connect(m_client, &QMqttClient::disconnected, this, &MainWindow::brokerDisconnected);
     connect(ui->lineEditHost, &QLineEdit::textChanged, m_client, &QMqttClient::setHostname);
-    //connect(ui->spinBoxPort, &QSpinBox::valueChanged, m_client, &QMqttClient::setPort);
-
-    connect(ui->spinBoxPort, SIGNAL(valueChanged(int)), m_client, SLOT(setPort(quint16)));
+    connect(ui->spinBoxPort, SIGNAL(valueChanged(int)), this, SLOT(setClientPort(int)));
     updateLogStateChange();
 }
 
@@ -62,4 +60,9 @@ void MainWindow::brokerDisconnected()
     ui->lineEditHost->setEnabled(true);
     ui->spinBoxPort->setEnabled(true);
     ui->buttonConnect->setText(tr("Connect"));
+}
+
+void MainWindow::setClientPort(int p)
+{
+    m_client->setPort(p);
 }

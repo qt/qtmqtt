@@ -23,6 +23,7 @@ private slots:
     void updateLogStateChange();
 
     void brokerDisconnected();
+    void setClientPort(int p);
 
 private:
     Ui::MainWindow *ui;
