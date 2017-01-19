@@ -12,10 +12,12 @@ PUBLIC_HEADERS += \
     qmqttclient.h
 
 PRIVATE_HEADERS += \
-    qmqttclient_p.h
+    qmqttclient_p.h \
+    qmqttconnection_p.h
 
 SOURCES += \
-    qmqttclient.cpp
+    qmqttclient.cpp \
+    qmqttconnection.cpp
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS
 

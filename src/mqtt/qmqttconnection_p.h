@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef QMQTTCLIENT_P_H
-#define QMQTTCLIENT_P_H
+#ifndef QMQTTCONNECTION_P_H
+#define QMQTTCONNECTION_P_H
 
 //
 //  W A R N I N G
@@ -42,30 +42,69 @@
 //
 
 #include "qmqttclient.h"
-
-#include <QtNetwork/QAbstractSocket>
-
-#include <private/qmqttconnection_p.h>
-#include <private/qobject_p.h>
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 
-class QMqttClientPrivate : public QObjectPrivate
+class QMqttConnection : public QObject
 {
-    Q_DECLARE_PUBLIC(QMqttClient)
+    Q_OBJECT
+    enum PacketType {
+        CONNECT     = 0x10,
+        CONNACK     = 0x20,
+        PUBLISH     = 0x30,
+        PUBACK      = 0x40,
+        PUBREC      = 0x50,
+        PUBREL      = 0x60,
+        PUBCOMP     = 0x70,
+        SUBSCRIBE   = 0x80,
+        SUBACK      = 0x90,
+        UNSUBSCRIBE = 0xA0,
+        UNSUBACK    = 0xB0,
+        PINGREQ     = 0xC0,
+        PINGRESP    = 0xD0,
+        DISCONNECT  = 0xE0
+    };
+
+    enum InternalConnectionState {
+        BrokerDisconnected = 0,
+        BrokerWaitForConnectAck,
+        BrokerConnected
+    };
+
 public:
-    QMqttClientPrivate();
-    ~QMqttClientPrivate();
-    QString m_hostname;
-    quint16 m_port{0};
-    QMqttConnection m_connection;
-    QString m_clientId; // auto-generated
-    quint16 m_keepAlive{60};
-    // 3 == MQTT Standard 3.1
-    // 4 == MQTT Standard 3.1.1
-    quint8 m_protocolVersion{3};
-    QMqttClient::State m_state{QMqttClient::Disconnected};
+    explicit QMqttConnection(QObject *parent = 0);
+    ~QMqttConnection();
+
+    void setTransport(QIODevice *device, QMqttClient::TransportType transport);
+    QIODevice *transport() const;
+
+    bool ensureTransport();
+    bool ensureTransportOpen();
+
+    bool sendControlConnect();
+    bool sendControlPublish();
+    bool sendControlSubscribe();
+    bool sendControlUnsubscribe();
+    bool sendControlPingRequest();
+    bool sendControlDisconnect();
+
+    void setClient(QMqttClient *client);
+signals:
+
+public slots:
+    void transportConnectionClosed();
+    void transportReadReady();
+
+public:
+    QIODevice *m_transport{nullptr};
+    QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
+    bool m_ownTransport{false};
+    QMqttClient *m_client{nullptr};
+private:
+    InternalConnectionState m_internalState{BrokerDisconnected};
 };
 
 QT_END_NAMESPACE
-#endif // QMQTTCLIENT_P_H
+
+#endif // QMQTTCONNECTION_P_H
