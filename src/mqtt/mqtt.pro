@@ -6,11 +6,13 @@ QT_FOR_PRIVATE = network
 QMAKE_DOCS = $$PWD/doc/qtmqtt.qdocconf
 
 PUBLIC_HEADERS += \
-    qmqttglobal.h
+    qmqttglobal.h \
+    qmqttclient.h
 
 PRIVATE_HEADERS +=
 
-SOURCES +=
+SOURCES += \
+    qmqttclient.cpp
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS
 
