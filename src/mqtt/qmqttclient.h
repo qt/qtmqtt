@@ -69,7 +69,7 @@ public:
     bool subscribe(const QString& topic);
     void unsubscribe(const QString& topic);
 
-    //bool publish(const QString& message);
+    bool publish(const QString &topic, const QString& message = QString());
 
     QString hostname() const;
     quint16 port() const;

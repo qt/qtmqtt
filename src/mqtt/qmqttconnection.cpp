@@ -153,9 +153,7 @@ bool QMqttConnection::sendControlConnect()
         }
     }
 
-    const QByteArray send = packet.serialize();
-    const qint64 res = m_transport->write(send.constData(), send.size());
-    if (Q_UNLIKELY(res == -1)) {
+    if (!writePacketToTransport(packet)) {
         qWarning("Could not write CONNECT frame to transport");
         return false;
     }
@@ -164,10 +162,18 @@ bool QMqttConnection::sendControlConnect()
     return true;
 }
 
-bool QMqttConnection::sendControlPublish()
+bool QMqttConnection::sendControlPublish(const QString &topic, const QString &message)
 {
-    Q_UNIMPLEMENTED();
-    return false;
+    // ### TODO: DUP, QOS, RETAIN
+    QMqttControlPacket packet(QMqttControlPacket::PUBLISH);
+
+    packet.append(topic.toUtf8());
+
+    // ### TODO: Add packet identifier (for QOS1/2)
+
+    packet.append(message.toUtf8());
+
+    return writePacketToTransport(packet);
 }
 
 bool QMqttConnection::sendControlSubscribe()
@@ -191,9 +197,7 @@ bool QMqttConnection::sendControlPingRequest()
 bool QMqttConnection::sendControlDisconnect()
 {
     const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
-    const QByteArray writeData = packet.serialize();
-    const qint64 res = m_transport->write(writeData.constData(), writeData.size());
-    if (Q_UNLIKELY(res == -1)) {
+    if (!writePacketToTransport(packet)) {
         qWarning("Could not write DISCONNECT frame to transport");
         return false;
     }
@@ -267,6 +271,17 @@ void QMqttConnection::transportReadReady()
         qWarning("Transport received unknown data");
     }
     }
+}
+
+bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)
+{
+    const QByteArray writeData = p.serialize();
+    const qint64 res = m_transport->write(writeData.constData(), writeData.size());
+    if (Q_UNLIKELY(res == -1)) {
+        qWarning("Could not write frame to transport");
+        return false;
+    }
+    return true;
 }
 
 QT_END_NAMESPACE

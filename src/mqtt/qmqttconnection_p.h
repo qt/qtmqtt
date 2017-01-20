@@ -42,6 +42,7 @@
 //
 
 #include "qmqttclient.h"
+#include "qmqttcontrolpacket_p.h"
 #include <QObject>
 
 QT_BEGIN_NAMESPACE
@@ -74,7 +75,7 @@ public:
     bool ensureTransportOpen();
 
     bool sendControlConnect();
-    bool sendControlPublish();
+    bool sendControlPublish(const QString &topic, const QString &message);
     bool sendControlSubscribe();
     bool sendControlUnsubscribe();
     bool sendControlPingRequest();
@@ -95,6 +96,7 @@ public:
     bool m_ownTransport{false};
     QMqttClient *m_client{nullptr};
 private:
+    bool writePacketToTransport(const QMqttControlPacket &p);
     InternalConnectionState m_internalState{BrokerDisconnected};
 };
 
