@@ -88,13 +88,13 @@ signals:
     void error();
     void subscribed();
     void unsubscribed();
+    void messageReceived(const QString &topic, const QString &message);
 
     void hostnameChanged(QString hostname);
     void portChanged(quint16 port);
     void clientIdChanged(QString clientId);
     void keepAliveChanged(quint16 keepAlive);
     void protocolVersionChanged(quint8 protocolVersion);
-
     void stateChanged(State state);
 
 public slots:

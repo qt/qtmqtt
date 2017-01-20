@@ -238,7 +238,6 @@ void QMqttConnection::transportConnectionClosed()
 
 void QMqttConnection::transportReadReady()
 {
-    qWarning("Connection can read stuff");
     QByteArray data = m_transport->readAll();
     Q_ASSERT(data.size());
     const quint8 *ptr = reinterpret_cast<const quint8 *>(data.constData());
@@ -301,6 +300,25 @@ void QMqttConnection::transportReadReady()
         } else {
             qWarning("Received invalid SUBACK result value");
         }
+        break;
+    }
+    case QMqttControlPacket::PUBLISH: {
+        const quint8 *msgPtr = ptr;
+        // PUBLISH byte
+        msgPtr++;
+        // remaining length
+        msgPtr++;
+        // String topic
+        const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(msgPtr)[0]);
+        msgPtr += 2;
+        const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(msgPtr), topicLength);
+        msgPtr += topicLength;
+        // String message
+        const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(msgPtr)[0]);
+        msgPtr += 2;
+        const QString message = QString::fromUtf8(reinterpret_cast<const char *>(msgPtr), messageLength);
+
+        emit m_client->messageReceived(topic, message);
         break;
     }
     default: {
