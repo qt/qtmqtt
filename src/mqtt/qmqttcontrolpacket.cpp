@@ -78,7 +78,7 @@ void QMqttControlPacket::append(const QByteArray &data)
     m_payload.append(data.constData());
 }
 
-QByteArray QMqttControlPacket::serialize()
+QByteArray QMqttControlPacket::serialize() const
 {
     // Create ByteArray
     QByteArray data;

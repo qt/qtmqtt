@@ -111,7 +111,12 @@ void QMqttClient::connectToHost()
 
 void QMqttClient::disconnectFromHost()
 {
+    Q_D(QMqttClient);
 
+    if (d->m_connection.internalState() != QMqttConnection::BrokerConnected)
+        return;
+
+    d->m_connection.sendControlDisconnect();
 }
 
 QMqttClient::State QMqttClient::state() const

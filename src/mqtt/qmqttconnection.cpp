@@ -190,7 +190,20 @@ bool QMqttConnection::sendControlPingRequest()
 
 bool QMqttConnection::sendControlDisconnect()
 {
-    Q_UNIMPLEMENTED();
+    const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
+    const QByteArray writeData = packet.serialize();
+    const qint64 res = m_transport->write(writeData.constData(), writeData.size());
+    if (Q_UNLIKELY(res == -1)) {
+        qWarning("Could not write DISCONNECT frame to transport");
+        return false;
+    }
+    m_internalState = BrokerDisconnected;
+
+    if (m_transport->waitForBytesWritten(30000)) {
+        // MQTT-3.14.4-1 must disconnect
+        m_transport->close();
+        return true;
+    }
     return false;
 }
 

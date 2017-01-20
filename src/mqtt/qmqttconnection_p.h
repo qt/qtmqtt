@@ -49,7 +49,7 @@ QT_BEGIN_NAMESPACE
 class QMqttConnection : public QObject
 {
     Q_OBJECT
-
+public:
     enum InternalConnectionState {
         BrokerDisconnected = 0,
         BrokerWaitForConnectAck,
@@ -64,8 +64,6 @@ class QMqttConnection : public QObject
         BadUsernameOrPassword  = 4,
         NotAuthorized          = 5
     };
-
-public:
     explicit QMqttConnection(QObject *parent = 0);
     ~QMqttConnection();
 
@@ -83,6 +81,8 @@ public:
     bool sendControlDisconnect();
 
     void setClient(QMqttClient *client);
+
+    inline InternalConnectionState internalState() const { return m_internalState; }
 signals:
 
 public slots:
