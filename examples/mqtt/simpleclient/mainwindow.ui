@@ -63,13 +63,6 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Topic:</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="lineEditTopic">
         <property name="text">
@@ -77,10 +70,10 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="buttonSubscribe">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
         <property name="text">
-         <string>Subscribe</string>
+         <string>Topic:</string>
         </property>
        </widget>
       </item>
@@ -91,6 +84,20 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="2">
+       <widget class="QPushButton" name="buttonPublish">
+        <property name="text">
+         <string>Publish</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="buttonSubscribe">
+        <property name="text">
+         <string>Subscribe</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="1">
        <widget class="QLineEdit" name="lineEditMessage">
         <property name="text">
@@ -98,10 +105,10 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
-       <widget class="QPushButton" name="buttonPublish">
+      <item row="2" column="2">
+       <widget class="QPushButton" name="buttonPing">
         <property name="text">
-         <string>Publish</string>
+         <string>Ping</string>
         </property>
        </widget>
       </item>

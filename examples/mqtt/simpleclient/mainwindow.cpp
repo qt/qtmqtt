@@ -27,10 +27,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_client, &QMqttClient::messageReceived, this, [this](const QString &topic, const QString &message) {
         const QString content = QDateTime::currentDateTime().toString()
                     + QLatin1String(" Received Topic: ")
-                + topic
-                + QLatin1String(" Message: ")
-                + message
-                + QLatin1Char('\n');
+                    + topic
+                    + QLatin1String(" Message: ")
+                    + message
+                    + QLatin1Char('\n');
+        ui->editLog->insertPlainText(content);
+    });
+
+    connect(m_client, &QMqttClient::pingResponse, this, [this]() {
+        ui->buttonPing->setEnabled(true);
+        const QString content = QDateTime::currentDateTime().toString()
+                    + QLatin1String(" PingResponse")
+                    + QLatin1Char('\n');
         ui->editLog->insertPlainText(content);
     });
 
@@ -93,4 +101,10 @@ void MainWindow::on_buttonPublish_clicked()
 void MainWindow::on_buttonSubscribe_clicked()
 {
     m_client->subscribe(ui->lineEditTopic->text());
+}
+
+void MainWindow::on_buttonPing_clicked()
+{
+    ui->buttonPing->setEnabled(false);
+    m_client->requestPing();
 }
