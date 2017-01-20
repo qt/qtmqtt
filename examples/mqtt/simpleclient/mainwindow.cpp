@@ -24,6 +24,16 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->editLog->insertPlainText(content);
     });
 
+    connect(m_client, &QMqttClient::messageReceived, this, [this](const QString &topic, const QString &message) {
+        const QString content = QDateTime::currentDateTime().toString()
+                    + QLatin1String(" Received Topic: ")
+                + topic
+                + QLatin1String(" Message: ")
+                + message
+                + QLatin1Char('\n');
+        ui->editLog->insertPlainText(content);
+    });
+
     connect(ui->lineEditHost, &QLineEdit::textChanged, m_client, &QMqttClient::setHostname);
     connect(ui->spinBoxPort, SIGNAL(valueChanged(int)), this, SLOT(setClientPort(int)));
     updateLogStateChange();
