@@ -73,7 +73,6 @@ void QMqttClient::unsubscribe(const QString &topic)
 
 bool QMqttClient::publish(const QString &topic, const QString &message)
 {
-    Q_UNUSED(message);
     Q_D(QMqttClient);
     return d->m_connection.sendControlPublish(topic, message);
 }
