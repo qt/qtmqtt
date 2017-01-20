@@ -25,6 +25,8 @@ private slots:
     void brokerDisconnected();
     void setClientPort(int p);
 
+    void on_buttonPublish_clicked();
+
 private:
     Ui::MainWindow *ui;
     QMqttClient *m_client;
