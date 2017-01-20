@@ -61,9 +61,8 @@ QIODevice *QMqttClient::transport() const
 
 bool QMqttClient::subscribe(const QString &topic)
 {
-    Q_UNIMPLEMENTED();
-    Q_UNUSED(topic);
-    return false;
+    Q_D(QMqttClient);
+    return d->m_connection.sendControlSubscribe(topic);
 }
 
 void QMqttClient::unsubscribe(const QString &topic)

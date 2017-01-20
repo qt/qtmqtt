@@ -176,10 +176,24 @@ bool QMqttConnection::sendControlPublish(const QString &topic, const QString &me
     return writePacketToTransport(packet);
 }
 
-bool QMqttConnection::sendControlSubscribe()
+bool QMqttConnection::sendControlSubscribe(const QString &topic)
 {
-    Q_UNIMPLEMENTED();
-    return false;
+    // has to have 0010 as bits 3-0, maybe update SUBSCRIBE instead?
+    // MQTT-3.8.1-1
+    const quint8 header = QMqttControlPacket::SUBSCRIBE + 0x02;
+    QMqttControlPacket packet(header);
+
+    // Add Packet Identifier
+    const quint16 identifier = qrand();
+    packet.append(identifier);
+
+    packet.append(topic.toUtf8());
+    // ### TODO: Add actual QOS
+    packet.append(char(0)); // QOS
+
+    // SUBACK must contain identifier MQTT-3.8.4-2
+    m_pendingSubscriptionAck.insert(identifier);
+    return writePacketToTransport(packet);
 }
 
 bool QMqttConnection::sendControlUnsubscribe()
@@ -228,7 +242,7 @@ void QMqttConnection::transportReadReady()
     QByteArray data = m_transport->readAll();
     Q_ASSERT(data.size());
     const quint8 *ptr = reinterpret_cast<const quint8 *>(data.constData());
-    switch (data[0]) {
+    switch (ptr[0]) {
     case QMqttControlPacket::CONNACK: {
         if (m_internalState != BrokerWaitForConnectAck) {
             qWarning("Received CONNACK at unexpected time!");
@@ -265,6 +279,28 @@ void QMqttConnection::transportReadReady()
         }
         m_internalState = BrokerConnected;
         m_client->setState(QMqttClient::Connected);
+        break;
+    }
+    case QMqttControlPacket::SUBACK: {
+        const quint16 id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(&ptr[2])[0]);
+        if (!m_pendingSubscriptionAck.contains(id)) {
+            qWarning("Received SUBACK for unknown subscription request");
+            break;
+        }
+        const quint8 result = ptr[4];
+        if (result <= 2) {
+            // ### TODO: subscriptionSucceeded/Failed
+            emit m_client->subscribed();
+            // 0 Success with QoS 0
+            // 1 Success with QoS 1
+            // 2 Success with QoS 2
+            m_pendingSubscriptionAck.remove(id);
+        } else if (result == 0x80) {
+            // ### TODO: subscriptionFailed
+            qWarning("Subscription failed");
+        } else {
+            qWarning("Received invalid SUBACK result value");
+        }
         break;
     }
     default: {

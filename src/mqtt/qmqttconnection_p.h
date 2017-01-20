@@ -76,7 +76,7 @@ public:
 
     bool sendControlConnect();
     bool sendControlPublish(const QString &topic, const QString &message);
-    bool sendControlSubscribe();
+    bool sendControlSubscribe(const QString &topic);
     bool sendControlUnsubscribe();
     bool sendControlPingRequest();
     bool sendControlDisconnect();
@@ -97,6 +97,7 @@ public:
     QMqttClient *m_client{nullptr};
 private:
     bool writePacketToTransport(const QMqttControlPacket &p);
+    QSet<quint16> m_pendingSubscriptionAck;
     InternalConnectionState m_internalState{BrokerDisconnected};
 };
 
