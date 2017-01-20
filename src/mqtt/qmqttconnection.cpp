@@ -40,7 +40,9 @@ QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 
 QMqttConnection::~QMqttConnection()
 {
-    // ### TODO: check for open connection and quit gracefully
+    if (m_internalState == BrokerConnected)
+        sendControlDisconnect();
+
     if (m_ownTransport && m_transport)
         delete m_transport;
 }
