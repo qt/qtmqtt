@@ -16,6 +16,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(m_client, &QMqttClient::stateChanged, this, &MainWindow::updateLogStateChange);
     connect(m_client, &QMqttClient::disconnected, this, &MainWindow::brokerDisconnected);
+
+    connect(m_client, &QMqttClient::subscribed, this, [this]() {
+        const QString content = QDateTime::currentDateTime().toString()
+                    + QLatin1String("Subscription Succeeded")
+                + QLatin1Char('\n');
+        ui->editLog->insertPlainText(content);
+    });
+
     connect(ui->lineEditHost, &QLineEdit::textChanged, m_client, &QMqttClient::setHostname);
     connect(ui->spinBoxPort, SIGNAL(valueChanged(int)), this, SLOT(setClientPort(int)));
     updateLogStateChange();
@@ -70,4 +78,9 @@ void MainWindow::setClientPort(int p)
 void MainWindow::on_buttonPublish_clicked()
 {
     m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text());
+}
+
+void MainWindow::on_buttonSubscribe_clicked()
+{
+    m_client->subscribe(ui->lineEditTopic->text());
 }
