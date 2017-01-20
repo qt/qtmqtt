@@ -47,7 +47,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class QMqttConnection : public QObject
+class Q_AUTOTEST_EXPORT QMqttConnection : public QObject
 {
     Q_OBJECT
 public:

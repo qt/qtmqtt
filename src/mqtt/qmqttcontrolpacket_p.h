@@ -46,7 +46,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class QMqttControlPacket
+class Q_AUTOTEST_EXPORT QMqttControlPacket
 {
 public:
     enum PacketType {
