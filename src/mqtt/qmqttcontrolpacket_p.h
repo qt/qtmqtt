@@ -27,8 +27,8 @@
 **
 ****************************************************************************/
 
-#ifndef QMQTTCONNECTION_P_H
-#define QMQTTCONNECTION_P_H
+#ifndef QMQTTCONTROLPACKET_P_H
+#define QMQTTCONTROLPACKET_P_H
 
 //
 //  W A R N I N G
@@ -41,63 +41,51 @@
 // We mean it.
 //
 
-#include "qmqttclient.h"
-#include <QObject>
+#include <QtCore/QtGlobal>
+#include <QtCore/QByteArray>
 
 QT_BEGIN_NAMESPACE
 
-class QMqttConnection : public QObject
+class QMqttControlPacket
 {
-    Q_OBJECT
-
-    enum InternalConnectionState {
-        BrokerDisconnected = 0,
-        BrokerWaitForConnectAck,
-        BrokerConnected
+public:
+    enum PacketType {
+        CONNECT     = 0x10,
+        CONNACK     = 0x20,
+        PUBLISH     = 0x30,
+        PUBACK      = 0x40,
+        PUBREC      = 0x50,
+        PUBREL      = 0x60,
+        PUBCOMP     = 0x70,
+        SUBSCRIBE   = 0x80,
+        SUBACK      = 0x90,
+        UNSUBSCRIBE = 0xA0,
+        UNSUBACK    = 0xB0,
+        PINGREQ     = 0xC0,
+        PINGRESP    = 0xD0,
+        DISCONNECT  = 0xE0
     };
 
-    enum ConnectionError {
-        NoError                = 0,
-        InvalidProtocolVersion = 1,
-        IdRejected             = 2,
-        ServerUnavailable      = 3,
-        BadUsernameOrPassword  = 4,
-        NotAuthorized          = 5
-    };
+    QMqttControlPacket();
+    QMqttControlPacket(quint8 header);
+    QMqttControlPacket(quint8 header, const QByteArray &pay);
 
-public:
-    explicit QMqttConnection(QObject *parent = 0);
-    ~QMqttConnection();
+    void clear();
 
-    void setTransport(QIODevice *device, QMqttClient::TransportType transport);
-    QIODevice *transport() const;
+    void setHeader(quint8 h);
+    inline quint8 header() const { return m_header; }
 
-    bool ensureTransport();
-    bool ensureTransportOpen();
+    void append(char value);
+    void append(quint16 value);
+    void append(const QByteArray &data);
 
-    bool sendControlConnect();
-    bool sendControlPublish();
-    bool sendControlSubscribe();
-    bool sendControlUnsubscribe();
-    bool sendControlPingRequest();
-    bool sendControlDisconnect();
-
-    void setClient(QMqttClient *client);
-signals:
-
-public slots:
-    void transportConnectionClosed();
-    void transportReadReady();
-
-public:
-    QIODevice *m_transport{nullptr};
-    QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
-    bool m_ownTransport{false};
-    QMqttClient *m_client{nullptr};
+    QByteArray serialize();
+    inline QByteArray payload() const { return m_payload; }
 private:
-    InternalConnectionState m_internalState{BrokerDisconnected};
+    quint8 m_header;
+    QByteArray m_payload;
 };
 
 QT_END_NAMESPACE
 
-#endif // QMQTTCONNECTION_P_H
+#endif // QMQTTCONTROLPACKET_P_H

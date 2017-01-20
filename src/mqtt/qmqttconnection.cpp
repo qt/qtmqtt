@@ -27,6 +27,7 @@
 **
 ****************************************************************************/
 #include "qmqttconnection_p.h"
+#include "qmqttcontrolpacket_p.h"
 
 #include <QtNetwork/QTcpSocket>
 
@@ -109,36 +110,20 @@ bool QMqttConnection::ensureTransportOpen()
     return true;
 }
 
-inline void addInt(QByteArray &data, quint16 n)
-{
-    const quint16 msb = qToBigEndian<quint16>(n);
-    const char * msb_c = reinterpret_cast<const char*>(&msb);
-    data.append(msb_c[0]);
-    data.append(msb_c[1]);
-    return;
-}
-
 bool QMqttConnection::sendControlConnect()
 {
-    QByteArray connectFrame;
-    // Fixed header
-    connectFrame += PacketType::CONNECT;
+    QMqttControlPacket packet(QMqttControlPacket::CONNECT);
 
-    connectFrame += char(0); // Length to be filled later
     // Variable header
     // 3.1.2.1 Protocol Name
     // 3.1.2.2 Protocol Level
     const quint8 protocolVersion = m_client->protocolVersion();
     if (protocolVersion == 3) {
-        const QByteArray other("MQIsdp");
-        addInt(connectFrame, other.size());
-        connectFrame += other.data();
-        connectFrame += char(3); // Version 3.1
+        packet.append("MQIsdp");
+        packet.append(char(3)); // Version 3.1
     } else if (protocolVersion == 4) {
-        connectFrame += char(0); // Length MSB
-        connectFrame += 4; // Length LSB
-        connectFrame += "MQTT";
-        connectFrame += char(4); // Version 3.1.1
+        packet.append("MQTT");
+        packet.append(char(4)); // Version 3.1.1
     } else {
         qFatal("Illegal MQTT VERSION");
     }
@@ -147,32 +132,29 @@ bool QMqttConnection::sendControlConnect()
     quint8 flags = 0;
     // Clean session
     flags |= 1;
-    connectFrame += char(flags);
+    packet.append(char(flags));
 
     // 3.1.2.10 Keep Alive
-    addInt(connectFrame, m_client->keepAlive());
+    packet.append(m_client->keepAlive());
 
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
     if (protocolVersion == 3) { // no username
-        connectFrame += char(0);
-        connectFrame += char(0);
+        packet.append(char(0));
+        packet.append(char(0));
     } else if (protocolVersion == 4) {
         // Client id maximum left is 23
         const QByteArray clientStringArray = m_client->clientId().left(23).toUtf8();
         if (clientStringArray.size()) {
-            addInt(connectFrame, clientStringArray.size());
-            connectFrame += clientStringArray;
+            packet.append(clientStringArray);
         } else {
-            connectFrame += char(0);
-            connectFrame += char(0);
+            packet.append(char(0));
+            packet.append(char(0));
         }
     }
 
-    const quint8 frameLength = connectFrame.size();
-    connectFrame[1] = char(frameLength - 2); // The header bytes are not included
-
-    const qint64 res = m_transport->write(connectFrame.constData(), frameLength);
+    const QByteArray send = packet.serialize();
+    const qint64 res = m_transport->write(send.constData(), send.size());
     if (Q_UNLIKELY(res == -1)) {
         qWarning("Could not write CONNECT frame to transport");
         return false;
@@ -230,7 +212,7 @@ void QMqttConnection::transportReadReady()
     Q_ASSERT(data.size());
     const quint8 *ptr = reinterpret_cast<const quint8 *>(data.constData());
     switch (data[0]) {
-    case PacketType::CONNACK: {
+    case QMqttControlPacket::CONNACK: {
         if (m_internalState != BrokerWaitForConnectAck) {
             qWarning("Received CONNACK at unexpected time!");
             break;
@@ -261,6 +243,7 @@ void QMqttConnection::transportReadReady()
         if (connectResultValue != 0) {
             qWarning("Connection has been rejected");
             // MQTT-3.2.2-5
+            // ConnectionError
             m_transport->close();
         }
         m_internalState = BrokerConnected;
