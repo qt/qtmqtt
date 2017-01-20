@@ -201,8 +201,12 @@ bool QMqttConnection::sendControlUnsubscribe()
 
 bool QMqttConnection::sendControlPingRequest()
 {
-    Q_UNIMPLEMENTED();
-    return false;
+    const QMqttControlPacket packet(QMqttControlPacket::PINGREQ);
+    if (!writePacketToTransport(packet)) {
+        qWarning("Could not write DISCONNECT frame to transport");
+        return false;
+    }
+    return true;
 }
 
 bool QMqttConnection::sendControlDisconnect()
@@ -316,6 +320,12 @@ void QMqttConnection::transportReadReady()
         const QString message = QString::fromUtf8(reinterpret_cast<const char *>(msgPtr), messageLength);
 
         emit m_client->messageReceived(topic, message);
+        break;
+    }
+    case QMqttControlPacket::PINGRESP: {
+        if (ptr[1] != 0)
+            qWarning("Received a PINGRESP with payload!");
+        emit m_client->pingResponse();
         break;
     }
     default: {

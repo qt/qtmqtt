@@ -78,6 +78,12 @@ bool QMqttClient::publish(const QString &topic, const QString &message)
     return d->m_connection.sendControlPublish(topic, message);
 }
 
+bool QMqttClient::requestPing()
+{
+    Q_D(QMqttClient);
+    return d->m_connection.sendControlPingRequest();
+}
+
 QString QMqttClient::hostname() const
 {
     Q_D(const QMqttClient);

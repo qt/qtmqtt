@@ -70,6 +70,7 @@ public:
     void unsubscribe(const QString& topic);
 
     bool publish(const QString &topic, const QString& message = QString());
+    bool requestPing();
 
     QString hostname() const;
     quint16 port() const;
@@ -89,6 +90,7 @@ signals:
     void subscribed();
     void unsubscribed();
     void messageReceived(const QString &topic, const QString &message);
+    void pingResponse();
 
     void hostnameChanged(QString hostname);
     void portChanged(quint16 port);
