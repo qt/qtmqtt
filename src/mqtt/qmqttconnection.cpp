@@ -139,18 +139,13 @@ bool QMqttConnection::sendControlConnect()
 
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
-    if (protocolVersion == 3) { // no username
+    // Client id maximum left is 23
+    const QByteArray clientStringArray = m_client->clientId().left(23).toUtf8();
+    if (clientStringArray.size()) {
+        packet.append(clientStringArray);
+    } else {
         packet.append(char(0));
         packet.append(char(0));
-    } else if (protocolVersion == 4) {
-        // Client id maximum left is 23
-        const QByteArray clientStringArray = m_client->clientId().left(23).toUtf8();
-        if (clientStringArray.size()) {
-            packet.append(clientStringArray);
-        } else {
-            packet.append(char(0));
-            packet.append(char(0));
-        }
     }
 
     if (!writePacketToTransport(packet)) {
