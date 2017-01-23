@@ -212,6 +212,8 @@ void QMqttClient::setState(QMqttClient::State state)
 
     d->m_state = state;
     emit stateChanged(state);
+    if (d->m_state == QMqttClient::Disconnected)
+        emit disconnected();
 }
 
 QMqttClientPrivate::QMqttClientPrivate()
