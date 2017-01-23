@@ -92,10 +92,10 @@ bool QMqttConnection::ensureTransport()
 
 bool QMqttConnection::ensureTransportOpen()
 {
-    if (m_transport->isOpen())
-        return true;
-
     if (m_transportType == QMqttClient::IODevice) {
+        if (m_transport->isOpen())
+            return true;
+
         if (m_transport->open(QIODevice::ReadWrite)) {
             qWarning("Could not open Transport IO device");
             return false;
@@ -103,6 +103,9 @@ bool QMqttConnection::ensureTransportOpen()
     } else if (m_transportType == QMqttClient::AbstractSocket) {
         auto socket = dynamic_cast<QTcpSocket*>(m_transport);
         Q_ASSERT(socket);
+        if (socket->state() == QAbstractSocket::ConnectedState)
+            return true;
+
         socket->connectToHost(m_client->hostname(), m_client->port());
         if (!socket->waitForConnected()) {
             qWarning("Could not establish socket connection for transport");
