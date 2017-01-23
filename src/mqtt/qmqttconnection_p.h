@@ -43,7 +43,8 @@
 
 #include "qmqttclient.h"
 #include "qmqttcontrolpacket_p.h"
-#include <QObject>
+#include <QtCore/QObject>
+#include <QtCore/QTimer>
 
 QT_BEGIN_NAMESPACE
 
@@ -99,6 +100,7 @@ private:
     bool writePacketToTransport(const QMqttControlPacket &p);
     QSet<quint16> m_pendingSubscriptionAck;
     InternalConnectionState m_internalState{BrokerDisconnected};
+    QTimer m_pingTimer;
 };
 
 QT_END_NAMESPACE

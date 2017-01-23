@@ -35,7 +35,8 @@ QT_BEGIN_NAMESPACE
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
-
+    m_pingTimer.setSingleShot(false);
+    m_pingTimer.connect(&m_pingTimer, &QTimer::timeout, this, &QMqttConnection::sendControlPingRequest);
 }
 
 QMqttConnection::~QMqttConnection()
@@ -214,6 +215,8 @@ bool QMqttConnection::sendControlPingRequest()
 
 bool QMqttConnection::sendControlDisconnect()
 {
+    m_pingTimer.stop();
+
     const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
     if (!writePacketToTransport(packet)) {
         qWarning("Could not write DISCONNECT frame to transport");
@@ -237,6 +240,7 @@ void QMqttConnection::setClient(QMqttClient *client)
 void QMqttConnection::transportConnectionClosed()
 {
     qWarning("Transport Connection closed!");
+    m_pingTimer.stop();
     m_client->setState(QMqttClient::Disconnected);
 }
 
@@ -282,6 +286,9 @@ void QMqttConnection::transportReadReady()
         }
         m_internalState = BrokerConnected;
         m_client->setState(QMqttClient::Connected);
+
+        m_pingTimer.setInterval(m_client->keepAlive() * 1000);
+        m_pingTimer.start();
         break;
     }
     case QMqttControlPacket::SUBACK: {
