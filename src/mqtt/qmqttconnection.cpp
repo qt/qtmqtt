@@ -259,7 +259,7 @@ void QMqttConnection::transportReadReady()
         }
         quint8 ackFlags = ptr[2];
         if (ackFlags > 1) { // MQTT-3.2.2.1
-            qWarning("Unexpected CONACK Flags set");
+            qWarning("Unexpected CONNACK Flags set");
             // ## SET SOME ERROR
             break;
         }
