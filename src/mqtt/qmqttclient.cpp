@@ -190,6 +190,11 @@ void QMqttClient::setKeepAlive(quint16 keepAlive)
     if (d->m_keepAlive == keepAlive)
         return;
 
+    if (state() != QMqttClient::Disconnected) {
+        qWarning("Trying to modify keepAlive while connected.");
+        return;
+    }
+
     d->m_keepAlive = keepAlive;
     emit keepAliveChanged(keepAlive);
 }
