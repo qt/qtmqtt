@@ -50,6 +50,7 @@ class Q_AUTOTEST_EXPORT QMqttControlPacket
 {
 public:
     enum PacketType {
+        UNKNOWN     = 0x00,
         CONNECT     = 0x10,
         CONNACK     = 0x20,
         PUBLISH     = 0x30,
@@ -63,7 +64,7 @@ public:
         UNSUBACK    = 0xB0,
         PINGREQ     = 0xC0,
         PINGRESP    = 0xD0,
-        DISCONNECT  = 0xE0
+        DISCONNECT  = 0xE0,
     };
 
     QMqttControlPacket();
@@ -82,7 +83,7 @@ public:
     QByteArray serialize() const;
     inline QByteArray payload() const { return m_payload; }
 private:
-    quint8 m_header;
+    quint8 m_header{UNKNOWN};
     QByteArray m_payload;
 };
 

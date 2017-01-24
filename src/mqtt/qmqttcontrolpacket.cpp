@@ -56,7 +56,10 @@ void QMqttControlPacket::clear()
 
 void QMqttControlPacket::setHeader(quint8 h)
 {
-    m_header = h;
+    if (h < QMqttControlPacket::CONNECT || h > DISCONNECT || h & 0x0F)
+        m_header = QMqttControlPacket::UNKNOWN;
+    else
+        m_header = h;
 }
 
 void QMqttControlPacket::append(char value)

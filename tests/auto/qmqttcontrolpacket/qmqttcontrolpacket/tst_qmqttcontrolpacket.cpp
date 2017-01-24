@@ -44,6 +44,9 @@ void Tst_QMqttControlPacket::header()
 
         packet.clear();
         QVERIFY(packet.header() == QMqttControlPacket::UNKNOWN);
+
+        packet.setHeader(42);
+        QVERIFY(packet.header() == QMqttControlPacket::UNKNOWN);
     }
 }
 
