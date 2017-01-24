@@ -1,2 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS += cmake
+SUBDIRS += cmake \
+    qmqttcontrolpacket/qmqttcontrolpacket
