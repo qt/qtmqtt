@@ -136,6 +136,18 @@ QMqttClient::State QMqttClient::state() const
     return d->m_state;
 }
 
+QString QMqttClient::username() const
+{
+    Q_D(const QMqttClient);
+    return d->m_username;
+}
+
+QString QMqttClient::password() const
+{
+    Q_D(const QMqttClient);
+    return d->m_password;
+}
+
 quint8 QMqttClient::protocolVersion() const
 {
     Q_D(const QMqttClient);
@@ -219,6 +231,26 @@ void QMqttClient::setState(QMqttClient::State state)
     emit stateChanged(state);
     if (d->m_state == QMqttClient::Disconnected)
         emit disconnected();
+}
+
+void QMqttClient::setUsername(QString username)
+{
+    Q_D(QMqttClient);
+    if (d->m_username == username)
+        return;
+
+    d->m_username = username;
+    emit usernameChanged(username);
+}
+
+void QMqttClient::setPassword(QString password)
+{
+    Q_D(QMqttClient);
+    if (d->m_password == password)
+        return;
+
+    d->m_password = password;
+    emit passwordChanged(password);
 }
 
 QMqttClientPrivate::QMqttClientPrivate()

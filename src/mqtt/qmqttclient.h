@@ -60,6 +60,8 @@ private:
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(quint8 protocolVersion READ protocolVersion WRITE setProtocolVersion NOTIFY protocolVersionChanged)
     Q_PROPERTY(State state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
+    Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
 public:
     explicit QMqttClient(QObject *parent = 0);
 
@@ -83,6 +85,9 @@ public:
 
     State state() const;
 
+    QString username() const;
+    QString password() const;
+
 signals:
     void connected();
     void disconnected();
@@ -98,6 +103,8 @@ signals:
     void keepAliveChanged(quint16 keepAlive);
     void protocolVersionChanged(quint8 protocolVersion);
     void stateChanged(State state);
+    void usernameChanged(QString username);
+    void passwordChanged(QString password);
 
 public slots:
     void setHostname(QString hostname);
@@ -105,8 +112,9 @@ public slots:
     void setClientId(QString clientId);
     void setKeepAlive(quint16 keepAlive);
     void setProtocolVersion(quint8 protocolVersion);
-
     void setState(State state);
+    void setUsername(QString username);
+    void setPassword(QString password);
 
 private:
     Q_DECLARE_PRIVATE(QMqttClient)

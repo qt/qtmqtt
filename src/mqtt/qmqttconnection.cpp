@@ -138,6 +138,13 @@ bool QMqttConnection::sendControlConnect()
     quint8 flags = 0;
     // Clean session
     flags |= 1;
+
+    if (m_client->username().size())
+        flags |= 1 << 7;
+
+    if (m_client->password().size())
+        flags |= 1 << 6;
+
     packet.append(char(flags));
 
     // 3.1.2.10 Keep Alive
@@ -153,6 +160,13 @@ bool QMqttConnection::sendControlConnect()
         packet.append(char(0));
         packet.append(char(0));
     }
+
+
+    if (m_client->username().size())
+        packet.append(m_client->username().toUtf8());
+
+    if (m_client->password().size())
+        packet.append(m_client->password().toUtf8());
 
     if (!writePacketToTransport(packet)) {
         qWarning("Could not write CONNECT frame to transport");
