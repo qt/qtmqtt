@@ -231,6 +231,8 @@ void QMqttClient::setState(QMqttClient::State state)
     emit stateChanged(state);
     if (d->m_state == QMqttClient::Disconnected)
         emit disconnected();
+    else if (d->m_state == QMqttClient::Connected)
+        emit connected();
 }
 
 void QMqttClient::setUsername(QString username)
