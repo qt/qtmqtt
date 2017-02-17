@@ -44,7 +44,9 @@
 #include "qmqttclient.h"
 #include "qmqttcontrolpacket_p.h"
 #include <QtCore/QObject>
+#include <QtCore/QSet>
 #include <QtCore/QTimer>
+#include <QtCore/QtEndian>
 
 QT_BEGIN_NAMESPACE
 

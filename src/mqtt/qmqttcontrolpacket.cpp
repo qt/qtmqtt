@@ -27,6 +27,7 @@
 **
 ****************************************************************************/
 #include "qmqttcontrolpacket_p.h"
+#include <QtCore/QtEndian>
 
 QT_BEGIN_NAMESPACE
 
