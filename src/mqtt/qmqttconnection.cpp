@@ -260,102 +260,116 @@ void QMqttConnection::transportConnectionClosed()
 
 void QMqttConnection::transportReadReady()
 {
-    QByteArray data = m_transport->readAll();
-    Q_ASSERT(data.size());
-    const quint8 *ptr = reinterpret_cast<const quint8 *>(data.constData());
-    switch (ptr[0]) {
-    case QMqttControlPacket::CONNACK: {
-        if (m_internalState != BrokerWaitForConnectAck) {
-            qWarning("Received CONNACK at unexpected time!");
-            break;
-        }
-        quint8 payloadSize = ptr[1];
-        if (payloadSize != 2 || (payloadSize != data.size() - 2)) {
-            qWarning("Unexpected FRAME size in CONNACK");
-            // ## SET SOME ERROR
-            break;
-        }
-        quint8 ackFlags = ptr[2];
-        if (ackFlags > 1) { // MQTT-3.2.2.1
-            qWarning("Unexpected CONNACK Flags set");
-            // ## SET SOME ERROR
-            break;
-        }
-        bool sessionPresent = ackFlags == 1;
+    // ### TODO: This heavily relies on the fact that messages are fully sent
+    // before transport ReadReady is invoked.
+    qint64 available = m_transport->bytesAvailable();
+    while (available > 0) {
+        quint8 msg;
+        m_transport->read((char*)&msg, 1);
+        switch (msg) {
+        case QMqttControlPacket::CONNACK: {
+            if (m_internalState != BrokerWaitForConnectAck) {
+                qWarning("Received CONNACK at unexpected time!");
+                break;
+            }
+            //quint8 payloadSize = ptr[1];
+            quint8 payloadSize;
+            m_transport->read((char*)&payloadSize, 1);
+            if (payloadSize != 2) {
+                qWarning("Unexpected FRAME size in CONNACK");
+                // ## SET SOME ERROR
+                break;
+            }
+            quint8 ackFlags;
+            m_transport->read((char*)&ackFlags, 1);
+            if (ackFlags > 1) { // MQTT-3.2.2.1
+                qWarning("Unexpected CONNACK Flags set");
+                // ## SET SOME ERROR
+                break;
+            }
+            bool sessionPresent = ackFlags == 1;
 
-        // ### TODO: MQTT-3.2.2-1
-        // ### TODO: MQTT-3.2.2-2
-        if (sessionPresent) {
-            qWarning("Connected with a clean session, ack contains session present");
-            // ## SET SOME ERROR
+            // ### TODO: MQTT-3.2.2-1
+            // ### TODO: MQTT-3.2.2-2
+            if (sessionPresent) {
+                qWarning("Connected with a clean session, ack contains session present");
+                // ## SET SOME ERROR
+                //break;
+            }
+
+            quint8 connectResultValue;
+            m_transport->read((char*)&connectResultValue, 1);
+            if (connectResultValue != 0) {
+                qWarning("Connection has been rejected");
+                // MQTT-3.2.2-5
+                // ConnectionError
+                m_transport->close();
+            }
+            m_internalState = BrokerConnected;
+            m_client->setState(QMqttClient::Connected);
+
+            m_pingTimer.setInterval(m_client->keepAlive() * 1000);
+            m_pingTimer.start();
             break;
         }
-
-        quint8 connectResultValue = ptr[3];
-        if (connectResultValue != 0) {
-            qWarning("Connection has been rejected");
-            // MQTT-3.2.2-5
-            // ConnectionError
-            m_transport->close();
-        }
-        m_internalState = BrokerConnected;
-        m_client->setState(QMqttClient::Connected);
-
-        m_pingTimer.setInterval(m_client->keepAlive() * 1000);
-        m_pingTimer.start();
-        break;
-    }
-    case QMqttControlPacket::SUBACK: {
-        const quint16 id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(&ptr[2])[0]);
-        if (!m_pendingSubscriptionAck.contains(id)) {
-            qWarning("Received SUBACK for unknown subscription request");
+        case QMqttControlPacket::SUBACK: {
+            char offset;
+            m_transport->read(&offset, 1);
+            quint16 id;
+            m_transport->read((char*)&id, 2);
+            id = qFromBigEndian<quint16>(id);
+            if (!m_pendingSubscriptionAck.contains(id)) {
+                qWarning("Received SUBACK for unknown subscription request");
+                break;
+            }
+            quint8 result;
+            m_transport->read((char*)&result, 1);
+            if (result <= 2) {
+                // ### TODO: subscriptionSucceeded/Failed
+                emit m_client->subscribed();
+                // 0 Success with QoS 0
+                // 1 Success with QoS 1
+                // 2 Success with QoS 2
+                m_pendingSubscriptionAck.remove(id);
+            } else if (result == 0x80) {
+                // ### TODO: subscriptionFailed
+                qWarning("Subscription failed");
+            } else {
+                qWarning("Received invalid SUBACK result value");
+            }
             break;
         }
-        const quint8 result = ptr[4];
-        if (result <= 2) {
-            // ### TODO: subscriptionSucceeded/Failed
-            emit m_client->subscribed();
-            // 0 Success with QoS 0
-            // 1 Success with QoS 1
-            // 2 Success with QoS 2
-            m_pendingSubscriptionAck.remove(id);
-        } else if (result == 0x80) {
-            // ### TODO: subscriptionFailed
-            qWarning("Subscription failed");
-        } else {
-            qWarning("Received invalid SUBACK result value");
-        }
-        break;
-    }
-    case QMqttControlPacket::PUBLISH: {
-        const quint8 *msgPtr = ptr;
-        // PUBLISH byte
-        msgPtr++;
-        // remaining length
-        msgPtr++;
-        // String topic
-        const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(msgPtr)[0]);
-        msgPtr += 2;
-        const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(msgPtr), topicLength);
-        msgPtr += topicLength;
-        // String message
-        const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(msgPtr)[0]);
-        msgPtr += 2;
-        const QString message = QString::fromUtf8(reinterpret_cast<const char *>(msgPtr), messageLength);
+        case QMqttControlPacket::PUBLISH: {
+            // remaining length
+            char offset;
+            m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
 
-        emit m_client->messageReceived(topic, message);
-        break;
-    }
-    case QMqttControlPacket::PINGRESP: {
-        if (ptr[1] != 0)
-            qWarning("Received a PINGRESP with payload!");
-        emit m_client->pingResponse();
-        break;
-    }
-    default: {
-        qWarning("Transport received unknown data");
-    }
-    }
+            // String topic
+            const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
+            const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(m_transport->read(topicLength).constData()));
+
+            // String message
+            const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
+            const QString message = QString::fromUtf8(reinterpret_cast<const char *>(m_transport->read(messageLength).constData()));
+
+            emit m_client->messageReceived(topic, message);
+            break;
+        }
+        case QMqttControlPacket::PINGRESP: {
+            quint8 v;
+            m_transport->read((char*)&v, 1);
+            if (v != 0)
+                //if (ptr[1] != 0)
+                qWarning("Received a PINGRESP with payload!");
+            emit m_client->pingResponse();
+            break;
+        }
+        default: {
+            qWarning("Transport received unknown data");
+        }
+        }
+        available = m_transport->bytesAvailable();
+    } // available
 }
 
 bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)
