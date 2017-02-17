@@ -294,6 +294,9 @@ void QMqttConnection::transportReadReady()
             if (sessionPresent) {
                 qWarning("Connected with a clean session, ack contains session present");
                 // ## SET SOME ERROR
+                // ### TODO: RABBIT MQ Spec Misalign
+                // If a clean session is requested by the client, the server has to have an empty
+                // session. However Rabbit MQ sends a 1 here for unknown reasons.
                 //break;
             }
 
