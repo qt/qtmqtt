@@ -40,6 +40,7 @@
 //
 // We mean it.
 //
+#include "qmqttglobal.h"
 
 #include <QtCore/QtGlobal>
 #include <QtCore/QByteArray>
