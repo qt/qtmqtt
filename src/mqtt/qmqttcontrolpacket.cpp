@@ -97,6 +97,5 @@ QByteArray QMqttControlPacket::serialize() const
     return data;
 }
 
-
 QT_END_NAMESPACE
 
