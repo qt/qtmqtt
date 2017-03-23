@@ -67,8 +67,8 @@ QSharedPointer<QMqttSubscription> QMqttClient::subscribe(const QString &topic)
 
 void QMqttClient::unsubscribe(const QString &topic)
 {
-    Q_UNIMPLEMENTED();
-    Q_UNUSED(topic);
+    Q_D(QMqttClient);
+    d->m_connection.sendControlUnsubscribe(topic);
 }
 
 bool QMqttClient::publish(const QString &topic, const QByteArray &message)

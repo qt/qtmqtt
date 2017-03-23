@@ -211,7 +211,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
     result->m_topic = topic;
     result->m_client = m_client;
-    result->setState(QMqttSubscription::Pending);
+    result->setState(QMqttSubscription::SubscriptionPending);
 
     if (!writePacketToTransport(packet))
         return QSharedPointer<QMqttSubscription>();
@@ -221,11 +221,36 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     return result;
 }
 
-bool QMqttConnection::sendControlUnsubscribe()
+bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
 {
-    Q_UNIMPLEMENTED();
-    qDebug() << Q_FUNC_INFO;
-    return false;
+    // MQTT-3.10.3-2
+    if (topic.isEmpty())
+        return false;
+
+    if (!m_activeSubscriptions.contains(topic))
+        return false;
+
+    // has to have 0010 as bits 3-0, maybe update UNSUBSCRIBE instead?
+    // MQTT-3.10.1-1
+    const quint8 header = QMqttControlPacket::UNSUBSCRIBE + 0x02;
+    QMqttControlPacket packet(header);
+
+    // Add Packet Identifier
+    const quint16 identifier = qrand();
+    packet.append(identifier);
+
+    packet.append(topic.toUtf8());
+    auto sub = m_activeSubscriptions[topic];
+    sub->setState(QMqttSubscription::UnsubscriptionPending);
+
+    if (!writePacketToTransport(packet))
+        return false;
+
+    // Do not remove from m_activeSubscriptions as there might be QoS1/2 messages to still
+    // be sent before UNSUBSCRIBE is acknowledged.
+    m_pendingUnsubscriptions.insert(identifier, sub);
+
+    return true;
 }
 
 bool QMqttConnection::sendControlPingRequest()
@@ -358,6 +383,22 @@ void QMqttConnection::transportReadReady()
                 qWarning("Received invalid SUBACK result value");
                 sub->setState(QMqttSubscription::Error);
             }
+            break;
+        }
+        case QMqttControlPacket::UNSUBACK: {
+            char offset;
+            m_transport->read(&offset, 1);
+            quint16 id;
+            m_transport->read((char*)&id, 2);
+            id = qFromBigEndian<quint16>(id);
+            if (!m_pendingUnsubscriptions.contains(id)) {
+                qWarning("Received UNSUBACK for unknown request");
+                break;
+            }
+            auto sub = m_pendingUnsubscriptions.take(id);
+            sub->setState(QMqttSubscription::Unsubscribed);
+            m_activeSubscriptions.remove(sub->topic());
+
             break;
         }
         case QMqttControlPacket::PUBLISH: {

@@ -28,11 +28,12 @@
 ****************************************************************************/
 #ifndef QMQTTSUBSCRIPTION_H
 #define QMQTTSUBSCRIPTION_H
-#include <QtMqtt/QMqttClient>
 #include <QtMqtt/qmqttglobal.h>
 #include <QtCore/QObject>
 
 QT_BEGIN_NAMESPACE
+
+class QMqttClient;
 
 class Q_MQTT_EXPORT QMqttSubscription : public QObject
 {
@@ -43,8 +44,9 @@ public:
     ~QMqttSubscription();
     enum SubscriptionState {
         Unsubscribed = 0,
-        Pending,
+        SubscriptionPending,
         Subscribed,
+        UnsubscriptionPending,
         Error
     };
 

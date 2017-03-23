@@ -31,7 +31,7 @@ void SubscriptionWindow::updateStatus(QMqttSubscription::SubscriptionState state
     case QMqttSubscription::Unsubscribed:
         ui->labelStatus->setText(QLatin1String("Unsubscribed"));
         break;
-    case QMqttSubscription::Pending:
+    case QMqttSubscription::SubscriptionPending:
         ui->labelStatus->setText(QLatin1String("Pending"));
         break;
     case QMqttSubscription::Subscribed:

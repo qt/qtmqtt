@@ -27,6 +27,7 @@
 **
 ****************************************************************************/
 #include "qmqttsubscription.h"
+#include <QtMqtt/QMqttClient>
 
 QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(parent)
 {
