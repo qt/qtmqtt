@@ -177,7 +177,7 @@ bool QMqttConnection::sendControlConnect()
     return true;
 }
 
-bool QMqttConnection::sendControlPublish(const QString &topic, const QString &message)
+bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message)
 {
     // ### TODO: DUP, QOS, RETAIN
     QMqttControlPacket packet(QMqttControlPacket::PUBLISH);
@@ -185,8 +185,7 @@ bool QMqttConnection::sendControlPublish(const QString &topic, const QString &me
     packet.append(topic.toUtf8());
 
     // ### TODO: Add packet identifier (for QOS1/2)
-
-    packet.append(message.toUtf8());
+    packet.append(message);
 
     return writePacketToTransport(packet);
 }
@@ -371,7 +370,7 @@ void QMqttConnection::transportReadReady()
 
             // String message
             const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
-            const QString message = QString::fromUtf8(reinterpret_cast<const char *>(m_transport->read(messageLength).constData()));
+            const QByteArray message = m_transport->read(messageLength);
 
             emit m_client->messageReceived(topic, message);
 

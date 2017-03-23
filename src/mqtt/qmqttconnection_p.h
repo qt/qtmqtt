@@ -80,7 +80,7 @@ public:
     bool ensureTransportOpen();
 
     bool sendControlConnect();
-    bool sendControlPublish(const QString &topic, const QString &message);
+    bool sendControlPublish(const QString &topic, const QByteArray &message);
     QSharedPointer<QMqttSubscription> sendControlSubscribe(const QString &topic);
     bool sendControlUnsubscribe();
     bool sendControlPingRequest();

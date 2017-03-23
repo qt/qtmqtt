@@ -73,7 +73,7 @@ public:
     QSharedPointer<QMqttSubscription> subscribe(const QString& topic);
     void unsubscribe(const QString& topic);
 
-    bool publish(const QString &topic, const QString& message = QString());
+    bool publish(const QString &topic, const QByteArray& message = QByteArray());
     bool requestPing();
 
     QString hostname() const;
@@ -96,7 +96,7 @@ signals:
     void error();
     void subscribed();
     void unsubscribed();
-    void messageReceived(const QString &topic, const QString &message);
+    void messageReceived(const QString &topic, const QByteArray &message);
     void pingResponse();
 
     void hostnameChanged(QString hostname);

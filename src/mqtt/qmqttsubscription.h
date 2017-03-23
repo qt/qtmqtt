@@ -52,7 +52,7 @@ public:
 
 signals:
     void stateChanged(SubscriptionState state);
-    void messageReceived(const QString msg);
+    void messageReceived(QByteArray msg);
 
 public slots:
     void setState(SubscriptionState state);

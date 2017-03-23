@@ -97,7 +97,7 @@ void MainWindow::setClientPort(int p)
 
 void MainWindow::on_buttonPublish_clicked()
 {
-    m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text());
+    m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text().toUtf8());
 }
 
 void MainWindow::on_buttonSubscribe_clicked()
