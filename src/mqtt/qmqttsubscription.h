@@ -28,8 +28,9 @@
 ****************************************************************************/
 #ifndef QMQTTSUBSCRIPTION_H
 #define QMQTTSUBSCRIPTION_H
-#include <QtCore/QObject>
+#include <QtMqtt/QMqttClient>
 #include <QtMqtt/qmqttglobal.h>
+#include <QtCore/QObject>
 
 QT_BEGIN_NAMESPACE
 
@@ -62,6 +63,7 @@ private:
     friend class QMqttConnection;
     friend class QMqttClient;
     explicit QMqttSubscription(QObject *parent = nullptr);
+    QMqttClient *m_client;
     SubscriptionState m_state;
     QString m_topic;
 };

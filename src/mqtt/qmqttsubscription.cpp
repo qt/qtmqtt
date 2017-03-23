@@ -60,8 +60,6 @@ void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 
 void QMqttSubscription::unsubscribe()
 {
-    Q_UNIMPLEMENTED();
+    m_client->unsubscribe(m_topic);
     setState(Unsubscribed);
-    // Do send unsubscribe
-    // Emit state change to notify all instances
 }

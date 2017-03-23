@@ -210,6 +210,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
 
     QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
     result->m_topic = topic;
+    result->m_client = m_client;
     result->setState(QMqttSubscription::Pending);
 
     if (!writePacketToTransport(packet))
