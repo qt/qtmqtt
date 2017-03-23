@@ -191,8 +191,11 @@ bool QMqttConnection::sendControlPublish(const QString &topic, const QString &me
     return writePacketToTransport(packet);
 }
 
-bool QMqttConnection::sendControlSubscribe(const QString &topic)
+QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QString &topic)
 {
+    if (m_activeSubscriptions.contains(topic))
+        return m_activeSubscriptions[topic];
+
     // has to have 0010 as bits 3-0, maybe update SUBSCRIBE instead?
     // MQTT-3.8.1-1
     const quint8 header = QMqttControlPacket::SUBSCRIBE + 0x02;
@@ -206,14 +209,22 @@ bool QMqttConnection::sendControlSubscribe(const QString &topic)
     // ### TODO: Add actual QOS
     packet.append(char(0)); // QOS
 
+    QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
+    result->m_topic = topic;
+    result->setState(QMqttSubscription::Pending);
+
+    if (!writePacketToTransport(packet))
+        return QSharedPointer<QMqttSubscription>();
+
     // SUBACK must contain identifier MQTT-3.8.4-2
-    m_pendingSubscriptionAck.insert(identifier);
-    return writePacketToTransport(packet);
+    m_pendingSubscriptionAck.insert(identifier, result);
+    return result;
 }
 
 bool QMqttConnection::sendControlUnsubscribe()
 {
     Q_UNIMPLEMENTED();
+    qDebug() << Q_FUNC_INFO;
     return false;
 }
 
@@ -230,6 +241,10 @@ bool QMqttConnection::sendControlPingRequest()
 bool QMqttConnection::sendControlDisconnect()
 {
     m_pingTimer.stop();
+
+    for (auto sub : m_activeSubscriptions)
+        sub->unsubscribe();
+    m_activeSubscriptions.clear();
 
     const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
     if (!writePacketToTransport(packet)) {
@@ -327,18 +342,21 @@ void QMqttConnection::transportReadReady()
             }
             quint8 result;
             m_transport->read((char*)&result, 1);
+            auto sub = m_pendingSubscriptionAck.take(id);
             if (result <= 2) {
                 // ### TODO: subscriptionSucceeded/Failed
-                emit m_client->subscribed();
                 // 0 Success with QoS 0
                 // 1 Success with QoS 1
                 // 2 Success with QoS 2
-                m_pendingSubscriptionAck.remove(id);
+                sub->setState(QMqttSubscription::Subscribed);
+                m_activeSubscriptions.insert(sub->topic(), sub);
             } else if (result == 0x80) {
                 // ### TODO: subscriptionFailed
                 qWarning("Subscription failed");
+                sub->setState(QMqttSubscription::Error);
             } else {
                 qWarning("Received invalid SUBACK result value");
+                sub->setState(QMqttSubscription::Error);
             }
             break;
         }
@@ -356,6 +374,11 @@ void QMqttConnection::transportReadReady()
             const QString message = QString::fromUtf8(reinterpret_cast<const char *>(m_transport->read(messageLength).constData()));
 
             emit m_client->messageReceived(topic, message);
+
+            // Find a subscription
+            const QMap<QString, QSharedPointer<QMqttSubscription>>::const_iterator sub = m_activeSubscriptions.find(topic);
+            if (sub != m_activeSubscriptions.constEnd())
+                emit (*sub)->messageReceived(message);
             break;
         }
         case QMqttControlPacket::PINGRESP: {

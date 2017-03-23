@@ -59,7 +59,7 @@ QIODevice *QMqttClient::transport() const
     return d->m_connection.transport();
 }
 
-bool QMqttClient::subscribe(const QString &topic)
+QSharedPointer<QMqttSubscription> QMqttClient::subscribe(const QString &topic)
 {
     Q_D(QMqttClient);
     return d->m_connection.sendControlSubscribe(topic);

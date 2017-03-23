@@ -43,7 +43,9 @@
 
 #include "qmqttclient.h"
 #include "qmqttcontrolpacket_p.h"
+#include "qmqttsubscription.h"
 #include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
 #include <QtCore/QSet>
 #include <QtCore/QTimer>
 #include <QtCore/QtEndian>
@@ -79,7 +81,7 @@ public:
 
     bool sendControlConnect();
     bool sendControlPublish(const QString &topic, const QString &message);
-    bool sendControlSubscribe(const QString &topic);
+    QSharedPointer<QMqttSubscription> sendControlSubscribe(const QString &topic);
     bool sendControlUnsubscribe();
     bool sendControlPingRequest();
     bool sendControlDisconnect();
@@ -100,7 +102,8 @@ public:
     QMqttClient *m_client{nullptr};
 private:
     bool writePacketToTransport(const QMqttControlPacket &p);
-    QSet<quint16> m_pendingSubscriptionAck;
+    QMap<quint16, QSharedPointer<QMqttSubscription>> m_pendingSubscriptionAck;
+    QMap<QString, QSharedPointer<QMqttSubscription>> m_activeSubscriptions;
     InternalConnectionState m_internalState{BrokerDisconnected};
     QTimer m_pingTimer;
 };

@@ -18,9 +18,11 @@ PRIVATE_HEADERS += \
 SOURCES += \
     qmqttclient.cpp \
     qmqttconnection.cpp \
-    qmqttcontrolpacket.cpp
+    qmqttcontrolpacket.cpp \
+    qmqttsubscription.cpp
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS \
-    qmqttcontrolpacket_p.h
+    qmqttcontrolpacket_p.h \
+    qmqttsubscription.h
 
 load(qt_module)

@@ -31,9 +31,11 @@
 #define QTMQTTCLIENT_H
 
 #include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/QMqttSubscription>
 
 #include <QObject>
 #include <QtCore/QIODevice>
+#include <QtCore/QSharedPointer>
 
 QT_BEGIN_NAMESPACE
 
@@ -68,7 +70,7 @@ public:
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
 
-    bool subscribe(const QString& topic);
+    QSharedPointer<QMqttSubscription> subscribe(const QString& topic);
     void unsubscribe(const QString& topic);
 
     bool publish(const QString &topic, const QString& message = QString());
