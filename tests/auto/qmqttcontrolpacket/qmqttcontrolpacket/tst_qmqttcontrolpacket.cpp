@@ -84,6 +84,12 @@ void Tst_QMqttControlPacket::append()
     const int partSizeInt = qFromBigEndian<quint16>(*reinterpret_cast<const quint16 *>(partSize.constData()));
     QCOMPARE(partSizeInt, data.size());
     QCOMPARE(partContent, data);
+
+    packet.clear();
+    packet.appendRaw(data);
+    payload = packet.payload();
+    QCOMPARE(payload.size(), data.size());
+    QCOMPARE(payload, data);
 }
 
 void Tst_QMqttControlPacket::simple_data()

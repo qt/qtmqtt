@@ -80,6 +80,7 @@ public:
     void append(char value);
     void append(quint16 value);
     void append(const QByteArray &data);
+    void appendRaw(const QByteArray &data);
 
     QByteArray serialize() const;
     inline QByteArray payload() const { return m_payload; }
