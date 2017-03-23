@@ -177,20 +177,47 @@ bool QMqttConnection::sendControlConnect()
     return true;
 }
 
-bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message)
+bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
+    Q_UNUSED(retain);
+
     // ### TODO: DUP, QOS, RETAIN
-    QMqttControlPacket packet(QMqttControlPacket::PUBLISH);
+    quint8 header = QMqttControlPacket::PUBLISH;
+    if (qos == 1)
+        header |= 0x02;
+    else if (qos == 2)
+        header |= 0x04;
 
-    packet.append(topic.toUtf8());
+    if (retain)
+        header |= 0x01;
 
-    // ### TODO: Add packet identifier (for QOS1/2)
-    packet.append(message);
+    QSharedPointer<QMqttControlPacket> packet(new QMqttControlPacket(header));
 
+    packet->append(topic.toUtf8());
+    quint16 identifier = 0;
+    if (qos > 0) {
+        // Add Packet Identifier
+        identifier = qrand();
+        packet->append(identifier);
+    }
+    packet->append(message);
+
+    const bool written = writePacketToTransport(*packet.data());
+
+    if (qos)
+        m_pendingMessages.insert(identifier, packet);
+
+    return written;
+}
+
+bool QMqttConnection::sendControlPublishAcknowledge(quint16 id)
+{
+    QMqttControlPacket packet(QMqttControlPacket::PUBACK);
+    packet.append(id);
     return writePacketToTransport(packet);
 }
 
-QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QString &topic)
+QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QString &topic, quint8 qos)
 {
     if (m_activeSubscriptions.contains(topic))
         return m_activeSubscriptions[topic];
@@ -205,12 +232,18 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     packet.append(identifier);
 
     packet.append(topic.toUtf8());
-    // ### TODO: Add actual QOS
-    packet.append(char(0)); // QOS
+
+    switch (qos) {
+    case 0: packet.append(char(0x0)); break;
+    case 1: packet.append(char(0x1)); break;
+    case 2: packet.append(char(0x2)); break;
+    default: return QSharedPointer<QMqttSubscription>();
+    }
 
     QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
     result->m_topic = topic;
     result->m_client = m_client;
+    result->m_qos = qos;
     result->setState(QMqttSubscription::SubscriptionPending);
 
     if (!writePacketToTransport(packet))
@@ -306,7 +339,7 @@ void QMqttConnection::transportReadReady()
     while (available > 0) {
         quint8 msg;
         m_transport->read((char*)&msg, 1);
-        switch (msg) {
+        switch (msg & 0xF0) {
         case QMqttControlPacket::CONNACK: {
             if (m_internalState != BrokerWaitForConnectAck) {
                 qWarning("Received CONNACK at unexpected time!");
@@ -369,10 +402,12 @@ void QMqttConnection::transportReadReady()
             m_transport->read((char*)&result, 1);
             auto sub = m_pendingSubscriptionAck.take(id);
             if (result <= 2) {
-                // ### TODO: subscriptionSucceeded/Failed
-                // 0 Success with QoS 0
-                // 1 Success with QoS 1
-                // 2 Success with QoS 2
+                // The broker might have a different support level for QoS than what
+                // the client requested
+                if (result != sub->m_qos) {
+                    sub->m_qos = result;
+                    emit sub->qosChanged(result);
+                }
                 sub->setState(QMqttSubscription::Subscribed);
                 m_activeSubscriptions.insert(sub->topic(), sub);
             } else if (result == 0x80) {
@@ -402,6 +437,9 @@ void QMqttConnection::transportReadReady()
             break;
         }
         case QMqttControlPacket::PUBLISH: {
+            quint8 qos = (msg & 0x06) >> 1;
+            bool retain = msg & 0x01;
+            Q_UNUSED(retain);
             // remaining length
             char offset;
             m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
@@ -410,6 +448,10 @@ void QMqttConnection::transportReadReady()
             const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
             const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(m_transport->read(topicLength).constData()));
 
+            quint16 id;
+            if (qos > 0) {
+                id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
+            }
             // String message
             const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
             const QByteArray message = m_transport->read(messageLength);
@@ -420,6 +462,25 @@ void QMqttConnection::transportReadReady()
             const QMap<QString, QSharedPointer<QMqttSubscription>>::const_iterator sub = m_activeSubscriptions.find(topic);
             if (sub != m_activeSubscriptions.constEnd())
                 emit (*sub)->messageReceived(message);
+
+            if (qos == 1)
+                sendControlPublishAcknowledge(id);
+            else if (qos > 2)
+                qWarning("Unmanaged qos criteria");
+            break;
+        }
+        case QMqttControlPacket::PUBACK: {
+            // remaining length
+            char offset;
+            m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
+            quint16 id;
+            m_transport->read((char*)&id, 2);
+            id = qFromBigEndian<quint16>(id);
+            auto msg = m_pendingMessages.take(id);
+            if (!msg) {
+                qWarning("Received PUBACK for unknown message");
+                break;
+            }
             break;
         }
         case QMqttControlPacket::PINGRESP: {

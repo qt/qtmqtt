@@ -50,6 +50,11 @@ QString QMqttSubscription::topic() const
     return m_topic;
 }
 
+quint8 QMqttSubscription::qos() const
+{
+    return m_qos;
+}
+
 void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 {
     if (m_state == state)

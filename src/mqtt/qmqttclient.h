@@ -70,10 +70,11 @@ public:
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
 
-    QSharedPointer<QMqttSubscription> subscribe(const QString& topic);
+    QSharedPointer<QMqttSubscription> subscribe(const QString& topic, quint8 qos = 0);
     void unsubscribe(const QString& topic);
 
-    bool publish(const QString &topic, const QByteArray& message = QByteArray());
+    bool publish(const QString &topic, const QByteArray& message = QByteArray(),
+                 quint8 qos = 0, bool retain = false);
     bool requestPing();
 
     QString hostname() const;

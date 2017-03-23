@@ -39,6 +39,7 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(SubscriptionState state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
     Q_PROPERTY(QString topic READ topic)
 public:
     ~QMqttSubscription();
@@ -52,9 +53,11 @@ public:
 
     SubscriptionState state() const;
     QString topic() const;
+    quint8 qos() const;
 
 signals:
     void stateChanged(SubscriptionState state);
+    void qosChanged(quint8); // only emitted when broker provides different QoS than requested
     void messageReceived(QByteArray msg);
 
 public slots:
@@ -68,6 +71,7 @@ private:
     QMqttClient *m_client;
     SubscriptionState m_state;
     QString m_topic;
+    quint8 m_qos;
 };
 
 QT_END_NAMESPACE

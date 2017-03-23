@@ -59,10 +59,10 @@ QIODevice *QMqttClient::transport() const
     return d->m_connection.transport();
 }
 
-QSharedPointer<QMqttSubscription> QMqttClient::subscribe(const QString &topic)
+QSharedPointer<QMqttSubscription> QMqttClient::subscribe(const QString &topic, quint8 qos)
 {
     Q_D(QMqttClient);
-    return d->m_connection.sendControlSubscribe(topic);
+    return d->m_connection.sendControlSubscribe(topic, qos);
 }
 
 void QMqttClient::unsubscribe(const QString &topic)
@@ -71,10 +71,10 @@ void QMqttClient::unsubscribe(const QString &topic)
     d->m_connection.sendControlUnsubscribe(topic);
 }
 
-bool QMqttClient::publish(const QString &topic, const QByteArray &message)
+bool QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
     Q_D(QMqttClient);
-    return d->m_connection.sendControlPublish(topic, message);
+    return d->m_connection.sendControlPublish(topic, message, qos, retain);
 }
 
 bool QMqttClient::requestPing()

@@ -9,9 +9,13 @@ SubscriptionWindow::SubscriptionWindow(QSharedPointer<QMqttSubscription> &sub, Q
     ui->setupUi(this);
 
     ui->labelSub->setText(m_sub->topic());
+    ui->labelQoS->setText(QString::number(sub->qos()));
     updateStatus(m_sub->state());
     connect(m_sub.data(), &QMqttSubscription::messageReceived, this, &SubscriptionWindow::updateMessage);
     connect(m_sub.data(), &QMqttSubscription::stateChanged, this, &SubscriptionWindow::updateStatus);
+    connect(m_sub.data(), &QMqttSubscription::qosChanged, [this](quint8 qos) {
+        ui->labelQoS->setText(QString::number(qos));
+    });
     connect(ui->pushButton, &QAbstractButton::clicked, m_sub.data(), &QMqttSubscription::unsubscribe);
 }
 
