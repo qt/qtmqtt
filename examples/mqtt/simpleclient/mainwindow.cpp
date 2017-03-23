@@ -17,13 +17,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_client, &QMqttClient::stateChanged, this, &MainWindow::updateLogStateChange);
     connect(m_client, &QMqttClient::disconnected, this, &MainWindow::brokerDisconnected);
 
-    connect(m_client, &QMqttClient::subscribed, this, [this]() {
-        const QString content = QDateTime::currentDateTime().toString()
-                    + QLatin1String("Subscription Succeeded")
-                + QLatin1Char('\n');
-        ui->editLog->insertPlainText(content);
-    });
-
     connect(m_client, &QMqttClient::messageReceived, this, [this](const QString &topic, const QString &message) {
         const QString content = QDateTime::currentDateTime().toString()
                     + QLatin1String(" Received Topic: ")

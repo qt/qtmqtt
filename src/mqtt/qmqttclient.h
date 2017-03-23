@@ -94,7 +94,6 @@ signals:
     void connected();
     void disconnected();
     void error();
-    void subscribed();
     void messageReceived(const QString &topic, const QByteArray &message);
     void pingResponse();
 
