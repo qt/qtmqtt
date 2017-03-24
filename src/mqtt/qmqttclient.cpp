@@ -74,6 +74,8 @@ void QMqttClient::unsubscribe(const QString &topic)
 bool QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
     Q_D(QMqttClient);
+    if (qos > 2)
+        return false;
     return d->m_connection.sendControlPublish(topic, message, qos, retain);
 }
 
