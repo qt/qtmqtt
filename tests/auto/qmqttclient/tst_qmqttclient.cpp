@@ -27,7 +27,7 @@ void Tst_QMqttClient::initTestCase()
 {
     m_testBroker = qgetenv("MQTT_TEST_BROKER");
     if (m_testBroker.isEmpty()) {
-        QFAIL("No test server given.");
+        QFAIL("No test server given. Please specify MQTT_TEST_BROKER in your environment.");
         return;
     }
 }
