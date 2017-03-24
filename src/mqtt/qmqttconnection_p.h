@@ -46,7 +46,7 @@
 #include "qmqttsubscription.h"
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
-#include <QtCore/QSet>
+#include <QtCore/QMap>
 #include <QtCore/QTimer>
 #include <QtCore/QtEndian>
 

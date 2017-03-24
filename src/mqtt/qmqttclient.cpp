@@ -261,9 +261,9 @@ QMqttClientPrivate::QMqttClientPrivate()
     : QObjectPrivate()
 {
     m_clientId = QUuid::createUuid().toString();
-    m_clientId.remove(QChar('{'), Qt::CaseInsensitive);
-    m_clientId.remove(QChar('}'), Qt::CaseInsensitive);
-    m_clientId.remove(QChar('-'), Qt::CaseInsensitive);
+    m_clientId.remove(QLatin1Char('{'), Qt::CaseInsensitive);
+    m_clientId.remove(QLatin1Char('}'), Qt::CaseInsensitive);
+    m_clientId.remove(QLatin1Char('-'), Qt::CaseInsensitive);
 }
 
 QMqttClientPrivate::~QMqttClientPrivate()
