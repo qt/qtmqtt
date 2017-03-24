@@ -21,6 +21,7 @@ SubscriptionWindow::SubscriptionWindow(QSharedPointer<QMqttSubscription> &sub, Q
 
 SubscriptionWindow::~SubscriptionWindow()
 {
+    m_sub->unsubscribe();
     delete ui;
 }
 
