@@ -217,6 +217,27 @@ bool QMqttConnection::sendControlPublishAcknowledge(quint16 id)
     return writePacketToTransport(packet);
 }
 
+bool QMqttConnection::sendControlPublishRelease(quint16 id)
+{
+    QMqttControlPacket packet(QMqttControlPacket::PUBREL);
+    packet.append(id);
+    return writePacketToTransport(packet);
+}
+
+bool QMqttConnection::sendControlPublishReceive(quint16 id)
+{
+    QMqttControlPacket packet(QMqttControlPacket::PUBREC);
+    packet.append(id);
+    return writePacketToTransport(packet);
+}
+
+bool QMqttConnection::sendControlPublishComp(quint16 id)
+{
+    QMqttControlPacket packet(QMqttControlPacket::PUBCOMP);
+    packet.append(id);
+    return writePacketToTransport(packet);
+}
+
 QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QString &topic, quint8 qos)
 {
     if (m_activeSubscriptions.contains(topic))
@@ -465,22 +486,49 @@ void QMqttConnection::transportReadReady()
 
             if (qos == 1)
                 sendControlPublishAcknowledge(id);
-            else if (qos > 2)
-                qWarning("Unmanaged qos criteria");
+            else if (qos == 2)
+                sendControlPublishReceive(id);
             break;
         }
-        case QMqttControlPacket::PUBACK: {
+        case QMqttControlPacket::PUBACK:
+        case QMqttControlPacket::PUBREC:
+        case QMqttControlPacket::PUBCOMP: {
             // remaining length
             char offset;
             m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
             quint16 id;
             m_transport->read((char*)&id, 2);
             id = qFromBigEndian<quint16>(id);
-            auto msg = m_pendingMessages.take(id);
-            if (!msg) {
+
+            if ((msg & 0xF0) == QMqttControlPacket::PUBCOMP) {
+                auto pendingRelease = m_pendingReleaseMessages.take(id);
+                if (!pendingRelease)
+                    qWarning("Received PUBCOMP for unknown released message");
+                break;
+            }
+
+            auto pendingMsg = m_pendingMessages.take(id);
+            if (!pendingMsg) {
                 qWarning("Received PUBACK for unknown message");
                 break;
             }
+            if ((msg & 0xF0) == QMqttControlPacket::PUBREC) {
+                m_pendingReleaseMessages.insert(id, pendingMsg);
+                sendControlPublishRelease(id);
+            }
+            break;
+        }
+        case QMqttControlPacket::PUBREL: {
+            // remaining length
+            char offset;
+            m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
+            quint16 id;
+            m_transport->read((char*)&id, 2);
+            id = qFromBigEndian<quint16>(id);
+
+            // ### TODO: send to our app now or not???
+            // See standard Figure 4.3 Method A or B ???
+            sendControlPublishComp(id);
             break;
         }
         case QMqttControlPacket::PINGRESP: {

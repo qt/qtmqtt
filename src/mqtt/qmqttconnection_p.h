@@ -82,6 +82,9 @@ public:
     bool sendControlConnect();
     bool sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos = 0, bool retain = false);
     bool sendControlPublishAcknowledge(quint16 id);
+    bool sendControlPublishRelease(quint16 id);
+    bool sendControlPublishReceive(quint16 id);
+    bool sendControlPublishComp(quint16 id);
     QSharedPointer<QMqttSubscription> sendControlSubscribe(const QString &topic, quint8 qos = 0);
     bool sendControlUnsubscribe(const QString &topic);
     bool sendControlPingRequest();
@@ -107,6 +110,7 @@ private:
     QMap<quint16, QSharedPointer<QMqttSubscription>> m_pendingUnsubscriptions;
     QMap<QString, QSharedPointer<QMqttSubscription>> m_activeSubscriptions;
     QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingMessages;
+    QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
     InternalConnectionState m_internalState{BrokerDisconnected};
     QTimer m_pingTimer;
 };
