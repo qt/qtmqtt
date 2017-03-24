@@ -65,7 +65,7 @@ void Tst_QMqttClient::stressTest()
         if (!subscription)
             qFatal("Failed to create subscription");
 
-        connect(subscription.data(), &QMqttSubscription::messageReceived, [&](QByteArray msg) {
+        connect(subscription.data(), &QMqttSubscription::messageReceived, [&](QByteArray) {
             messageCount++;
             publisher.publish(testTopic, QByteArray("some message"), qos);
         });
