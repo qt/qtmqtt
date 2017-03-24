@@ -202,11 +202,13 @@ bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray 
     }
     packet->append(message);
 
-    const bool written = writePacketToTransport(*packet.data());
-
     if (qos)
         m_pendingMessages.insert(identifier, packet);
 
+    const bool written = writePacketToTransport(*packet.data());
+
+    if (!written)
+        m_pendingMessages.remove(identifier);
     return written;
 }
 
