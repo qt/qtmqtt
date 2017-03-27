@@ -4,9 +4,11 @@
 #include <QWidget>
 #include <QtMqtt/QMqttSubscription>
 
+QT_BEGIN_NAMESPACE
 namespace Ui {
 class SubscriptionWindow;
 }
+QT_END_NAMESPACE
 
 class SubscriptionWindow : public QWidget
 {
