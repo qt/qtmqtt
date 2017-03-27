@@ -94,7 +94,6 @@ public:
 signals:
     void connected();
     void disconnected();
-    void error();
     void messageReceived(const QString &topic, const QByteArray &message);
     void pingResponse();
 
