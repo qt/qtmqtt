@@ -117,6 +117,7 @@ public slots:
     void setPassword(QString password);
 
 private:
+    Q_DISABLE_COPY(QMqttClient)
     Q_DECLARE_PRIVATE(QMqttClient)
 };
 

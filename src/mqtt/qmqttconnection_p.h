@@ -105,6 +105,7 @@ public:
     bool m_ownTransport{false};
     QMqttClient *m_client{nullptr};
 private:
+    Q_DISABLE_COPY(QMqttConnection)
     bool writePacketToTransport(const QMqttControlPacket &p);
     QMap<quint16, QSharedPointer<QMqttSubscription>> m_pendingSubscriptionAck;
     QMap<quint16, QSharedPointer<QMqttSubscription>> m_pendingUnsubscriptions;

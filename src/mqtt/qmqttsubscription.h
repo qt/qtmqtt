@@ -65,6 +65,7 @@ public slots:
     void unsubscribe();
 
 private:
+    Q_DISABLE_COPY(QMqttSubscription)
     friend class QMqttConnection;
     friend class QMqttClient;
     explicit QMqttSubscription(QObject *parent = nullptr);
