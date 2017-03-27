@@ -50,26 +50,34 @@ QT_BEGIN_NAMESPACE
 
     Each client needs to have a unique ID to be able to connect to a MQTT broker. If no client ID
     is specified by the user, one will be generated automatically when a connection is established.
+*/
 
+/*!
     \property QMqttClient::hostname
     \brief The hostname of the MQTT broker to connect to.
 
     If no transport is specified via \l QMqttClient::setTransport(), then the client will
     instantiate a socket connection to the specified hostname itself.
+*/
 
+/*!
     \property QMqttClient::port
     \brief The port to connect to the MQTT broker.
 
     If no transport is specified via \l QMqttClient::setTransport, then the client will
     instantiate a socket connection to a host with this port number.
+*/
 
+/*!
     \property QMqttClient::keepAlive
     \brief Period to send regular ping messages to the broker.
 
     Once a connection to a broker is established, the client needs to send frequent updates to
     propagate it can still be reached. The interval between those updates is specified by this
     property.
+*/
 
+/*!
     \property QMqttClient::protocolVersion
     \brief The MQTT standard version to use for connections.
 
@@ -80,13 +88,19 @@ QT_BEGIN_NAMESPACE
     \li 3: MQTT standard version 3.1.
     \li 4: MQTT standard version 3.1.1, often referred to MQTT 4.
     \endlist
+*/
 
+/*!
     \property QMqttClient::state
     \brief Specifies the current state of the client.
+*/
 
+/*!
     \property QMqttClient::username
     \brief Specifies the user name for connecting to a broker.
+*/
 
+/*!
     \property QMqttClient::password
     \brief Specifies the password for connecting to a broker.
 */
