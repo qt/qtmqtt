@@ -58,8 +58,8 @@ private:
     Q_OBJECT
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
-    Q_PROPERTY(quint16 keepAlive READ keepAlive WRITE setKeepAlive NOTIFY keepAliveChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
+    Q_PROPERTY(quint16 keepAlive READ keepAlive WRITE setKeepAlive NOTIFY keepAliveChanged)
     Q_PROPERTY(quint8 protocolVersion READ protocolVersion WRITE setProtocolVersion NOTIFY protocolVersionChanged)
     Q_PROPERTY(State state READ state WRITE setState NOTIFY stateChanged)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
