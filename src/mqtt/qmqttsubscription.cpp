@@ -29,6 +29,8 @@
 #include "qmqttsubscription.h"
 #include <QtMqtt/QMqttClient>
 
+QT_BEGIN_NAMESPACE
+
 QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(parent)
 {
 
@@ -69,3 +71,5 @@ void QMqttSubscription::unsubscribe()
     m_client->unsubscribe(m_topic);
     setState(Unsubscribed);
 }
+
+QT_END_NAMESPACE
