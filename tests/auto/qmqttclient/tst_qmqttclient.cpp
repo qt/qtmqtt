@@ -1,5 +1,6 @@
 #include <QtCore/QString>
 #include <QtTest/QtTest>
+#include <QtTest/QSignalSpy>
 #include <QtMqtt/QMqttClient>
 
 class Tst_QMqttClient : public QObject
@@ -14,6 +15,8 @@ private Q_SLOTS:
     void cleanupTestCase();
     void stressTest_data();
     void stressTest();
+    void stressTest2_data();
+    void stressTest2();
 private:
     QString m_testBroker;
     quint16 m_port{1883};
@@ -79,6 +82,60 @@ void Tst_QMqttClient::stressTest()
 
     QTest::qWait(30000);
     qDebug() << "Stress test result for QoS " << qos << ":" << messageCount;
+}
+
+void Tst_QMqttClient::stressTest2_data()
+{
+    QTest::addColumn<int>("qos");
+    QTest::addColumn<int>("msgCount");
+    QTest::newRow("1/100") << 1 << 100;
+    QTest::newRow("1/1000") << 1 << 1000;
+    // Disable to avoid timeout
+    //QTest::newRow("1/10000") << 1 << 10000;
+    QTest::newRow("2/100") << 2 << 100;
+    QTest::newRow("2/1000") << 2 << 1000;
+    // Disabled as mosquitto is not able to handle this many message
+    // QTest::newRow("2/10000") << 2 << 10000;
+}
+
+void Tst_QMqttClient::stressTest2()
+{
+    QFETCH(int, qos);
+    QFETCH(int, msgCount);
+
+    QSet<qint32> msgIds;
+    msgIds.reserve(msgCount);
+
+    QMqttClient publisher;
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    connect(&publisher, &QMqttClient::messageSent, [&msgIds](qint32 id) {
+        QVERIFY2(msgIds.contains(id), "Received messageSent for unknown id");
+        msgIds.remove(id);
+    });
+
+    QSignalSpy spy(&publisher, SIGNAL(connected()));
+    publisher.connectToHost();
+    QTRY_COMPARE(spy.count(), 1);
+
+    const QString topic = QLatin1String("SomeTopic/Sub");
+    const QByteArray message("messageContent");
+
+    for (qint32 i = 0; i < msgCount; ++i) {
+        QSignalSpy writeSpy(publisher.transport(), SIGNAL(bytesWritten(qint64)));
+        const qint32 id = publisher.publish(topic, message, qos);
+        QTRY_VERIFY2(id != -1, "Could not publish message");
+        msgIds.insert(id);
+        QTRY_VERIFY(writeSpy.count() >= 1);
+    }
+
+    // Give some extra time depending on connection
+    if (msgCount > 1000)
+        QTest::qWait(5000);
+    QTRY_COMPARE(msgIds.count(), 0);
+
+    publisher.disconnectFromHost();
 }
 
 QTEST_MAIN(Tst_QMqttClient)
