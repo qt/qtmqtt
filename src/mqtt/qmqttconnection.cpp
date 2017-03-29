@@ -77,7 +77,7 @@ bool QMqttConnection::ensureTransport()
 
     // We are asked to create a transport layer
     if (m_client->hostname().isEmpty() || m_client->port() == 0) {
-        qWarning("No hostname specified");
+        qWarning("Trying to create a transport layer, but no hostname is specified");
         return false;
     }
     auto socket = new QTcpSocket();
@@ -201,7 +201,7 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
     if (qos > 0) {
         // Add Packet Identifier
         static quint16 publishIdCounter = 0;
-        if (publishIdCounter +1 == UINT16_MAX)
+        if (publishIdCounter + 1 == UINT16_MAX)
             publishIdCounter = 0;
         else
             publishIdCounter++;
@@ -366,7 +366,6 @@ void QMqttConnection::setClient(QMqttClient *client)
 
 void QMqttConnection::transportConnectionClosed()
 {
-    qWarning("Transport Connection closed!");
     m_pingTimer.stop();
     m_client->setState(QMqttClient::Disconnected);
 }

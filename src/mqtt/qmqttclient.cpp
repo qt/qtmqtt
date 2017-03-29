@@ -32,7 +32,6 @@
 #include <QTcpSocket>
 #include <QUuid>
 #include <QtEndian>
-#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 
