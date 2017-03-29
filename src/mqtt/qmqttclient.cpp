@@ -142,10 +142,18 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
-    \fn QMqttClient::messageReceived(const QString &topic, const QByteArray &message)
+    \fn QMqttClient::messageReceived(const QByteArray &message, const QString &topic)
 
     This signal is emitted when a new message has been received. The category of the message is
     specified in \a topic with the content being \a message.
+*/
+
+/*!
+    \fn QMqttClient::messageSent(qint32 id)
+
+    A message which has been sent via \l QMqttClient::publish has been received at the broker.
+    The \a id is the same as returned by \l QMqttClient::publish to help tracking of the status
+    of the message.
 */
 
 /*!
@@ -225,7 +233,7 @@ void QMqttClient::unsubscribe(const QString &topic)
 
     If \a retain is set to true, the message will...
 
-    Returns \c true if the publish request could be send.
+    Returns an \c ID which is used internally to identify the message.
  */
 qint32 QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
