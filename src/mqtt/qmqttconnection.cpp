@@ -481,10 +481,29 @@ void QMqttConnection::transportReadReady()
 
             emit m_client->messageReceived(topic, message);
 
-            // Find a subscription
-            const QMap<QString, QSharedPointer<QMqttSubscription>>::const_iterator sub = m_activeSubscriptions.find(topic);
-            if (sub != m_activeSubscriptions.constEnd())
-                emit (*sub)->messageReceived(message);
+            for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
+                const QString subTopic = sub.key();
+
+                if (subTopic == topic) {
+                    emit sub.value()->messageReceived(message);
+                    continue;
+                } else if (subTopic.endsWith(QLatin1Char('#')) && topic.startsWith(subTopic.leftRef(subTopic.size() - 1))) {
+                    emit sub.value()->messageReceived(message);
+                    continue;
+                }
+
+                if (!subTopic.contains(QLatin1Char('+')))
+                    continue;
+
+                const QVector<QStringRef> subTopicSplit = subTopic.splitRef(QLatin1Char('/'));
+                const QVector<QStringRef> topicSplit = topic.splitRef(QLatin1Char('/'));
+                if (subTopicSplit.size() != topicSplit.size())
+                    continue;
+                const QVector<QStringRef> subPlusSplit = subTopic.splitRef(QLatin1Char('+'));
+
+                if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1)))
+                    emit sub.value()->messageReceived(message);
+            }
 
             if (qos == 1)
                 sendControlPublishAcknowledge(id);
