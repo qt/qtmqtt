@@ -289,6 +289,11 @@ bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
     if (!m_activeSubscriptions.contains(topic))
         return false;
 
+    if (m_internalState != QMqttConnection::BrokerConnected) {
+        m_activeSubscriptions.remove(topic);
+        return true;
+    }
+
     // has to have 0010 as bits 3-0, maybe update UNSUBSCRIBE instead?
     // MQTT-3.10.1-1
     const quint8 header = QMqttControlPacket::UNSUBSCRIBE + 0x02;
@@ -314,6 +319,9 @@ bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
 
 bool QMqttConnection::sendControlPingRequest()
 {
+    if (m_internalState != QMqttConnection::BrokerConnected)
+        return false;
+
     const QMqttControlPacket packet(QMqttControlPacket::PINGREQ);
     if (!writePacketToTransport(packet)) {
         qWarning("Could not write DISCONNECT frame to transport");

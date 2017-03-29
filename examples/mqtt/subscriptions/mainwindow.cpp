@@ -4,6 +4,7 @@
 
 #include <QtCore/QDateTime>
 #include <QtMqtt/QMqttClient>
+#include <QtWidgets/QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -90,12 +91,17 @@ void MainWindow::setClientPort(int p)
 
 void MainWindow::on_buttonPublish_clicked()
 {
-    m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text().toUtf8(), ui->spinQoS_2->text().toUInt());
+    if (!m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text().toUtf8(), ui->spinQoS_2->text().toUInt()))
+        QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not publish message"));
 }
 
 void MainWindow::on_buttonSubscribe_clicked()
 {
     auto subscription = m_client->subscribe(ui->lineEditTopic->text(), ui->spinQoS->text().toUInt());
+    if (!subscription) {
+        QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not subscribe. Is there a valid connection?"));
+        return;
+    }
     auto subWindow = new SubscriptionWindow(subscription);
     subWindow->setWindowTitle(subscription->topic());
     subWindow->show();

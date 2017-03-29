@@ -203,6 +203,10 @@ QIODevice *QMqttClient::transport() const
 QSharedPointer<QMqttSubscription> QMqttClient::subscribe(const QString &topic, quint8 qos)
 {
     Q_D(QMqttClient);
+
+    if (d->m_state != QMqttClient::Connected)
+        return QSharedPointer<QMqttSubscription>();
+
     return d->m_connection.sendControlSubscribe(topic, qos);
 }
 
@@ -229,6 +233,10 @@ bool QMqttClient::publish(const QString &topic, const QByteArray &message, quint
     Q_D(QMqttClient);
     if (qos > 2)
         return false;
+
+    if (d->m_state != QMqttClient::Connected)
+        return false;
+
     return d->m_connection.sendControlPublish(topic, message, qos, retain);
 }
 
