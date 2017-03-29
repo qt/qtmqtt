@@ -177,12 +177,12 @@ bool QMqttConnection::sendControlConnect()
     return true;
 }
 
-bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
+qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
     Q_UNUSED(retain);
 
     if (topic.contains(QLatin1Char('#')) || topic.contains('+'))
-        return false;
+        return -1;
 
     // ### TODO: DUP, QOS, RETAIN
     quint8 header = QMqttControlPacket::PUBLISH;
@@ -212,7 +212,7 @@ bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray 
 
     if (!written)
         m_pendingMessages.remove(identifier);
-    return written;
+    return written ? identifier : -1;
 }
 
 bool QMqttConnection::sendControlPublishAcknowledge(quint16 id)
@@ -537,17 +537,20 @@ void QMqttConnection::transportReadReady()
                 auto pendingRelease = m_pendingReleaseMessages.take(id);
                 if (!pendingRelease)
                     qWarning("Received PUBCOMP for unknown released message");
+                emit m_client->messageSent(id);
                 break;
             }
 
             auto pendingMsg = m_pendingMessages.take(id);
             if (!pendingMsg) {
-                qWarning("Received PUBACK for unknown message");
+                qWarning(qPrintable(QString::fromLatin1("Received PUBACK for unknown message: %1").arg(id)));
                 break;
             }
             if ((msg & 0xF0) == QMqttControlPacket::PUBREC) {
                 m_pendingReleaseMessages.insert(id, pendingMsg);
                 sendControlPublishRelease(id);
+            } else {
+                emit m_client->messageSent(id);
             }
             break;
         }

@@ -89,7 +89,7 @@ void MainWindow::setClientPort(int p)
 
 void MainWindow::on_buttonPublish_clicked()
 {
-    if (!m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text().toUtf8()))
+    if (m_client->publish(ui->lineEditTopic->text(), ui->lineEditMessage->text().toUtf8()) == -1)
         QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not publish message"));
 }
 

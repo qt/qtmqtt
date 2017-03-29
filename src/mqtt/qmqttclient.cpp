@@ -228,14 +228,14 @@ void QMqttClient::unsubscribe(const QString &topic)
 
     Returns \c true if the publish request could be send.
  */
-bool QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
+qint32 QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
     Q_D(QMqttClient);
     if (qos > 2)
-        return false;
+        return -1;
 
     if (d->m_state != QMqttClient::Connected)
-        return false;
+        return -1;
 
     return d->m_connection.sendControlPublish(topic, message, qos, retain);
 }
