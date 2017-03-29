@@ -384,7 +384,7 @@ void QMqttConnection::transportReadReady()
                 qWarning("Received CONNACK at unexpected time!");
                 break;
             }
-            //quint8 payloadSize = ptr[1];
+
             quint8 payloadSize;
             m_transport->read((char*)&payloadSize, 1);
             if (payloadSize != 2) {
@@ -576,7 +576,6 @@ void QMqttConnection::transportReadReady()
             quint8 v;
             m_transport->read((char*)&v, 1);
             if (v != 0)
-                //if (ptr[1] != 0)
                 qWarning("Received a PINGRESP with payload!");
             emit m_client->pingResponse();
             break;
