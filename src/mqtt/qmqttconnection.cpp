@@ -181,6 +181,9 @@ bool QMqttConnection::sendControlPublish(const QString &topic, const QByteArray 
 {
     Q_UNUSED(retain);
 
+    if (topic.contains(QLatin1Char('#')) || topic.contains('+'))
+        return false;
+
     // ### TODO: DUP, QOS, RETAIN
     quint8 header = QMqttControlPacket::PUBLISH;
     if (qos == 1)
