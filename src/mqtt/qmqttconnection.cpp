@@ -490,16 +490,16 @@ void QMqttConnection::transportReadReady()
             const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
             const QByteArray message = m_transport->read(messageLength);
 
-            emit m_client->messageReceived(topic, message);
+            emit m_client->messageReceived(message, topic);
 
             for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
                 const QString subTopic = sub.key();
 
                 if (subTopic == topic) {
-                    emit sub.value()->messageReceived(message);
+                    emit sub.value()->messageReceived(message, topic);
                     continue;
                 } else if (subTopic.endsWith(QLatin1Char('#')) && topic.startsWith(subTopic.leftRef(subTopic.size() - 1))) {
-                    emit sub.value()->messageReceived(message);
+                    emit sub.value()->messageReceived(message, topic);
                     continue;
                 }
 
@@ -512,8 +512,9 @@ void QMqttConnection::transportReadReady()
                     continue;
                 const QVector<QStringRef> subPlusSplit = subTopic.splitRef(QLatin1Char('+'));
 
-                if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1)))
-                    emit sub.value()->messageReceived(message);
+                if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1))) {
+                    emit sub.value()->messageReceived(message, topic);
+                }
             }
 
             if (qos == 1)

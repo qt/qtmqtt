@@ -58,7 +58,7 @@ public:
 signals:
     void stateChanged(SubscriptionState state);
     void qosChanged(quint8); // only emitted when broker provides different QoS than requested
-    void messageReceived(QByteArray msg);
+    void messageReceived(QByteArray msg, QString topic = QString());
 
 public slots:
     void setState(SubscriptionState state);

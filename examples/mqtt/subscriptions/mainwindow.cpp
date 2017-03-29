@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_client, &QMqttClient::stateChanged, this, &MainWindow::updateLogStateChange);
     connect(m_client, &QMqttClient::disconnected, this, &MainWindow::brokerDisconnected);
 
-    connect(m_client, &QMqttClient::messageReceived, this, [this](const QString &topic, const QString &message) {
+    connect(m_client, &QMqttClient::messageReceived, this, [this](const QByteArray &message, const QString &topic) {
         const QString content = QDateTime::currentDateTime().toString()
                     + QLatin1String(" Received Topic: ")
                     + topic
