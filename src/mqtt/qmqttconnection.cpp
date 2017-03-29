@@ -200,7 +200,13 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
     quint16 identifier = 0;
     if (qos > 0) {
         // Add Packet Identifier
-        identifier = qrand();
+        static quint16 publishIdCounter = 0;
+        if (publishIdCounter +1 == UINT16_MAX)
+            publishIdCounter = 0;
+        else
+            publishIdCounter++;
+
+        identifier = publishIdCounter;
         packet->append(identifier);
     }
     packet->append(message);
