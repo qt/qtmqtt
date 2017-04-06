@@ -29,9 +29,13 @@
 #include "qmqttconnection_p.h"
 #include "qmqttcontrolpacket_p.h"
 
+#include <QtCore/QLoggingCategory>
 #include <QtNetwork/QTcpSocket>
 
 QT_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
+Q_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
@@ -50,6 +54,8 @@ QMqttConnection::~QMqttConnection()
 
 void QMqttConnection::setTransport(QIODevice *device, QMqttClient::TransportType transport)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << device << " Type:" << transport;
+
     if (m_transport) {
         disconnect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
         disconnect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadReady);
@@ -72,6 +78,8 @@ QIODevice *QMqttConnection::transport() const
 
 bool QMqttConnection::ensureTransport()
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transport;
+
     if (m_transport)
         return true;
 
@@ -93,6 +101,8 @@ bool QMqttConnection::ensureTransport()
 
 bool QMqttConnection::ensureTransportOpen()
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transportType;
+
     if (m_transportType == QMqttClient::IODevice) {
         if (m_transport->isOpen())
             return true;
@@ -118,6 +128,8 @@ bool QMqttConnection::ensureTransportOpen()
 
 bool QMqttConnection::sendControlConnect()
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO;
+
     QMqttControlPacket packet(QMqttControlPacket::CONNECT);
 
     // Variable header
@@ -179,6 +191,9 @@ bool QMqttConnection::sendControlConnect()
 
 qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << topic << " Size:" << message.size() << " bytes."
+                              << "QoS:" << qos << " Retain:" << retain;
+
     if (topic.contains(QLatin1Char('#')) || topic.contains('+'))
         return -1;
 
@@ -221,6 +236,7 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
 
 bool QMqttConnection::sendControlPublishAcknowledge(quint16 id)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << id;
     QMqttControlPacket packet(QMqttControlPacket::PUBACK);
     packet.append(id);
     return writePacketToTransport(packet);
@@ -228,6 +244,7 @@ bool QMqttConnection::sendControlPublishAcknowledge(quint16 id)
 
 bool QMqttConnection::sendControlPublishRelease(quint16 id)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << id;
     QMqttControlPacket packet(QMqttControlPacket::PUBREL);
     packet.append(id);
     return writePacketToTransport(packet);
@@ -235,6 +252,7 @@ bool QMqttConnection::sendControlPublishRelease(quint16 id)
 
 bool QMqttConnection::sendControlPublishReceive(quint16 id)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << id;
     QMqttControlPacket packet(QMqttControlPacket::PUBREC);
     packet.append(id);
     return writePacketToTransport(packet);
@@ -242,6 +260,7 @@ bool QMqttConnection::sendControlPublishReceive(quint16 id)
 
 bool QMqttConnection::sendControlPublishComp(quint16 id)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << id;
     QMqttControlPacket packet(QMqttControlPacket::PUBCOMP);
     packet.append(id);
     return writePacketToTransport(packet);
@@ -249,6 +268,8 @@ bool QMqttConnection::sendControlPublishComp(quint16 id)
 
 QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QString &topic, quint8 qos)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
+
     if (m_activeSubscriptions.contains(topic))
         return m_activeSubscriptions[topic];
 
@@ -286,6 +307,8 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
 
 bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic;
+
     // MQTT-3.10.3-2
     if (topic.isEmpty())
         return false;
@@ -323,6 +346,8 @@ bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
 
 bool QMqttConnection::sendControlPingRequest()
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO;
+
     if (m_internalState != QMqttConnection::BrokerConnected)
         return false;
 
@@ -336,6 +361,8 @@ bool QMqttConnection::sendControlPingRequest()
 
 bool QMqttConnection::sendControlDisconnect()
 {
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO;
+
     m_pingTimer.stop();
 
     for (auto sub : m_activeSubscriptions)
@@ -370,6 +397,7 @@ void QMqttConnection::transportConnectionClosed()
 
 void QMqttConnection::transportReadReady()
 {
+    qCDebug(lcMqttConnectionVerbose) << Q_FUNC_INFO;
     // ### TODO: This heavily relies on the fact that messages are fully sent
     // before transport ReadReady is invoked.
     qint64 available = m_transport->bytesAvailable();
@@ -378,6 +406,7 @@ void QMqttConnection::transportReadReady()
         m_transport->read((char*)&msg, 1);
         switch (msg & 0xF0) {
         case QMqttControlPacket::CONNACK: {
+            qCDebug(lcMqttConnectionVerbose) << "Received CONNACK";
             if (m_internalState != BrokerWaitForConnectAck) {
                 qWarning("Received CONNACK at unexpected time!");
                 break;
@@ -438,6 +467,7 @@ void QMqttConnection::transportReadReady()
             quint8 result;
             m_transport->read((char*)&result, 1);
             auto sub = m_pendingSubscriptionAck.take(id);
+            qCDebug(lcMqttConnectionVerbose) << "Received SUBACK: ID:" << id << "QoS:" << result;
             if (result <= 2) {
                 // The broker might have a different support level for QoS than what
                 // the client requested
@@ -463,6 +493,7 @@ void QMqttConnection::transportReadReady()
             quint16 id;
             m_transport->read((char*)&id, 2);
             id = qFromBigEndian<quint16>(id);
+            qCDebug(lcMqttConnectionVerbose) << "Received UNSUBACK: ID:" << id;
             if (!m_pendingUnsubscriptions.contains(id)) {
                 qWarning("Received UNSUBACK for unknown request");
                 break;
@@ -492,6 +523,9 @@ void QMqttConnection::transportReadReady()
             // String message
             const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
             const QByteArray message = m_transport->read(messageLength);
+
+            qCDebug(lcMqttConnectionVerbose) << "Received PUBLISH: topic:" << topic
+                                             << " messageLength:" << messageLength;;
 
             emit m_client->messageReceived(message, topic);
 
@@ -537,6 +571,7 @@ void QMqttConnection::transportReadReady()
             id = qFromBigEndian<quint16>(id);
 
             if ((msg & 0xF0) == QMqttControlPacket::PUBCOMP) {
+                qCDebug(lcMqttConnectionVerbose) << "Received PUBCOMP:" << id;
                 auto pendingRelease = m_pendingReleaseMessages.take(id);
                 if (!pendingRelease)
                     qWarning("Received PUBCOMP for unknown released message");
@@ -550,9 +585,11 @@ void QMqttConnection::transportReadReady()
                 break;
             }
             if ((msg & 0xF0) == QMqttControlPacket::PUBREC) {
+                qCDebug(lcMqttConnectionVerbose) << "Received PUBREC:" << id;
                 m_pendingReleaseMessages.insert(id, pendingMsg);
                 sendControlPublishRelease(id);
             } else {
+                qCDebug(lcMqttConnectionVerbose) << "Received PUBACK:" << id;
                 emit m_client->messageSent(id);
             }
             break;
@@ -565,12 +602,15 @@ void QMqttConnection::transportReadReady()
             m_transport->read((char*)&id, 2);
             id = qFromBigEndian<quint16>(id);
 
+            qCDebug(lcMqttConnectionVerbose) << "Received PUBREL:" << id;
+
             // ### TODO: send to our app now or not???
             // See standard Figure 4.3 Method A or B ???
             sendControlPublishComp(id);
             break;
         }
         case QMqttControlPacket::PINGRESP: {
+            qCDebug(lcMqttConnectionVerbose) << "Received PINGRESP:";
             quint8 v;
             m_transport->read((char*)&v, 1);
             if (v != 0)
