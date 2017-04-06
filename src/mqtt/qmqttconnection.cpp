@@ -162,7 +162,6 @@ bool QMqttConnection::sendControlConnect()
         packet.append(char(0));
     }
 
-
     if (m_client->username().size())
         packet.append(m_client->username().toUtf8());
 
