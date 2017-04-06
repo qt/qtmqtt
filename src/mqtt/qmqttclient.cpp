@@ -333,6 +333,12 @@ QString QMqttClient::password() const
     return d->m_password;
 }
 
+bool QMqttClient::cleanSession() const
+{
+    Q_D(const QMqttClient);
+    return d->m_cleanSession;
+}
+
 quint8 QMqttClient::protocolVersion() const
 {
     Q_D(const QMqttClient);
@@ -438,6 +444,16 @@ void QMqttClient::setPassword(QString password)
 
     d->m_password = password;
     emit passwordChanged(password);
+}
+
+void QMqttClient::setCleanSession(bool cleanSession)
+{
+    Q_D(QMqttClient);
+    if (d->m_cleanSession == cleanSession)
+        return;
+
+    d->m_cleanSession = cleanSession;
+    emit cleanSessionChanged(cleanSession);
 }
 
 QMqttClientPrivate::QMqttClientPrivate()

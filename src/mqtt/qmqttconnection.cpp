@@ -137,7 +137,8 @@ bool QMqttConnection::sendControlConnect()
     // 3.1.2.3 Connect Flags
     quint8 flags = 0;
     // Clean session
-    flags |= 1;
+    if (m_client->cleanSession())
+        flags |= 1;
 
     if (m_client->username().size())
         flags |= 1 << 7;

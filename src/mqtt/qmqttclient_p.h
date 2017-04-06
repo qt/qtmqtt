@@ -67,6 +67,7 @@ public:
     QMqttClient::State m_state{QMqttClient::Disconnected};
     QString m_username;
     QString m_password;
+    bool m_cleanSession{true};
 };
 
 QT_END_NAMESPACE

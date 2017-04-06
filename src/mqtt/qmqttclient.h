@@ -64,6 +64,7 @@ private:
     Q_PROPERTY(State state READ state WRITE setState NOTIFY stateChanged)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
+    Q_PROPERTY(bool cleanSession READ cleanSession WRITE setCleanSession NOTIFY cleanSessionChanged)
 public:
     explicit QMqttClient(QObject *parent = 0);
 
@@ -90,6 +91,7 @@ public:
 
     QString username() const;
     QString password() const;
+    bool cleanSession() const;
 
 signals:
     void connected();
@@ -106,6 +108,7 @@ signals:
     void stateChanged(State state);
     void usernameChanged(QString username);
     void passwordChanged(QString password);
+    void cleanSessionChanged(bool cleanSession);
 
 public slots:
     void setHostname(QString hostname);
@@ -116,6 +119,7 @@ public slots:
     void setState(State state);
     void setUsername(QString username);
     void setPassword(QString password);
+    void setCleanSession(bool cleanSession);
 
 private:
     Q_DISABLE_COPY(QMqttClient)
