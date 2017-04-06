@@ -180,8 +180,6 @@ bool QMqttConnection::sendControlConnect()
 
 qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
-    Q_UNUSED(retain);
-
     if (topic.contains(QLatin1Char('#')) || topic.contains('+'))
         return -1;
 

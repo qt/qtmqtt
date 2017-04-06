@@ -13,6 +13,7 @@ public:
 private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
+    void retainMessage();
     void stressTest_data();
     void stressTest();
     void stressTest2_data();
@@ -37,6 +38,57 @@ void Tst_QMqttClient::initTestCase()
 
 void Tst_QMqttClient::cleanupTestCase()
 {
+}
+
+void Tst_QMqttClient::retainMessage()
+{
+    const QString testTopic = QLatin1String("Topic2");
+    const QByteArray testMessage("retainedMessage");
+
+    // Publisher
+    QMqttClient publisher;
+    publisher.setClientId(QLatin1String("publisher"));
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    publisher.connectToHost();
+    QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
+
+    // [MQTT-3.3.1-7]
+    // If the Server receives a QoS 0 message with the RETAIN flag set to 1 it MUST
+    // discard any message previously retained for that topic. It SHOULD store the
+    // new QoS 0 message
+    publisher.publish(testTopic, QByteArray(), 0, true);
+    // We cannot wait as 0 QoS does not send confirmation
+    QTest::qWait(500);
+
+    for (int i = 0; i < 2; i++) {
+        int msgCount = 0;
+
+        QSignalSpy publishSpy(&publisher, SIGNAL(messageSent(qint32)));
+        publisher.publish(testTopic, testMessage, 1, i == 1 ? true : false);
+        QTRY_COMPARE(publishSpy.count(), 1);
+
+        QMqttClient sub;
+        sub.setClientId(QLatin1String("SubA"));
+        sub.setHostname(m_testBroker);
+        sub.setPort(m_port);
+        connect(&sub, &QMqttClient::messageReceived, [&msgCount, testMessage](const QByteArray &msg) {
+            if (msg == testMessage)
+                msgCount++;
+        });
+
+        QSignalSpy messageSpy(&sub, SIGNAL(messageReceived(QByteArray,QString)));
+        sub.connectToHost();
+        QTRY_COMPARE(sub.state(), QMqttClient::Connected);
+
+        auto subscription = sub.subscribe(testTopic);
+        QTRY_COMPARE(subscription->state(), QMqttSubscription::Subscribed);
+
+        QTest::qWait(5000);
+        QVERIFY(msgCount == i);
+    }
+    publisher.disconnect();
 }
 
 void Tst_QMqttClient::stressTest_data()
