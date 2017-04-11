@@ -46,7 +46,8 @@ class Q_MQTT_EXPORT QMqttClient : public QObject
 public:
     enum TransportType {
         IODevice = 0,
-        AbstractSocket
+        AbstractSocket,
+        SecureSocket
     };
     enum State {
         Disconnected = 0,

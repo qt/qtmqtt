@@ -30,6 +30,7 @@
 #include "qmqttcontrolpacket_p.h"
 
 #include <QtCore/QLoggingCategory>
+#include <QtNetwork/QSslSocket>
 #include <QtNetwork/QTcpSocket>
 
 QT_BEGIN_NAMESPACE
@@ -122,7 +123,24 @@ bool QMqttConnection::ensureTransportOpen()
             qWarning("Could not establish socket connection for transport");
             return false;
         }
+    } else if (m_transportType == QMqttClient::SecureSocket) {
+        auto socket = dynamic_cast<QSslSocket*>(m_transport);
+        Q_ASSERT(socket);
+        if (socket->state() == QAbstractSocket::ConnectedState)
+            return true;
+
+        socket->connectToHostEncrypted(m_client->hostname(), m_client->port());
+        if (!socket->waitForConnected()) {
+            qWarning("Could not establish socket connection for transport");
+            return false;
+        }
+
+        if (!socket->waitForEncrypted()) {
+            qWarning("Could not initiate encryption.");
+            return false;
+        }
     }
+
     return true;
 }
 
