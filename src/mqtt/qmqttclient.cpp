@@ -302,6 +302,11 @@ void QMqttClient::connectToHost()
     }
 }
 
+/*!
+    Initiates an encrypted connection to the MQTT broker.
+
+    \a sslPeerName specifies the peer name to be passed to the socket.
+ */
 void QMqttClient::connectToHostEncrypted(const QString &sslPeerName)
 {
     Q_D(QMqttClient);
