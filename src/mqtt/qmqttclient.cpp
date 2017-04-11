@@ -279,27 +279,7 @@ quint16 QMqttClient::port() const
  */
 void QMqttClient::connectToHost()
 {
-    Q_D(QMqttClient);
-
-    if (!d->m_connection.ensureTransport()) {
-        qWarning("Could not ensure connection");
-        setState(Disconnected);
-        return;
-    }
-    setState(Connecting);
-
-    if (!d->m_connection.ensureTransportOpen()) {
-        qWarning("Could not ensure that connection is open");
-        setState(Disconnected);
-        return;
-    }
-
-    if (!d->m_connection.sendControlConnect()) {
-        qWarning("Could not send CONNECT to broker");
-        // ### Who disconnects now? Connection or client?
-        setState(Disconnected);
-        return;
-    }
+    connectToHost(false, QString());
 }
 
 /*!
@@ -309,9 +289,14 @@ void QMqttClient::connectToHost()
  */
 void QMqttClient::connectToHostEncrypted(const QString &sslPeerName)
 {
+    connectToHost(true, sslPeerName);
+}
+
+void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
+{
     Q_D(QMqttClient);
 
-    if (!d->m_connection.ensureTransport(true)) {
+    if (!d->m_connection.ensureTransport(encrypted)) {
         qWarning("Could not ensure connection");
         setState(Disconnected);
         return;

@@ -124,6 +124,7 @@ public slots:
     void setCleanSession(bool cleanSession);
 
 private:
+    void connectToHost(bool encrypted, const QString &sslPeerName);
     Q_DISABLE_COPY(QMqttClient)
     Q_DECLARE_PRIVATE(QMqttClient)
 };
