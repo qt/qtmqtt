@@ -14,6 +14,7 @@ private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
     void retainMessage();
+    void willMessage();
     void stressTest_data();
     void stressTest();
     void stressTest2_data();
@@ -89,6 +90,61 @@ void Tst_QMqttClient::retainMessage()
         QVERIFY(msgCount == i);
     }
     publisher.disconnect();
+}
+
+void Tst_QMqttClient::willMessage()
+{
+    const QString willTopic = QLatin1String("will/topic");
+    const QByteArray willMessage("The client died....");
+
+    // Client A connects
+    QMqttClient client1;
+    client1.setHostname(m_testBroker);
+    client1.setPort(m_port);
+    client1.connectToHost();
+    QTRY_COMPARE(client1.state(), QMqttClient::Connected);
+
+    auto client1Sub = client1.subscribe(willTopic, 1);
+    connect(client1Sub.data(), &QMqttSubscription::messageReceived, [=](QString message) {
+        // Just debug purposes
+        //qDebug() << "Got something:" << message;
+    });
+    QTRY_COMPARE(client1Sub->state(), QMqttSubscription::Subscribed);
+
+    QSignalSpy messageSpy(client1Sub.data(), SIGNAL(messageReceived(QByteArray,QString)));
+
+    // Client B connects (via TcpSocket)
+    QTcpSocket sock;
+    sock.connectToHost(m_testBroker, m_port);
+    QVERIFY(sock.waitForConnected());
+
+    for (int i = 1; i > 0; --i) {
+        QMqttClient willClient;
+        if (i == 1)
+            willClient.setTransport(&sock, QMqttClient::AbstractSocket);
+        else {
+            willClient.setHostname(m_testBroker);
+            willClient.setPort(m_port);
+        }
+        willClient.setWillQoS(1);
+        willClient.setWillTopic(willTopic);
+        willClient.setWillMessage(willMessage);
+        willClient.connectToHost();
+        QTRY_COMPARE(willClient.state(), QMqttClient::Connected);
+
+        willClient.publish(QLatin1String("noninteresting"), "just something");
+
+        // Be evil and kill the connection without DISCONNECT
+        // Should send will message to client1.
+        // When you manually disconnect (send the DISCONNECT command) no will message
+        // is sent
+        if (i == 1)
+            sock.disconnectFromHost();
+        else
+            willClient.disconnectFromHost();
+        QTest::qWait(500);
+        QTRY_COMPARE(messageSpy.count(), i);
+    }
 }
 
 void Tst_QMqttClient::stressTest_data()
