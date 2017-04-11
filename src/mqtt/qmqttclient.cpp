@@ -302,6 +302,31 @@ void QMqttClient::connectToHost()
     }
 }
 
+void QMqttClient::connectToHostEncrypted(const QString &sslPeerName)
+{
+    Q_D(QMqttClient);
+
+    if (!d->m_connection.ensureTransport(true)) {
+        qWarning("Could not ensure connection");
+        setState(Disconnected);
+        return;
+    }
+    setState(Connecting);
+
+    if (!d->m_connection.ensureTransportOpen(sslPeerName)) {
+        qWarning("Could not ensure that connection is open");
+        setState(Disconnected);
+        return;
+    }
+
+    if (!d->m_connection.sendControlConnect()) {
+        qWarning("Could not send CONNECT to broker");
+        // ### Who disconnects now? Connection or client?
+        setState(Disconnected);
+        return;
+    }
+}
+
 /*!
     Disconnect from the MQTT broker.
  */

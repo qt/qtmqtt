@@ -77,7 +77,7 @@ QIODevice *QMqttConnection::transport() const
     return m_transport;
 }
 
-bool QMqttConnection::ensureTransport()
+bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transport;
 
@@ -89,10 +89,10 @@ bool QMqttConnection::ensureTransport()
         qWarning("Trying to create a transport layer, but no hostname is specified");
         return false;
     }
-    auto socket = new QTcpSocket();
+    auto socket = createSecureIfNeeded ? new QSslSocket() : new QTcpSocket();
     m_transport = socket;
     m_ownTransport = true;
-    m_transportType = QMqttClient::AbstractSocket;
+    m_transportType = createSecureIfNeeded ? QMqttClient::SecureSocket : QMqttClient::AbstractSocket;
 
     connect(socket, &QAbstractSocket::disconnected, this, &QMqttConnection::transportConnectionClosed);
     connect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
@@ -100,7 +100,7 @@ bool QMqttConnection::ensureTransport()
     return true;
 }
 
-bool QMqttConnection::ensureTransportOpen()
+bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transportType;
 
@@ -129,7 +129,7 @@ bool QMqttConnection::ensureTransportOpen()
         if (socket->state() == QAbstractSocket::ConnectedState)
             return true;
 
-        socket->connectToHostEncrypted(m_client->hostname(), m_client->port());
+        socket->connectToHostEncrypted(m_client->hostname(), m_client->port(), sslPeerName);
         if (!socket->waitForConnected()) {
             qWarning("Could not establish socket connection for transport");
             return false;

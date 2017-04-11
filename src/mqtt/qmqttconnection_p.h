@@ -76,8 +76,8 @@ public:
     void setTransport(QIODevice *device, QMqttClient::TransportType transport);
     QIODevice *transport() const;
 
-    bool ensureTransport();
-    bool ensureTransportOpen();
+    bool ensureTransport(bool createSecureIfNeeded = false);
+    bool ensureTransportOpen(const QString &sslPeerName = QString());
 
     bool sendControlConnect();
     qint32 sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos = 0, bool retain = false);

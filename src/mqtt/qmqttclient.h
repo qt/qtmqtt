@@ -86,6 +86,7 @@ public:
     quint8 protocolVersion() const;
 
     void connectToHost();
+    void connectToHostEncrypted(const QString &sslPeerName = QString());
     void disconnectFromHost();
 
     State state() const;
