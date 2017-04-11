@@ -170,6 +170,19 @@ bool QMqttConnection::sendControlConnect()
     if (m_client->cleanSession())
         flags |= 1;
 
+    if (!m_client->willMessage().isEmpty()) {
+        flags |= 1 << 2;
+        if (m_client->willQoS() > 2) {
+            qWarning("Will QoS does not have a valid value");
+            return false;
+        }
+        if (m_client->willQoS() == 1)
+            flags |= 1 << 3;
+        else if (m_client->willQoS() == 2)
+            flags |= 1 << 4;
+        if (m_client->willRetain())
+            flags |= 1 << 5;
+    }
     if (m_client->username().size())
         flags |= 1 << 7;
 
@@ -190,6 +203,11 @@ bool QMqttConnection::sendControlConnect()
     } else {
         packet.append(char(0));
         packet.append(char(0));
+    }
+
+    if (!m_client->willMessage().isEmpty()) {
+        packet.append(m_client->willTopic().toUtf8());
+        packet.append(m_client->willMessage().toUtf8());
     }
 
     if (m_client->username().size())

@@ -354,6 +354,30 @@ bool QMqttClient::cleanSession() const
     return d->m_cleanSession;
 }
 
+QString QMqttClient::willTopic() const
+{
+    Q_D(const QMqttClient);
+    return d->m_willTopic;
+}
+
+quint8 QMqttClient::willQoS() const
+{
+    Q_D(const QMqttClient);
+    return d->m_willQoS;
+}
+
+QString QMqttClient::willMessage() const
+{
+    Q_D(const QMqttClient);
+    return d->m_willMessage;
+}
+
+bool QMqttClient::willRetain() const
+{
+    Q_D(const QMqttClient);
+    return d->m_willRetain;
+}
+
 quint8 QMqttClient::protocolVersion() const
 {
     Q_D(const QMqttClient);
@@ -469,6 +493,46 @@ void QMqttClient::setCleanSession(bool cleanSession)
 
     d->m_cleanSession = cleanSession;
     emit cleanSessionChanged(cleanSession);
+}
+
+void QMqttClient::setWillTopic(QString willTopic)
+{
+    Q_D(QMqttClient);
+    if (d->m_willTopic == willTopic)
+        return;
+
+    d->m_willTopic = willTopic;
+    emit willTopicChanged(willTopic);
+}
+
+void QMqttClient::setWillQoS(quint8 willQoS)
+{
+    Q_D(QMqttClient);
+    if (d->m_willQoS == willQoS)
+        return;
+
+    d->m_willQoS = willQoS;
+    emit willQoSChanged(willQoS);
+}
+
+void QMqttClient::setWillMessage(QString willMessage)
+{
+    Q_D(QMqttClient);
+    if (d->m_willMessage == willMessage)
+        return;
+
+    d->m_willMessage = willMessage;
+    emit willMessageChanged(willMessage);
+}
+
+void QMqttClient::setWillRetain(bool willRetain)
+{
+    Q_D(QMqttClient);
+    if (d->m_willRetain == willRetain)
+        return;
+
+    d->m_willRetain = willRetain;
+    emit willRetainChanged(willRetain);
 }
 
 QMqttClientPrivate::QMqttClientPrivate()

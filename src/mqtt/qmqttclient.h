@@ -66,6 +66,10 @@ private:
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
     Q_PROPERTY(bool cleanSession READ cleanSession WRITE setCleanSession NOTIFY cleanSessionChanged)
+    Q_PROPERTY(QString willTopic READ willTopic WRITE setWillTopic NOTIFY willTopicChanged)
+    Q_PROPERTY(QString willMessage READ willMessage WRITE setWillMessage NOTIFY willMessageChanged)
+    Q_PROPERTY(quint8 willQoS READ willQoS WRITE setWillQoS NOTIFY willQoSChanged)
+    Q_PROPERTY(bool willRetain READ willRetain WRITE setWillRetain NOTIFY willRetainChanged)
 public:
     explicit QMqttClient(QObject *parent = 0);
 
@@ -95,6 +99,11 @@ public:
     QString password() const;
     bool cleanSession() const;
 
+    QString willTopic() const;
+    quint8 willQoS() const;
+    QString willMessage() const;
+    bool willRetain() const;
+
 signals:
     void connected();
     void disconnected();
@@ -112,6 +121,11 @@ signals:
     void passwordChanged(QString password);
     void cleanSessionChanged(bool cleanSession);
 
+    void willTopicChanged(QString willTopic);
+    void willQoSChanged(quint8 willQoS);
+    void willMessageChanged(QString willMessage);
+    void willRetainChanged(bool willRetain);
+
 public slots:
     void setHostname(QString hostname);
     void setPort(quint16 port);
@@ -122,6 +136,11 @@ public slots:
     void setUsername(QString username);
     void setPassword(QString password);
     void setCleanSession(bool cleanSession);
+
+    void setWillTopic(QString willTopic);
+    void setWillQoS(quint8 willQoS);
+    void setWillMessage(QString willMessage);
+    void setWillRetain(bool willRetain);
 
 private:
     void connectToHost(bool encrypted, const QString &sslPeerName);
