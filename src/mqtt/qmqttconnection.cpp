@@ -463,15 +463,16 @@ void QMqttConnection::transportReadReady()
             }
             bool sessionPresent = ackFlags == 1;
 
-            // ### TODO: MQTT-3.2.2-1
-            // ### TODO: MQTT-3.2.2-2
+            // MQTT-3.2.2-1 & MQTT-3.2.2-2
             if (sessionPresent) {
-                qWarning("Connected with a clean session, ack contains session present");
-                // ## SET SOME ERROR
-                // ### TODO: RABBIT MQ Spec Misalign
-                // If a clean session is requested by the client, the server has to have an empty
-                // session. However Rabbit MQ sends a 1 here for unknown reasons.
-                //break;
+                emit m_client->brokerSessionRestored();
+                if (m_client->cleanSession()) {
+                    qWarning("Connected with a clean session, ack contains session present");
+                    // ### TODO: RABBIT MQ Spec Misalign
+                    // If a clean session is requested by the client, the server has to have an empty
+                    // session. However Rabbit MQ sends a 1 here for unknown reasons.
+                    //break;
+                }
             }
 
             quint8 connectResultValue;

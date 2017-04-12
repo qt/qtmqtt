@@ -110,6 +110,7 @@ signals:
     void messageReceived(const QByteArray &message, const QString &topic = QString());
     void messageSent(qint32);
     void pingResponse();
+    void brokerSessionRestored();
 
     void hostnameChanged(QString hostname);
     void portChanged(quint16 port);
