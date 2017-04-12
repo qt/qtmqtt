@@ -434,8 +434,7 @@ void QMqttConnection::transportConnectionClosed()
 void QMqttConnection::transportReadReady()
 {
     qCDebug(lcMqttConnectionVerbose) << Q_FUNC_INFO;
-    // ### TODO: This heavily relies on the fact that messages are fully sent
-    // before transport ReadReady is invoked.
+
     qint64 available = m_transport->bytesAvailable();
     while (available > 0) {
         quint8 msg;
@@ -514,8 +513,7 @@ void QMqttConnection::transportReadReady()
                 sub->setState(QMqttSubscription::Subscribed);
                 m_activeSubscriptions.insert(sub->topic(), sub);
             } else if (result == 0x80) {
-                // ### TODO: subscriptionFailed
-                qWarning("Subscription failed");
+                qWarning() << "Subscription for id " << id << " failed.";
                 sub->setState(QMqttSubscription::Error);
             } else {
                 qWarning("Received invalid SUBACK result value");
