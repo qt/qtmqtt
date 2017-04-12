@@ -233,7 +233,6 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
     if (topic.contains(QLatin1Char('#')) || topic.contains('+'))
         return -1;
 
-    // ### TODO: DUP, QOS, RETAIN
     quint8 header = QMqttControlPacket::PUBLISH;
     if (qos == 1)
         header |= 0x02;
