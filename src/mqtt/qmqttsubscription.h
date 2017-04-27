@@ -56,12 +56,12 @@ public:
     QString topic() const;
     quint8 qos() const;
 
-signals:
+Q_SIGNALS:
     void stateChanged(SubscriptionState state);
     void qosChanged(quint8); // only emitted when broker provides different QoS than requested
     void messageReceived(QByteArray msg, QString topic = QString());
 
-public slots:
+public Q_SLOTS:
     void setState(SubscriptionState state);
     void unsubscribe();
 

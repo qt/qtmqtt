@@ -71,7 +71,7 @@ private:
     Q_PROPERTY(quint8 willQoS READ willQoS WRITE setWillQoS NOTIFY willQoSChanged)
     Q_PROPERTY(bool willRetain READ willRetain WRITE setWillRetain NOTIFY willRetainChanged)
 public:
-    explicit QMqttClient(QObject *parent = 0);
+    explicit QMqttClient(QObject *parent = nullptr);
 
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
@@ -104,7 +104,7 @@ public:
     QString willMessage() const;
     bool willRetain() const;
 
-signals:
+Q_SIGNALS:
     void connected();
     void disconnected();
     void messageReceived(const QByteArray &message, const QString &topic = QString());
@@ -127,7 +127,7 @@ signals:
     void willMessageChanged(QString willMessage);
     void willRetainChanged(bool willRetain);
 
-public slots:
+public Q_SLOTS:
     void setHostname(QString hostname);
     void setPort(quint16 port);
     void setClientId(QString clientId);

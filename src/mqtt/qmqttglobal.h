@@ -27,7 +27,8 @@
 **
 ****************************************************************************/
 
-#pragma once
+#ifndef QTQMQTTGLOBAL_H
+#define QTQMQTTGLOBAL_H
 
 #include <QtCore/qglobal.h>
 
@@ -44,3 +45,5 @@ QT_BEGIN_NAMESPACE
 #endif
 
 QT_END_NAMESPACE
+
+#endif //QTQMQTTGLOBAL_H

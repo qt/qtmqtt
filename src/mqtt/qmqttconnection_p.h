@@ -93,9 +93,8 @@ public:
     void setClient(QMqttClient *client);
 
     inline InternalConnectionState internalState() const { return m_internalState; }
-signals:
 
-public slots:
+public Q_SLOTS:
     void transportConnectionClosed();
     void transportReadReady();
 

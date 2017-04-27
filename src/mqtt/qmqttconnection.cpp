@@ -34,6 +34,8 @@
 #include <QtNetwork/QSslSocket>
 #include <QtNetwork/QTcpSocket>
 
+#include <stdint.h>
+
 QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
