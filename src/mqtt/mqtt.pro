@@ -23,6 +23,7 @@ SOURCES += \
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS \
     qmqttcontrolpacket_p.h \
-    qmqttsubscription.h
+    qmqttsubscription.h \
+    qmqttsubscription_p.h
 
 load(qt_module)

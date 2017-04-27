@@ -28,6 +28,7 @@
 ****************************************************************************/
 #include "qmqttconnection_p.h"
 #include "qmqttcontrolpacket_p.h"
+#include "qmqttsubscription_p.h"
 
 #include <QtCore/QLoggingCategory>
 #include <QtNetwork/QSslSocket>
@@ -327,9 +328,9 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     }
 
     QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
-    result->m_topic = topic;
-    result->m_client = m_client;
-    result->m_qos = qos;
+    result->setTopic(topic);
+    result->setClient(m_client);
+    result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);
 
     if (!writePacketToTransport(packet))
@@ -506,8 +507,8 @@ void QMqttConnection::transportReadReady()
             if (result <= 2) {
                 // The broker might have a different support level for QoS than what
                 // the client requested
-                if (result != sub->m_qos) {
-                    sub->m_qos = result;
+                if (result != sub->qos()) {
+                    sub->setQos(result);
                     emit sub->qosChanged(result);
                 }
                 sub->setState(QMqttSubscription::Subscribed);

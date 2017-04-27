@@ -27,6 +27,7 @@
 **
 ****************************************************************************/
 #include "qmqttsubscription.h"
+#include "qmqttsubscription_p.h"
 #include <QtMqtt/QMqttClient>
 
 QT_BEGIN_NAMESPACE
@@ -83,7 +84,7 @@ QT_BEGIN_NAMESPACE
     for the subscription.
 */
 
-QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(parent)
+QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(*(new QMqttSubscriptionPrivate), parent)
 {
 
 }
@@ -94,32 +95,37 @@ QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(parent)
 */
 QMqttSubscription::~QMqttSubscription()
 {
-    if (m_state == Subscribed)
+    Q_D(const QMqttSubscription);
+    if (d->m_state == Subscribed)
         unsubscribe();
 }
 
 QMqttSubscription::SubscriptionState QMqttSubscription::state() const
 {
-    return m_state;
+    Q_D(const QMqttSubscription);
+    return d->m_state;
 }
 
 QString QMqttSubscription::topic() const
 {
-    return m_topic;
+    Q_D(const QMqttSubscription);
+    return d->m_topic;
 }
 
 quint8 QMqttSubscription::qos() const
 {
-    return m_qos;
+    Q_D(const QMqttSubscription);
+    return d->m_qos;
 }
 
 void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 {
-    if (m_state == state)
+    Q_D(QMqttSubscription);
+    if (d->m_state == state)
         return;
 
-    m_state = state;
-    emit stateChanged(m_state);
+    d->m_state = state;
+    emit stateChanged(d->m_state);
 }
 
 /*!
@@ -128,8 +134,33 @@ void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 */
 void QMqttSubscription::unsubscribe()
 {
-    m_client->unsubscribe(m_topic);
+    Q_D(QMqttSubscription);
+    d->m_client->unsubscribe(d->m_topic);
     setState(Unsubscribed);
+}
+
+void QMqttSubscription::setTopic(const QString &topic)
+{
+    Q_D(QMqttSubscription);
+    d->m_topic = topic;
+}
+
+void QMqttSubscription::setClient(QMqttClient *client)
+{
+    Q_D(QMqttSubscription);
+    d->m_client = client;
+}
+
+void QMqttSubscription::setQos(quint8 qos)
+{
+    Q_D(QMqttSubscription);
+    d->m_qos = qos;
+}
+
+QMqttSubscriptionPrivate::QMqttSubscriptionPrivate()
+    : QObjectPrivate()
+{
+
 }
 
 QT_END_NAMESPACE

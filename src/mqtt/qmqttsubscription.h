@@ -34,6 +34,7 @@
 QT_BEGIN_NAMESPACE
 
 class QMqttClient;
+class QMqttSubscriptionPrivate;
 
 class Q_MQTT_EXPORT QMqttSubscription : public QObject
 {
@@ -65,14 +66,14 @@ public slots:
     void unsubscribe();
 
 private:
+    Q_DECLARE_PRIVATE(QMqttSubscription)
     Q_DISABLE_COPY(QMqttSubscription)
+    void setTopic(const QString &topic);
+    void setClient(QMqttClient *client);
+    void setQos(quint8 qos);
     friend class QMqttConnection;
     friend class QMqttClient;
     explicit QMqttSubscription(QObject *parent = nullptr);
-    QMqttClient *m_client;
-    SubscriptionState m_state;
-    QString m_topic;
-    quint8 m_qos;
 };
 
 QT_END_NAMESPACE
