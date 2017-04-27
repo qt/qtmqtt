@@ -9,11 +9,14 @@ QMAKE_DOCS = $$PWD/doc/qtmqtt.qdocconf
 
 PUBLIC_HEADERS += \
     qmqttglobal.h \
-    qmqttclient.h
+    qmqttclient.h \
+    qmqttsubscription.h
 
 PRIVATE_HEADERS += \
     qmqttclient_p.h \
-    qmqttconnection_p.h
+    qmqttconnection_p.h \
+    qmqttcontrolpacket_p.h \
+    qmqttsubscription_p.h
 
 SOURCES += \
     qmqttclient.cpp \
@@ -21,9 +24,6 @@ SOURCES += \
     qmqttcontrolpacket.cpp \
     qmqttsubscription.cpp
 
-HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS \
-    qmqttcontrolpacket_p.h \
-    qmqttsubscription.h \
-    qmqttsubscription_p.h
+HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS
 
 load(qt_module)
