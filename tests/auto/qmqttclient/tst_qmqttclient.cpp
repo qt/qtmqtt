@@ -41,6 +41,7 @@ public:
 private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
+    void getSetCheck();
     void retainMessage();
     void willMessage();
 private:
@@ -63,6 +64,43 @@ void Tst_QMqttClient::initTestCase()
 
 void Tst_QMqttClient::cleanupTestCase()
 {
+}
+
+void Tst_QMqttClient::getSetCheck()
+{
+    QMqttClient client;
+
+    QVERIFY(client.clientId().size() > 0);
+    const QString clientId = QLatin1String("testclient123");
+    client.setClientId(clientId);
+    QCOMPARE(client.clientId(), clientId);
+
+    QCOMPARE(client.hostname(), QString());
+    const QString hostname = QLatin1String("qt.io");
+    client.setHostname(hostname);
+    QCOMPARE(client.hostname(), hostname);
+
+    QCOMPARE(client.port(), quint16(0));
+    client.setPort(1883);
+    QCOMPARE(client.port(), quint16(1883));
+
+    QCOMPARE(client.keepAlive(), quint16(60));
+    client.setKeepAlive(10);
+    QCOMPARE(client.keepAlive(), quint16(10));
+
+    QCOMPARE(client.protocolVersion(), quint8(3));
+    client.setProtocolVersion(0);
+    QCOMPARE(client.protocolVersion(), quint8(3));
+    client.setProtocolVersion(5);
+    QCOMPARE(client.protocolVersion(), quint8(3));
+
+    QCOMPARE(client.username(), QString());
+    QCOMPARE(client.password(), QString());
+    QCOMPARE(client.cleanSession(), true);
+    QCOMPARE(client.willTopic(), QString());
+    QCOMPARE(client.willMessage(), QString());
+    QCOMPARE(client.willQoS(), quint8(0));
+    QCOMPARE(client.willRetain(), false);
 }
 
 void Tst_QMqttClient::retainMessage()
