@@ -66,7 +66,7 @@ public:
     quint8 m_protocolVersion{3};
     QMqttClient::State m_state{QMqttClient::Disconnected};
     QString m_willTopic;
-    QString m_willMessage;
+    QByteArray m_willMessage;
     quint8 m_willQoS{0};
     bool m_willRetain{false};
     QString m_username;

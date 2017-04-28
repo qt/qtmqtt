@@ -366,7 +366,7 @@ quint8 QMqttClient::willQoS() const
     return d->m_willQoS;
 }
 
-QString QMqttClient::willMessage() const
+QByteArray QMqttClient::willMessage() const
 {
     Q_D(const QMqttClient);
     return d->m_willMessage;
@@ -519,7 +519,7 @@ void QMqttClient::setWillQoS(quint8 willQoS)
     emit willQoSChanged(willQoS);
 }
 
-void QMqttClient::setWillMessage(QString willMessage)
+void QMqttClient::setWillMessage(QByteArray willMessage)
 {
     Q_D(QMqttClient);
     if (d->m_willMessage == willMessage)

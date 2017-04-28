@@ -98,7 +98,7 @@ void Tst_QMqttClient::getSetCheck()
     QCOMPARE(client.password(), QString());
     QCOMPARE(client.cleanSession(), true);
     QCOMPARE(client.willTopic(), QString());
-    QCOMPARE(client.willMessage(), QString());
+    QCOMPARE(client.willMessage(), QByteArray());
     QCOMPARE(client.willQoS(), quint8(0));
     QCOMPARE(client.willRetain(), false);
 }

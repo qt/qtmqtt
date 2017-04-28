@@ -210,7 +210,7 @@ bool QMqttConnection::sendControlConnect()
 
     if (!m_client->willMessage().isEmpty()) {
         packet.append(m_client->willTopic().toUtf8());
-        packet.append(m_client->willMessage().toUtf8());
+        packet.append(m_client->willMessage());
     }
 
     if (m_client->username().size())
