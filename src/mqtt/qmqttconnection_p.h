@@ -71,7 +71,7 @@ public:
         NotAuthorized          = 5
     };
     explicit QMqttConnection(QObject *parent = 0);
-    ~QMqttConnection();
+    ~QMqttConnection() override;
 
     void setTransport(QIODevice *device, QMqttClient::TransportType transport);
     QIODevice *transport() const;

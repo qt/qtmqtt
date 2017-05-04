@@ -43,7 +43,7 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
     Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
     Q_PROPERTY(QString topic READ topic)
 public:
-    ~QMqttSubscription();
+    ~QMqttSubscription() override;
     enum SubscriptionState {
         Unsubscribed = 0,
         SubscriptionPending,

@@ -49,6 +49,7 @@ class QMqttSubscriptionPrivate : public QObjectPrivate
     Q_DECLARE_PUBLIC(QMqttSubscription)
 public:
     QMqttSubscriptionPrivate();
+    ~QMqttSubscriptionPrivate() override = default;
     QMqttClient *m_client{nullptr};
     QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
     QString m_topic;

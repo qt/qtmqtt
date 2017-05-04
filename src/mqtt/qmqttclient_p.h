@@ -55,7 +55,7 @@ class QMqttClientPrivate : public QObjectPrivate
     Q_DECLARE_PUBLIC(QMqttClient)
 public:
     QMqttClientPrivate();
-    ~QMqttClientPrivate();
+    ~QMqttClientPrivate() override;
     QString m_hostname;
     quint16 m_port{0};
     QMqttConnection m_connection;
