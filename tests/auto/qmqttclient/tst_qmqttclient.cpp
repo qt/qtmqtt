@@ -46,6 +46,9 @@ private Q_SLOTS:
     void sendReceive();
     void retainMessage();
     void willMessage();
+    void longTopic_data();
+    void longTopic();
+    void subscribeLongTopic();
 private:
     QString m_testBroker;
     quint16 m_port{1883};
@@ -261,6 +264,74 @@ void Tst_QMqttClient::willMessage()
         QTest::qWait(500);
         QTRY_COMPARE(messageSpy.count(), i);
     }
+}
+
+void Tst_QMqttClient::longTopic_data()
+{
+    QTest::addColumn<QString>("topic");
+    QTest::newRow("simple") << QString::fromLatin1("topic");
+    QTest::newRow("subPath") << QString::fromLatin1("topic/subtopic");
+    // ### TODO: This test does not work as socket::read() is not able to handle such large buffers.
+    // For this we need to redo th whole reading part.
+//    QString l;
+//    l.fill(QLatin1Char('T'), UINT16_MAX);
+//    QTest::newRow("maxSize") << l;
+//    l.fill(QLatin1Char('M'), 2 * UINT16_MAX);
+//    QTest::newRow("overflow") << l;
+}
+
+void Tst_QMqttClient::longTopic()
+{
+    QFETCH(QString, topic);
+    QString truncTopic = topic;
+    truncTopic.truncate(UINT16_MAX);
+
+    QMqttClient publisher;
+    publisher.setClientId(QLatin1String("publisher"));
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    publisher.connectToHost();
+    QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
+
+    QMqttClient subscriber;
+    subscriber.setClientId(QLatin1String("subscriber"));
+    subscriber.setHostname(m_testBroker);
+    subscriber.setPort(m_port);
+
+    subscriber.connectToHost();
+    QTRY_COMPARE(subscriber.state(), QMqttClient::Connected);
+
+    bool received = false;
+    bool verified = false;
+    connect(&subscriber, &QMqttClient::messageReceived, [&](const QByteArray &, const QString &t) {
+        received = true;
+        verified = t == truncTopic;
+    });
+
+    auto client1Sub = subscriber.subscribe(truncTopic, 1);
+    QTRY_COMPARE(client1Sub->state(), QMqttSubscription::Subscribed);
+
+    publisher.publish(topic, QByteArray("Msgs"), 1);
+
+    QTRY_VERIFY2(received, "Subscriber did not receive message");
+    QVERIFY2(verified, "Subscriber received different message");
+}
+
+void Tst_QMqttClient::subscribeLongTopic()
+{
+    QMqttClient subscriber;
+    subscriber.setClientId(QLatin1String("subscriber"));
+    subscriber.setHostname(m_testBroker);
+    subscriber.setPort(m_port);
+
+    subscriber.connectToHost();
+    QTRY_COMPARE(subscriber.state(), QMqttClient::Connected);
+
+    QString topic;
+    topic.fill(QLatin1Char('s'), 2 * UINT16_MAX);
+    auto sub = subscriber.subscribe(topic);
+    QVERIFY(sub.isNull());
 }
 
 QTEST_MAIN(Tst_QMqttClient)

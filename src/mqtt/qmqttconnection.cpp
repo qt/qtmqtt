@@ -247,7 +247,13 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
 
     QSharedPointer<QMqttControlPacket> packet(new QMqttControlPacket(header));
 
-    packet->append(topic.toUtf8());
+    QByteArray topicArray = topic.toUtf8();
+    if (topicArray.size() > UINT16_MAX) {
+        qWarning("Published topic is too long. Need to truncate");
+        topicArray.truncate(UINT16_MAX);
+    }
+
+    packet->append(topicArray);
     quint16 identifier = 0;
     if (qos > 0) {
         // Add Packet Identifier
@@ -320,7 +326,14 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     const quint16 identifier = qrand();
     packet.append(identifier);
 
-    packet.append(topic.toUtf8());
+    // Overflow protection
+    QByteArray topicArray = topic.toUtf8();
+    if (topicArray.size() > UINT16_MAX) {
+        qWarning("Subscribed topic is too long.");
+        return QSharedPointer<QMqttSubscription>();
+    }
+
+    packet.append(topicArray);
 
     switch (qos) {
     case 0: packet.append(char(0x0)); break;
@@ -330,7 +343,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     }
 
     QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
-    result->setTopic(topic);
+    result->setTopic(topicArray);
     result->setClient(m_client);
     result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);
