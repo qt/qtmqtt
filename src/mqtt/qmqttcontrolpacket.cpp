@@ -93,9 +93,17 @@ QByteArray QMqttControlPacket::serialize() const
     QByteArray data;
     // Add Header
     data.append(char(m_header));
-    // Add length placeholder
-    const quint8 l = m_payload.size();
-    data.append(char(l));
+    // Add length
+    quint32 msgSize = m_payload.size();
+    if (msgSize > 268435455) // 0xFFFFFF7F
+        qWarning("Publishing a message bigger than maximum size!");
+    do {
+        quint8 b = msgSize % 128;
+        msgSize /= 128;
+        if (msgSize > 0)
+            b |= 0x80;
+        data.append(char(b));
+    } while (msgSize > 0);
     // Add payload
     data.append(m_payload);
 

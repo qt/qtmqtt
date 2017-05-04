@@ -546,8 +546,18 @@ void QMqttConnection::transportReadReady()
             bool retain = msg & 0x01;
             Q_UNUSED(retain);
             // remaining length
-            quint8 msgLength;
-            m_transport->read((char*)&msgLength, 1);
+            quint32 multiplier = 1;
+            quint32 msgLength = 0;
+            quint8 b = 0;
+            quint8 iteration = 0;
+            do {
+                m_transport->read((char*)&b, 1);
+                msgLength += (b & 127) * multiplier;
+                multiplier *= 128;
+                iteration++;
+                if (iteration > 4)
+                    qFatal("Publish message is too big to handle");
+            } while ((b & 128) != 0);
 
             // String topic
             const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));

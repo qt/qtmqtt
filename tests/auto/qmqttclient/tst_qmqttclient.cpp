@@ -42,6 +42,7 @@ private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
     void getSetCheck();
+    void sendReceive_data();
     void sendReceive();
     void retainMessage();
     void willMessage();
@@ -104,10 +105,24 @@ void Tst_QMqttClient::getSetCheck()
     QCOMPARE(client.willRetain(), false);
 }
 
+void Tst_QMqttClient::sendReceive_data()
+{
+    QTest::addColumn<QByteArray>("data");
+    QTest::newRow("empty") << QByteArray();
+    QTest::newRow("simple") << QByteArray("This is a test message");
+    QByteArray d;
+    d.fill('A', 500);
+    QTest::newRow("big") << d;
+    // ### TODO: This test does not work as socket::read() is not able to handle such large buffers.
+    // For this we need to redo th whole reading part.
+    //    d.fill('B', (128 * 128 * 128) + 4);
+    //    QTest::newRow("huge") << d;
+}
+
 void Tst_QMqttClient::sendReceive()
 {
+    QFETCH(QByteArray, data);
     const QString testTopic = QLatin1String("Topic");
-    const QByteArray testMessage("MessageContent");
 
     QMqttClient publisher;
     publisher.setClientId(QLatin1String("publisher"));
@@ -130,13 +145,13 @@ void Tst_QMqttClient::sendReceive()
     auto sub = subscriber.subscribe(testTopic, 1);
     QVERIFY(sub);
     connect(sub.data(), &QMqttSubscription::messageReceived, [&](QByteArray msg) {
-        verified = msg == testMessage;
+        verified = msg == data;
         received = true;
     });
 
     QTRY_COMPARE(sub.data()->state(), QMqttSubscription::Subscribed);
 
-    publisher.publish(testTopic, testMessage, 1);
+    publisher.publish(testTopic, data, 1);
 
     QTRY_VERIFY2(received, "Subscriber did not receive message");
     QVERIFY2(verified, "Subscriber received different message");
