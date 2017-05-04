@@ -108,7 +108,7 @@ Q_SIGNALS:
     void connected();
     void disconnected();
     void messageReceived(const QByteArray &message, const QString &topic = QString());
-    void messageSent(qint32);
+    void messageSent(qint32 id);
     void pingResponse();
     void brokerSessionRestored();
 
