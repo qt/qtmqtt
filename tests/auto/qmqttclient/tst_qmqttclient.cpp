@@ -42,6 +42,7 @@ private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
     void getSetCheck();
+    void sendReceive();
     void retainMessage();
     void willMessage();
 private:
@@ -101,6 +102,44 @@ void Tst_QMqttClient::getSetCheck()
     QCOMPARE(client.willMessage(), QByteArray());
     QCOMPARE(client.willQoS(), quint8(0));
     QCOMPARE(client.willRetain(), false);
+}
+
+void Tst_QMqttClient::sendReceive()
+{
+    const QString testTopic = QLatin1String("Topic");
+    const QByteArray testMessage("MessageContent");
+
+    QMqttClient publisher;
+    publisher.setClientId(QLatin1String("publisher"));
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    publisher.connectToHost();
+    QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
+
+    QMqttClient subscriber;
+    subscriber.setClientId(QLatin1String("subscriber"));
+    subscriber.setHostname(m_testBroker);
+    subscriber.setPort(m_port);
+
+    subscriber.connectToHost();
+    QTRY_COMPARE(subscriber.state(), QMqttClient::Connected);
+
+    bool received = false;
+    bool verified = false;
+    auto sub = subscriber.subscribe(testTopic, 1);
+    QVERIFY(sub);
+    connect(sub.data(), &QMqttSubscription::messageReceived, [&](QByteArray msg) {
+        verified = msg == testMessage;
+        received = true;
+    });
+
+    QTRY_COMPARE(sub.data()->state(), QMqttSubscription::Subscribed);
+
+    publisher.publish(testTopic, testMessage, 1);
+
+    QTRY_VERIFY2(received, "Subscriber did not receive message");
+    QVERIFY2(verified, "Subscriber received different message");
 }
 
 void Tst_QMqttClient::retainMessage()
