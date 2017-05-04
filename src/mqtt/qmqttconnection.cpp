@@ -260,7 +260,7 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
         identifier = publishIdCounter;
         packet->append(identifier);
     }
-    packet->append(message);
+    packet->appendRaw(message);
 
     if (qos)
         m_pendingMessages.insert(identifier, packet);
@@ -546,8 +546,8 @@ void QMqttConnection::transportReadReady()
             bool retain = msg & 0x01;
             Q_UNUSED(retain);
             // remaining length
-            char offset;
-            m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
+            quint8 msgLength;
+            m_transport->read((char*)&msgLength, 1);
 
             // String topic
             const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
@@ -557,12 +557,13 @@ void QMqttConnection::transportReadReady()
             if (qos > 0) {
                 id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
             }
-            // String message
-            const quint16 messageLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
-            const QByteArray message = m_transport->read(messageLength);
+
+            // message
+            qint64 payloadLength = msgLength - (topicLength + 2) - (qos > 0 ? 2 : 0);
+            const QByteArray message = m_transport->read(payloadLength);
 
             qCDebug(lcMqttConnectionVerbose) << "Received PUBLISH: topic:" << topic
-                                             << " messageLength:" << messageLength;;
+                                             << " payloadLength:" << payloadLength;;
 
             emit m_client->messageReceived(message, topic);
 
