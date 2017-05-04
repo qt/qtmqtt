@@ -396,7 +396,7 @@ quint16 QMqttClient::keepAlive() const
     return d->m_keepAlive;
 }
 
-void QMqttClient::setHostname(QString hostname)
+void QMqttClient::setHostname(const QString &hostname)
 {
     Q_D(QMqttClient);
     if (d->m_hostname == hostname)
@@ -416,7 +416,7 @@ void QMqttClient::setPort(quint16 port)
     emit portChanged(port);
 }
 
-void QMqttClient::setClientId(QString clientId)
+void QMqttClient::setClientId(const QString &clientId)
 {
     Q_D(QMqttClient);
     if (d->m_clientId == clientId)
@@ -469,7 +469,7 @@ void QMqttClient::setState(QMqttClient::State state)
         emit connected();
 }
 
-void QMqttClient::setUsername(QString username)
+void QMqttClient::setUsername(const QString &username)
 {
     Q_D(QMqttClient);
     if (d->m_username == username)
@@ -479,7 +479,7 @@ void QMqttClient::setUsername(QString username)
     emit usernameChanged(username);
 }
 
-void QMqttClient::setPassword(QString password)
+void QMqttClient::setPassword(const QString &password)
 {
     Q_D(QMqttClient);
     if (d->m_password == password)
@@ -499,7 +499,7 @@ void QMqttClient::setCleanSession(bool cleanSession)
     emit cleanSessionChanged(cleanSession);
 }
 
-void QMqttClient::setWillTopic(QString willTopic)
+void QMqttClient::setWillTopic(const QString &willTopic)
 {
     Q_D(QMqttClient);
     if (d->m_willTopic == willTopic)
@@ -519,7 +519,7 @@ void QMqttClient::setWillQoS(quint8 willQoS)
     emit willQoSChanged(willQoS);
 }
 
-void QMqttClient::setWillMessage(QByteArray willMessage)
+void QMqttClient::setWillMessage(const QByteArray &willMessage)
 {
     Q_D(QMqttClient);
     if (d->m_willMessage == willMessage)

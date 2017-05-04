@@ -128,19 +128,19 @@ Q_SIGNALS:
     void willRetainChanged(bool willRetain);
 
 public Q_SLOTS:
-    void setHostname(QString hostname);
+    void setHostname(const QString &hostname);
     void setPort(quint16 port);
-    void setClientId(QString clientId);
+    void setClientId(const QString &clientId);
     void setKeepAlive(quint16 keepAlive);
     void setProtocolVersion(quint8 protocolVersion);
     void setState(State state);
-    void setUsername(QString username);
-    void setPassword(QString password);
+    void setUsername(const QString &username);
+    void setPassword(const QString &password);
     void setCleanSession(bool cleanSession);
 
-    void setWillTopic(QString willTopic);
+    void setWillTopic(const QString &willTopic);
     void setWillQoS(quint8 willQoS);
-    void setWillMessage(QByteArray willMessage);
+    void setWillMessage(const QByteArray &willMessage);
     void setWillRetain(bool willRetain);
 
 private:
