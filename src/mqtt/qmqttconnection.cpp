@@ -442,6 +442,7 @@ void QMqttConnection::setClient(QMqttClient *client)
 
 void QMqttConnection::transportConnectionClosed()
 {
+    m_readBuffer.clear();
     m_pingTimer.stop();
     m_client->setState(QMqttClient::Disconnected);
 }
@@ -449,242 +450,329 @@ void QMqttConnection::transportConnectionClosed()
 void QMqttConnection::transportReadReady()
 {
     qCDebug(lcMqttConnectionVerbose) << Q_FUNC_INFO;
+    m_readBuffer.append(m_transport->readAll());
+    processData();
+}
 
-    qint64 available = m_transport->bytesAvailable();
-    while (available > 0) {
-        quint8 msg;
-        m_transport->read((char*)&msg, 1);
-        switch (msg & 0xF0) {
-        case QMqttControlPacket::CONNACK: {
-            qCDebug(lcMqttConnectionVerbose) << "Received CONNACK";
-            if (m_internalState != BrokerWaitForConnectAck) {
-                qWarning("Received CONNACK at unexpected time!");
-                break;
-            }
+void QMqttConnection::readBuffer(char *data, qint64 size)
+{
+    memcpy(data, m_readBuffer.constData(), size);
+    m_readBuffer = m_readBuffer.mid(size);
+}
 
-            quint8 payloadSize;
-            m_transport->read((char*)&payloadSize, 1);
-            if (payloadSize != 2) {
-                qWarning("Unexpected FRAME size in CONNACK");
-                // ## SET SOME ERROR
-                break;
-            }
-            quint8 ackFlags;
-            m_transport->read((char*)&ackFlags, 1);
-            if (ackFlags > 1) { // MQTT-3.2.2.1
-                qWarning("Unexpected CONNACK Flags set");
-                // ## SET SOME ERROR
-                break;
-            }
-            bool sessionPresent = ackFlags == 1;
+QByteArray QMqttConnection::readBuffer(qint64 size)
+{
+    QByteArray res = m_readBuffer.left(size);
+    m_readBuffer = m_readBuffer.mid(size);
+    return res;
+}
 
-            // MQTT-3.2.2-1 & MQTT-3.2.2-2
-            if (sessionPresent) {
-                emit m_client->brokerSessionRestored();
-                if (m_client->cleanSession()) {
-                    qWarning("Connected with a clean session, ack contains session present");
-                    // ### TODO: RABBIT MQ Spec Misalign
-                    // If a clean session is requested by the client, the server has to have an empty
-                    // session. However Rabbit MQ sends a 1 here for unknown reasons.
-                    //break;
-                }
-            }
+void QMqttConnection::finalize_connack()
+{
+    qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
+    quint8 ackFlags;
+    readBuffer((char*)&ackFlags, 1);
+    if (ackFlags > 1) { // MQTT-3.2.2.1
+        qWarning("Unexpected CONNACK Flags set");
+        // ## SET SOME ERROR
+        return;
+    }
+    bool sessionPresent = ackFlags == 1;
 
-            quint8 connectResultValue;
-            m_transport->read((char*)&connectResultValue, 1);
-            if (connectResultValue != 0) {
-                qWarning("Connection has been rejected");
-                // MQTT-3.2.2-5
-                // ConnectionError
-                m_transport->close();
-            }
-            m_internalState = BrokerConnected;
-            m_client->setState(QMqttClient::Connected);
-
-            m_pingTimer.setInterval(m_client->keepAlive() * 1000);
-            m_pingTimer.start();
-            break;
+    // MQTT-3.2.2-1 & MQTT-3.2.2-2
+    if (sessionPresent) {
+        emit m_client->brokerSessionRestored();
+        if (m_client->cleanSession()) {
+            qWarning("Connected with a clean session, ack contains session present");
+            // ### TODO: RABBIT MQ Spec Misalign
+            // If a clean session is requested by the client, the server has to have an empty
+            // session. However Rabbit MQ sends a 1 here for unknown reasons.
+            //break;
         }
-        case QMqttControlPacket::SUBACK: {
-            char offset;
-            m_transport->read(&offset, 1);
-            quint16 id;
-            m_transport->read((char*)&id, 2);
-            id = qFromBigEndian<quint16>(id);
-            if (!m_pendingSubscriptionAck.contains(id)) {
-                qWarning("Received SUBACK for unknown subscription request");
-                break;
-            }
-            quint8 result;
-            m_transport->read((char*)&result, 1);
-            auto sub = m_pendingSubscriptionAck.take(id);
-            qCDebug(lcMqttConnectionVerbose) << "Received SUBACK: ID:" << id << "QoS:" << result;
-            if (result <= 2) {
-                // The broker might have a different support level for QoS than what
-                // the client requested
-                if (result != sub->qos()) {
-                    sub->setQos(result);
-                    emit sub->qosChanged(result);
-                }
-                sub->setState(QMqttSubscription::Subscribed);
-                m_activeSubscriptions.insert(sub->topic(), sub);
-            } else if (result == 0x80) {
-                qWarning() << "Subscription for id " << id << " failed.";
-                sub->setState(QMqttSubscription::Error);
-            } else {
-                qWarning("Received invalid SUBACK result value");
-                sub->setState(QMqttSubscription::Error);
-            }
-            break;
+    }
+
+    quint8 connectResultValue;
+    readBuffer((char*)&connectResultValue, 1);
+    if (connectResultValue != 0) {
+        qWarning("Connection has been rejected");
+        // MQTT-3.2.2-5
+        // ConnectionError
+        m_readBuffer.clear();
+        m_transport->close();
+    }
+    m_internalState = BrokerConnected;
+    m_client->setState(QMqttClient::Connected);
+
+    m_pingTimer.setInterval(m_client->keepAlive() * 1000);
+    m_pingTimer.start();
+}
+
+void QMqttConnection::finalize_suback()
+{
+    quint16 id;
+    readBuffer((char*)&id, 2);
+    id = qFromBigEndian<quint16>(id);
+    if (!m_pendingSubscriptionAck.contains(id)) {
+        qWarning("Received SUBACK for unknown subscription request");
+        return;
+    }
+    quint8 result;
+    readBuffer((char*)&result, 1);
+    auto sub = m_pendingSubscriptionAck.take(id);
+    qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << result;
+    if (result <= 2) {
+        // The broker might have a different support level for QoS than what
+        // the client requested
+        if (result != sub->qos()) {
+            sub->setQos(result);
+            emit sub->qosChanged(result);
         }
-        case QMqttControlPacket::UNSUBACK: {
-            char offset;
-            m_transport->read(&offset, 1);
-            quint16 id;
-            m_transport->read((char*)&id, 2);
-            id = qFromBigEndian<quint16>(id);
-            qCDebug(lcMqttConnectionVerbose) << "Received UNSUBACK: ID:" << id;
-            if (!m_pendingUnsubscriptions.contains(id)) {
-                qWarning("Received UNSUBACK for unknown request");
-                break;
-            }
-            auto sub = m_pendingUnsubscriptions.take(id);
-            sub->setState(QMqttSubscription::Unsubscribed);
-            m_activeSubscriptions.remove(sub->topic());
+        sub->setState(QMqttSubscription::Subscribed);
+        m_activeSubscriptions.insert(sub->topic(), sub);
+    } else if (result == 0x80) {
+        qWarning() << "Subscription for id " << id << " failed.";
+        sub->setState(QMqttSubscription::Error);
+    } else {
+        qWarning("Received invalid SUBACK result value");
+        sub->setState(QMqttSubscription::Error);
+    }
+}
 
-            break;
+void QMqttConnection::finalize_unsuback()
+{
+    quint16 id;
+    readBuffer((char*)&id, 2);
+    id = qFromBigEndian<quint16>(id);
+    qCDebug(lcMqttConnectionVerbose) << "Finalize UNSUBACK: " << id;
+    if (!m_pendingUnsubscriptions.contains(id)) {
+        qWarning("Received UNSUBACK for unknown request");
+        return;
+    }
+    auto sub = m_pendingUnsubscriptions.take(id);
+    sub->setState(QMqttSubscription::Unsubscribed);
+    m_activeSubscriptions.remove(sub->topic());
+}
+
+void QMqttConnection::finalize_publish()
+{
+    // String topic
+    const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+    const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(topicLength).constData()));
+
+    quint16 id;
+    if (m_currentPublish.qos > 0) {
+        id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+    }
+
+    // message
+    qint64 payloadLength = m_missingData - (topicLength + 2) - (m_currentPublish.qos > 0 ? 2 : 0);
+    const QByteArray message = readBuffer(payloadLength);
+
+    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBLISH: topic:" << topic
+                                     << " payloadLength:" << payloadLength;;
+
+    emit m_client->messageReceived(message, topic);
+
+    for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
+        const QString subTopic = sub.key();
+
+        if (subTopic == topic) {
+            emit sub.value()->messageReceived(message, topic);
+            continue;
+        } else if (subTopic.endsWith(QLatin1Char('#')) && topic.startsWith(subTopic.leftRef(subTopic.size() - 1))) {
+            emit sub.value()->messageReceived(message, topic);
+            continue;
         }
-        case QMqttControlPacket::PUBLISH: {
-            quint8 qos = (msg & 0x06) >> 1;
-            bool retain = msg & 0x01;
-            Q_UNUSED(retain);
-            // remaining length
-            quint32 multiplier = 1;
-            quint32 msgLength = 0;
-            quint8 b = 0;
-            quint8 iteration = 0;
-            do {
-                m_transport->read((char*)&b, 1);
-                msgLength += (b & 127) * multiplier;
-                multiplier *= 128;
-                iteration++;
-                if (iteration > 4)
-                    qFatal("Publish message is too big to handle");
-            } while ((b & 128) != 0);
 
-            // String topic
-            const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
-            const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(m_transport->read(topicLength).constData()));
+        if (!subTopic.contains(QLatin1Char('+')))
+            continue;
 
-            quint16 id;
-            if (qos > 0) {
-                id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(m_transport->read(2).constData()));
-            }
+        const QVector<QStringRef> subTopicSplit = subTopic.splitRef(QLatin1Char('/'));
+        const QVector<QStringRef> topicSplit = topic.splitRef(QLatin1Char('/'));
+        if (subTopicSplit.size() != topicSplit.size())
+            continue;
+        const QVector<QStringRef> subPlusSplit = subTopic.splitRef(QLatin1Char('+'));
 
-            // message
-            qint64 payloadLength = msgLength - (topicLength + 2) - (qos > 0 ? 2 : 0);
-            const QByteArray message = m_transport->read(payloadLength);
-
-            qCDebug(lcMqttConnectionVerbose) << "Received PUBLISH: topic:" << topic
-                                             << " payloadLength:" << payloadLength;;
-
-            emit m_client->messageReceived(message, topic);
-
-            for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
-                const QString subTopic = sub.key();
-
-                if (subTopic == topic) {
-                    emit sub.value()->messageReceived(message, topic);
-                    continue;
-                } else if (subTopic.endsWith(QLatin1Char('#')) && topic.startsWith(subTopic.leftRef(subTopic.size() - 1))) {
-                    emit sub.value()->messageReceived(message, topic);
-                    continue;
-                }
-
-                if (!subTopic.contains(QLatin1Char('+')))
-                    continue;
-
-                const QVector<QStringRef> subTopicSplit = subTopic.splitRef(QLatin1Char('/'));
-                const QVector<QStringRef> topicSplit = topic.splitRef(QLatin1Char('/'));
-                if (subTopicSplit.size() != topicSplit.size())
-                    continue;
-                const QVector<QStringRef> subPlusSplit = subTopic.splitRef(QLatin1Char('+'));
-
-                if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1))) {
-                    emit sub.value()->messageReceived(message, topic);
-                }
-            }
-
-            if (qos == 1)
-                sendControlPublishAcknowledge(id);
-            else if (qos == 2)
-                sendControlPublishReceive(id);
-            break;
+        if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1))) {
+            emit sub.value()->messageReceived(message, topic);
         }
+    }
+
+    if (m_currentPublish.qos == 1)
+        sendControlPublishAcknowledge(id);
+    else if (m_currentPublish.qos == 2)
+        sendControlPublishReceive(id);
+}
+
+void QMqttConnection::finalize_pubAckRecComp()
+{
+    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/COMP";
+    quint16 id;
+    readBuffer((char*)&id, 2);
+    id = qFromBigEndian<quint16>(id);
+
+    if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBCOMP) {
+        qCDebug(lcMqttConnectionVerbose) << " PUBCOMP:" << id;
+        auto pendingRelease = m_pendingReleaseMessages.take(id);
+        if (!pendingRelease)
+            qWarning("Received PUBCOMP for unknown released message");
+        emit m_client->messageSent(id);
+        return;
+    }
+
+    auto pendingMsg = m_pendingMessages.take(id);
+    if (!pendingMsg) {
+        qWarning(qPrintable(QString::fromLatin1("Received PUBACK for unknown message: %1").arg(id)));
+        return;
+    }
+    if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREC) {
+        qCDebug(lcMqttConnectionVerbose) << " PUBREC:" << id;
+        m_pendingReleaseMessages.insert(id, pendingMsg);
+        sendControlPublishRelease(id);
+    } else {
+        qCDebug(lcMqttConnectionVerbose) << " PUBACK:" << id;
+        emit m_client->messageSent(id);
+    }
+}
+
+void QMqttConnection::finalize_pubrel()
+{
+    quint16 id;
+    readBuffer((char*)&id, 2);
+    id = qFromBigEndian<quint16>(id);
+
+    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBREL:" << id;
+
+    // ### TODO: send to our app now or not???
+    // See standard Figure 4.3 Method A or B ???
+    sendControlPublishComp(id);
+}
+
+void QMqttConnection::finalize_pingresp()
+{
+    qCDebug(lcMqttConnectionVerbose) << "Finalize PINGRESP";
+    quint8 v;
+    readBuffer((char*)&v, 1);
+    if (v != 0)
+        qWarning("Received a PINGRESP with payload!");
+    emit m_client->pingResponse();
+}
+
+void QMqttConnection::processData()
+{
+    if (m_missingData > 0) {
+        if (m_readBuffer.size() < m_missingData)
+            return;
+
+        switch (m_currentPacket & 0xF0) {
+        case QMqttControlPacket::CONNACK:
+            finalize_connack();
+            break;
+        case QMqttControlPacket::SUBACK:
+            finalize_suback();
+            break;
+        case QMqttControlPacket::UNSUBACK:
+            finalize_unsuback();
+            break;
+        case QMqttControlPacket::PUBLISH:
+            finalize_publish();
+            break;
         case QMqttControlPacket::PUBACK:
         case QMqttControlPacket::PUBREC:
-        case QMqttControlPacket::PUBCOMP: {
-            // remaining length
-            char offset;
-            m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
-            quint16 id;
-            m_transport->read((char*)&id, 2);
-            id = qFromBigEndian<quint16>(id);
-
-            if ((msg & 0xF0) == QMqttControlPacket::PUBCOMP) {
-                qCDebug(lcMqttConnectionVerbose) << "Received PUBCOMP:" << id;
-                auto pendingRelease = m_pendingReleaseMessages.take(id);
-                if (!pendingRelease)
-                    qWarning("Received PUBCOMP for unknown released message");
-                emit m_client->messageSent(id);
-                break;
-            }
-
-            auto pendingMsg = m_pendingMessages.take(id);
-            if (!pendingMsg) {
-                qWarning(qPrintable(QString::fromLatin1("Received PUBACK for unknown message: %1").arg(id)));
-                break;
-            }
-            if ((msg & 0xF0) == QMqttControlPacket::PUBREC) {
-                qCDebug(lcMqttConnectionVerbose) << "Received PUBREC:" << id;
-                m_pendingReleaseMessages.insert(id, pendingMsg);
-                sendControlPublishRelease(id);
-            } else {
-                qCDebug(lcMqttConnectionVerbose) << "Received PUBACK:" << id;
-                emit m_client->messageSent(id);
-            }
+        case QMqttControlPacket::PUBCOMP:
+            finalize_pubAckRecComp();
             break;
-        }
+        case QMqttControlPacket::PINGRESP:
+            finalize_pingresp();
+            break;
         case QMqttControlPacket::PUBREL: {
-            // remaining length
-            char offset;
-            m_transport->read(&offset, 1); // ### TODO: Should we care about remaining length???
-            quint16 id;
-            m_transport->read((char*)&id, 2);
-            id = qFromBigEndian<quint16>(id);
-
-            qCDebug(lcMqttConnectionVerbose) << "Received PUBREL:" << id;
-
-            // ### TODO: send to our app now or not???
-            // See standard Figure 4.3 Method A or B ???
-            sendControlPublishComp(id);
+            finalize_pubrel();
             break;
         }
-        case QMqttControlPacket::PINGRESP: {
-            qCDebug(lcMqttConnectionVerbose) << "Received PINGRESP:";
-            quint8 v;
-            m_transport->read((char*)&v, 1);
-            if (v != 0)
-                qWarning("Received a PINGRESP with payload!");
-            emit m_client->pingResponse();
+        default:
+            qFatal("Unknown packet to finalize");
             break;
         }
-        default: {
-            qWarning("Transport received unknown data");
+        m_missingData = 0;
+    }
+
+    if (m_readBuffer.size() == 0)
+        return;
+
+    readBuffer((char*)&m_currentPacket, 1);
+
+    switch (m_currentPacket & 0xF0) {
+    case QMqttControlPacket::CONNACK: {
+        qCDebug(lcMqttConnectionVerbose) << "Received CONNACK";
+        if (m_internalState != BrokerWaitForConnectAck) {
+            qWarning("Received CONNACK at unexpected time!");
+            break;
         }
+
+        quint8 payloadSize;
+        readBuffer((char*)&payloadSize, 1);
+        if (payloadSize != 2) {
+            qWarning("Unexpected FRAME size in CONNACK");
+            // ## SET SOME ERROR
+            break;
         }
-        available = m_transport->bytesAvailable();
-    } // available
+        m_missingData = 2;
+        break;
+    }
+    case QMqttControlPacket::SUBACK: {
+        qCDebug(lcMqttConnectionVerbose) << "Received SUBACK";
+        quint8 remaining;
+        readBuffer((char*)&remaining, 1);
+        m_missingData = remaining;
+        break;
+    }
+    case QMqttControlPacket::PUBLISH: {
+        qCDebug(lcMqttConnectionVerbose) << "Received PUBLISH";
+        m_currentPublish.qos = (m_currentPacket & 0x06) >> 1;
+        m_currentPublish.retain = m_currentPacket & 0x01;
+        // remaining length
+        quint32 multiplier = 1;
+        quint32 msgLength = 0;
+        quint8 b = 0;
+        quint8 iteration = 0;
+        do {
+            readBuffer((char*)&b, 1);
+            msgLength += (b & 127) * multiplier;
+            multiplier *= 128;
+            iteration++;
+            if (iteration > 4)
+                qFatal("Publish message is too big to handle");
+        } while ((b & 128) != 0);
+        m_missingData = msgLength;
+        break;
+    }
+    case QMqttControlPacket::PINGRESP:
+        qCDebug(lcMqttConnectionVerbose) << "Received PINGRESP";
+        m_missingData = 1;
+        break;
+    case QMqttControlPacket::UNSUBACK:
+    case QMqttControlPacket::PUBACK:
+    case QMqttControlPacket::PUBREC:
+    case QMqttControlPacket::PUBCOMP:
+    case QMqttControlPacket::PUBREL: {
+        qCDebug(lcMqttConnectionVerbose) << "Received UNSUBACK/PUBACK/PUBREC/PUBCOMP/PUBREL";
+        char remaining;
+        readBuffer(&remaining, 1); // ### TODO: verify this is 2
+        if (remaining != 0x02)
+            qWarning("Received 2 byte message with invalid remaining length");
+        m_missingData = 2;
+        break;
+    }
+    default:
+        qFatal("Received unknown command");
+        break;
+    }
+
+    /* set current command CONNACK - PINGRESP */
+    /* read command size */
+    /* calculate missing_data */
+    processData(); // implicitly finishes and enqueues
+    return;
 }
 
 bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)

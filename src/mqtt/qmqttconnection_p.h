@@ -49,6 +49,7 @@
 #include <QtCore/QMap>
 #include <QtCore/QTimer>
 #include <QtCore/QtEndian>
+#include <QtCore/QBuffer>
 
 QT_BEGIN_NAMESPACE
 
@@ -105,6 +106,26 @@ public:
     QMqttClient *m_client{nullptr};
 private:
     Q_DISABLE_COPY(QMqttConnection)
+    void someFuncToBeRemoved();
+    void finalize_connack();
+    void finalize_suback();
+    void finalize_unsuback();
+    void finalize_publish();
+    void finalize_pubAckRecComp();
+    void finalize_pubrel();
+    void finalize_pingresp();
+    void processData();
+    void readBuffer(char *data, qint64 size);
+    QByteArray readBuffer(qint64 size);
+    QByteArray m_readBuffer;
+    qint64 m_missingData{0};
+    struct PublishData {
+        quint8 qos;
+        bool retain;
+    };
+    PublishData m_currentPublish;
+    QMqttControlPacket::PacketType m_currentPacket{QMqttControlPacket::UNKNOWN};
+
     bool writePacketToTransport(const QMqttControlPacket &p);
     QMap<quint16, QSharedPointer<QMqttSubscription>> m_pendingSubscriptionAck;
     QMap<quint16, QSharedPointer<QMqttSubscription>> m_pendingUnsubscriptions;
