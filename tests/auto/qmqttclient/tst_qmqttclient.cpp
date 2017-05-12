@@ -116,10 +116,8 @@ void Tst_QMqttClient::sendReceive_data()
     QByteArray d;
     d.fill('A', 500);
     QTest::newRow("big") << d;
-    // ### TODO: This test does not work as socket::read() is not able to handle such large buffers.
-    // For this we need to redo th whole reading part.
-    //    d.fill('B', (128 * 128 * 128) + 4);
-    //    QTest::newRow("huge") << d;
+    d.fill('B', (128 * 128 * 128) + 4);
+    QTest::newRow("huge") << d;
 }
 
 void Tst_QMqttClient::sendReceive()
@@ -271,13 +269,12 @@ void Tst_QMqttClient::longTopic_data()
     QTest::addColumn<QString>("topic");
     QTest::newRow("simple") << QString::fromLatin1("topic");
     QTest::newRow("subPath") << QString::fromLatin1("topic/subtopic");
-    // ### TODO: This test does not work as socket::read() is not able to handle such large buffers.
-    // For this we need to redo th whole reading part.
-//    QString l;
-//    l.fill(QLatin1Char('T'), UINT16_MAX);
-//    QTest::newRow("maxSize") << l;
-//    l.fill(QLatin1Char('M'), 2 * UINT16_MAX);
-//    QTest::newRow("overflow") << l;
+
+    QString l;
+    l.fill(QLatin1Char('T'), UINT16_MAX);
+    QTest::newRow("maxSize") << l;
+    l.fill(QLatin1Char('M'), 2 * UINT16_MAX);
+    QTest::newRow("overflow") << l;
 }
 
 void Tst_QMqttClient::longTopic()
