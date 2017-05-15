@@ -93,11 +93,13 @@ void Tst_QMqttClient::getSetCheck()
     client.setKeepAlive(10);
     QCOMPARE(client.keepAlive(), quint16(10));
 
-    QCOMPARE(client.protocolVersion(), quint8(3));
-    client.setProtocolVersion(0);
-    QCOMPARE(client.protocolVersion(), quint8(3));
-    client.setProtocolVersion(5);
-    QCOMPARE(client.protocolVersion(), quint8(3));
+    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1_1);
+    client.setProtocolVersion(QMqttClient::ProtocolVersion(0));
+    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1_1);
+    client.setProtocolVersion(QMqttClient::ProtocolVersion(5));
+    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1_1);
+    client.setProtocolVersion(QMqttClient::MQTT_3_1);
+    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1);
 
     QCOMPARE(client.username(), QString());
     QCOMPARE(client.password(), QString());

@@ -63,7 +63,7 @@ public:
     quint16 m_keepAlive{60};
     // 3 == MQTT Standard 3.1
     // 4 == MQTT Standard 3.1.1
-    quint8 m_protocolVersion{3};
+    QMqttClient::ProtocolVersion m_protocolVersion{QMqttClient::MQTT_3_1_1};
     QMqttClient::State m_state{QMqttClient::Disconnected};
     QString m_willTopic;
     QByteArray m_willMessage;

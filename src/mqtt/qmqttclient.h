@@ -54,6 +54,10 @@ public:
         Connecting,
         Connected
     };
+    enum ProtocolVersion {
+        MQTT_3_1 = 3,
+        MQTT_3_1_1 = 4
+    };
 
 private:
     Q_OBJECT
@@ -61,7 +65,7 @@ private:
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(quint16 keepAlive READ keepAlive WRITE setKeepAlive NOTIFY keepAliveChanged)
-    Q_PROPERTY(quint8 protocolVersion READ protocolVersion WRITE setProtocolVersion NOTIFY protocolVersionChanged)
+    Q_PROPERTY(ProtocolVersion protocolVersion READ protocolVersion WRITE setProtocolVersion NOTIFY protocolVersionChanged)
     Q_PROPERTY(State state READ state WRITE setState NOTIFY stateChanged)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
@@ -87,7 +91,7 @@ public:
     quint16 port() const;
     QString clientId() const;
     quint16 keepAlive() const;
-    quint8 protocolVersion() const;
+    ProtocolVersion protocolVersion() const;
 
     void connectToHost();
     void connectToHostEncrypted(const QString &sslPeerName = QString());
@@ -116,7 +120,7 @@ Q_SIGNALS:
     void portChanged(quint16 port);
     void clientIdChanged(QString clientId);
     void keepAliveChanged(quint16 keepAlive);
-    void protocolVersionChanged(quint8 protocolVersion);
+    void protocolVersionChanged(ProtocolVersion protocolVersion);
     void stateChanged(State state);
     void usernameChanged(QString username);
     void passwordChanged(QString password);
@@ -132,7 +136,7 @@ public Q_SLOTS:
     void setPort(quint16 port);
     void setClientId(const QString &clientId);
     void setKeepAlive(quint16 keepAlive);
-    void setProtocolVersion(quint8 protocolVersion);
+    void setProtocolVersion(ProtocolVersion protocolVersion);
     void setState(State state);
     void setUsername(const QString &username);
     void setPassword(const QString &password);

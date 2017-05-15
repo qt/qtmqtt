@@ -378,7 +378,7 @@ bool QMqttClient::willRetain() const
     return d->m_willRetain;
 }
 
-quint8 QMqttClient::protocolVersion() const
+QMqttClient::ProtocolVersion QMqttClient::protocolVersion() const
 {
     Q_D(const QMqttClient);
     return d->m_protocolVersion;
@@ -441,7 +441,7 @@ void QMqttClient::setKeepAlive(quint16 keepAlive)
     emit keepAliveChanged(keepAlive);
 }
 
-void QMqttClient::setProtocolVersion(quint8 protocolVersion)
+void QMqttClient::setProtocolVersion(ProtocolVersion protocolVersion)
 {
     Q_D(QMqttClient);
     if (d->m_protocolVersion == protocolVersion)
