@@ -147,8 +147,8 @@ void Tst_QMqttClient::sendReceive()
     bool verified = false;
     auto sub = subscriber.subscribe(testTopic, 1);
     QVERIFY(sub);
-    connect(sub.data(), &QMqttSubscription::messageReceived, [&](QByteArray msg) {
-        verified = msg == data;
+    connect(sub.data(), &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
+        verified = msg.content() == data;
         received = true;
     });
 
@@ -224,13 +224,14 @@ void Tst_QMqttClient::willMessage()
     QTRY_COMPARE(client1.state(), QMqttClient::Connected);
 
     auto client1Sub = client1.subscribe(willTopic, 1);
-    connect(client1Sub.data(), &QMqttSubscription::messageReceived, [=](QString message) {
+    connect(client1Sub.data(), &QMqttSubscription::messageReceived, [=](QMqttMessage message) {
+        Q_UNUSED(message);
         // Just debug purposes
         //qDebug() << "Got something:" << message;
     });
     QTRY_COMPARE(client1Sub->state(), QMqttSubscription::Subscribed);
 
-    QSignalSpy messageSpy(client1Sub.data(), SIGNAL(messageReceived(QByteArray,QString)));
+    QSignalSpy messageSpy(client1Sub.data(), SIGNAL(messageReceived(QMqttMessage)));
 
     // Client B connects (via TcpSocket)
     QTcpSocket sock;

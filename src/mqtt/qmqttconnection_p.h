@@ -43,6 +43,7 @@
 
 #include "qmqttclient.h"
 #include "qmqttcontrolpacket_p.h"
+#include "qmqttmessage.h"
 #include "qmqttsubscription.h"
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
@@ -121,6 +122,7 @@ private:
     qint64 m_missingData{0};
     struct PublishData {
         quint8 qos;
+        bool dup;
         bool retain;
     };
     PublishData m_currentPublish;

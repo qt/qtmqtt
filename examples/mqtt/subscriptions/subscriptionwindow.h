@@ -52,6 +52,7 @@
 #define SUBSCRIPTIONWINDOW_H
 
 #include <QWidget>
+#include <QtMqtt/QMqttMessage>
 #include <QtMqtt/QMqttSubscription>
 
 QT_BEGIN_NAMESPACE
@@ -69,7 +70,7 @@ public:
     ~SubscriptionWindow();
 
 public slots:
-    void updateMessage(const QString &text);
+    void updateMessage(const QMqttMessage &msg);
     void updateStatus(QMqttSubscription::SubscriptionState state);
 private:
     QSharedPointer<QMqttSubscription> m_sub;

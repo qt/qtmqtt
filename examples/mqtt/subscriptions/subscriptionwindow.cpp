@@ -75,9 +75,9 @@ SubscriptionWindow::~SubscriptionWindow()
     delete ui;
 }
 
-void SubscriptionWindow::updateMessage(const QString &text)
+void SubscriptionWindow::updateMessage(const QMqttMessage &msg)
 {
-    ui->listWidget->addItem(text);
+    ui->listWidget->addItem(msg.content());
 }
 
 void SubscriptionWindow::updateStatus(QMqttSubscription::SubscriptionState state)

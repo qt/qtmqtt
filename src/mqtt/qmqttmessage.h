@@ -26,59 +26,46 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-#ifndef QMQTTSUBSCRIPTION_H
-#define QMQTTSUBSCRIPTION_H
 
-#include "qmqttmessage.h"
+#ifndef QMQTTMESSAGE_H
+#define QMQTTMESSAGE_H
 
-#include <QtMqtt/qmqttglobal.h>
+#include "qmqttglobal.h"
+
 #include <QtCore/QObject>
 
 QT_BEGIN_NAMESPACE
 
-class QMqttClient;
-class QMqttSubscriptionPrivate;
-
-class Q_MQTT_EXPORT QMqttSubscription : public QObject
+class Q_MQTT_EXPORT QMqttMessage
 {
-    Q_OBJECT
-    Q_PROPERTY(SubscriptionState state READ state WRITE setState NOTIFY stateChanged)
-    Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
-    Q_PROPERTY(QString topic READ topic)
+    Q_GADGET
+    Q_PROPERTY(QString topic READ topic CONSTANT)
+    Q_PROPERTY(QByteArray content READ content CONSTANT)
+    Q_PROPERTY(quint16 id READ id CONSTANT)
+    Q_PROPERTY(quint8 qos READ qos CONSTANT)
+    Q_PROPERTY(bool duplicate READ duplicate CONSTANT)
+    Q_PROPERTY(bool retain READ retain CONSTANT)
 public:
-    ~QMqttSubscription() override;
-    enum SubscriptionState {
-        Unsubscribed = 0,
-        SubscriptionPending,
-        Subscribed,
-        UnsubscriptionPending,
-        Error
-    };
-
-    SubscriptionState state() const;
-    QString topic() const;
+    QByteArray content() const;
     quint8 qos() const;
-
-Q_SIGNALS:
-    void stateChanged(SubscriptionState state);
-    void qosChanged(quint8); // only emitted when broker provides different QoS than requested
-    void messageReceived(QMqttMessage msg);
-
-public Q_SLOTS:
-    void setState(SubscriptionState state);
-    void unsubscribe();
+    quint16 id() const;
+    QString topic() const;
+    bool duplicate() const;
+    bool retain() const;
 
 private:
-    Q_DECLARE_PRIVATE(QMqttSubscription)
-    Q_DISABLE_COPY(QMqttSubscription)
-    void setTopic(const QString &topic);
-    void setClient(QMqttClient *client);
-    void setQos(quint8 qos);
     friend class QMqttConnection;
-    friend class QMqttClient;
-    explicit QMqttSubscription(QObject *parent = nullptr);
+    explicit QMqttMessage(const QString &topic, const QByteArray &content,
+                          quint16 id, quint8 qos,
+                          bool dup, bool retain);
+    QString m_topic;
+    QByteArray m_content;
+    quint16 m_id;
+    quint8 m_qos;
+    bool m_duplicate;
+    bool m_retain;
 };
 
 QT_END_NAMESPACE
 
-#endif // QMQTTSUBSCRIPTION_H
+#endif // QMQTTMESSAGE_H

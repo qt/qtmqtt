@@ -559,7 +559,7 @@ void QMqttConnection::finalize_publish()
     const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
     const QString topic = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(topicLength).constData()));
 
-    quint16 id;
+    quint16 id = 0;
     if (m_currentPublish.qos > 0) {
         id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
     }
@@ -573,14 +573,17 @@ void QMqttConnection::finalize_publish()
 
     emit m_client->messageReceived(message, topic);
 
+    QMqttMessage qmsg(topic, message, id, m_currentPublish.qos,
+                      m_currentPublish.dup, m_currentPublish.retain);
+
     for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
         const QString subTopic = sub.key();
 
         if (subTopic == topic) {
-            emit sub.value()->messageReceived(message, topic);
+            emit sub.value()->messageReceived(qmsg);
             continue;
         } else if (subTopic.endsWith(QLatin1Char('#')) && topic.startsWith(subTopic.leftRef(subTopic.size() - 1))) {
-            emit sub.value()->messageReceived(message, topic);
+            emit sub.value()->messageReceived(qmsg);
             continue;
         }
 
@@ -594,7 +597,7 @@ void QMqttConnection::finalize_publish()
         const QVector<QStringRef> subPlusSplit = subTopic.splitRef(QLatin1Char('+'));
 
         if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1))) {
-            emit sub.value()->messageReceived(message, topic);
+            emit sub.value()->messageReceived(qmsg);
         }
     }
 
@@ -728,6 +731,7 @@ void QMqttConnection::processData()
     }
     case QMqttControlPacket::PUBLISH: {
         qCDebug(lcMqttConnectionVerbose) << "Received PUBLISH";
+        m_currentPublish.dup = m_currentPacket & 0x08;
         m_currentPublish.qos = (m_currentPacket & 0x06) >> 1;
         m_currentPublish.retain = m_currentPacket & 0x01;
         // remaining length
