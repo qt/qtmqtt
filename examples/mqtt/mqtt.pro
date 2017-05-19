@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
 SUBDIRS += \
            simpleclient \
-           subscriptions
+           subscriptions \
+           quicksubscription
