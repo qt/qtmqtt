@@ -66,7 +66,7 @@ class SubscriptionWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit SubscriptionWindow(QSharedPointer<QMqttSubscription> &sub, QWidget *parent = 0);
+    explicit SubscriptionWindow(const QSharedPointer<QMqttSubscription> &sub, QWidget *parent = 0);
     ~SubscriptionWindow();
 
 public slots:
