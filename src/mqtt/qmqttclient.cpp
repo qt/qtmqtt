@@ -98,6 +98,11 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
+    \property QMqttClient::cleanSession
+    \brief Specifies the state after connecting to a broker.
+*/
+
+/*!
     \enum QMqttClient::TransportType
 
     This enum type specifies the connection method to be used to instantiate a connection with
