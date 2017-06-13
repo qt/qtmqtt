@@ -35,6 +35,7 @@ class QMqttSubscriptionPrivate;
 class Q_MQTT_EXPORT QMqttSubscription : public QObject
 {
     Q_OBJECT
+    Q_ENUMS(SubscriptionState)
     Q_PROPERTY(SubscriptionState state READ state WRITE setState NOTIFY stateChanged)
     Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
     Q_PROPERTY(QString topic READ topic)

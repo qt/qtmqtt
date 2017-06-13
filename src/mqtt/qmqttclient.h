@@ -53,6 +53,7 @@ public:
 
 private:
     Q_OBJECT
+    Q_ENUMS(State)
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
@@ -85,9 +86,9 @@ public:
     quint16 keepAlive() const;
     ProtocolVersion protocolVersion() const;
 
-    void connectToHost();
-    void connectToHostEncrypted(const QString &sslPeerName = QString());
-    void disconnectFromHost();
+    Q_INVOKABLE void connectToHost();
+    Q_INVOKABLE void connectToHostEncrypted(const QString &sslPeerName = QString());
+    Q_INVOKABLE void disconnectFromHost();
 
     State state() const;
 
