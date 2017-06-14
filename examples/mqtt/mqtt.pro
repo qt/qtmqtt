@@ -2,4 +2,5 @@ TEMPLATE = subdirs
 SUBDIRS += \
            simpleclient \
            subscriptions \
-           quicksubscription
+           quicksubscription \
+           websocketsubscription
