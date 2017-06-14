@@ -77,5 +77,5 @@ QmlMqttSubscription::~QmlMqttSubscription()
 
 void QmlMqttSubscription::handleMessage(const QMqttMessage &qmsg)
 {
-    emit messageReceived(qmsg.content());
+    emit messageReceived(qmsg.payload());
 }

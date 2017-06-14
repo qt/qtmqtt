@@ -32,13 +32,13 @@ class Q_MQTT_EXPORT QMqttMessage
 {
     Q_GADGET
     Q_PROPERTY(QString topic READ topic CONSTANT)
-    Q_PROPERTY(QByteArray content READ content CONSTANT)
+    Q_PROPERTY(QByteArray payload READ payload CONSTANT)
     Q_PROPERTY(quint16 id READ id CONSTANT)
     Q_PROPERTY(quint8 qos READ qos CONSTANT)
     Q_PROPERTY(bool duplicate READ duplicate CONSTANT)
     Q_PROPERTY(bool retain READ retain CONSTANT)
 public:
-    QByteArray content() const;
+    QByteArray payload() const;
     quint8 qos() const;
     quint16 id() const;
     QString topic() const;
@@ -47,11 +47,11 @@ public:
 
 private:
     friend class QMqttConnection;
-    explicit QMqttMessage(const QString &topic, const QByteArray &content,
+    explicit QMqttMessage(const QString &topic, const QByteArray &payload,
                           quint16 id, quint8 qos,
                           bool dup, bool retain);
     QString m_topic;
-    QByteArray m_content;
+    QByteArray m_payload;
     quint16 m_id;
     quint8 m_qos;
     bool m_duplicate;

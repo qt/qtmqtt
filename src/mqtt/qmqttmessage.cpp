@@ -21,9 +21,9 @@
 
 #include "qmqttmessage.h"
 
-QByteArray QMqttMessage::content() const
+QByteArray QMqttMessage::payload() const
 {
-    return m_content;
+    return m_payload;
 }
 
 quint8 QMqttMessage::qos() const
@@ -53,7 +53,7 @@ bool QMqttMessage::retain() const
 
 QMqttMessage::QMqttMessage(const QString &topic, const QByteArray &content, quint16 id, quint8 qos, bool dup, bool retain)
     : m_topic(topic)
-    , m_content(content)
+    , m_payload(content)
     , m_id(id)
     , m_qos(qos)
     , m_duplicate(dup)

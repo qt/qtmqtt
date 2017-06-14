@@ -141,7 +141,7 @@ void Tst_QMqttClient::sendReceive()
     auto sub = subscriber.subscribe(testTopic, 1);
     QVERIFY(sub);
     connect(sub.data(), &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
-        verified = msg.content() == data;
+        verified = msg.payload() == data;
         received = true;
     });
 
