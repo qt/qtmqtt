@@ -336,7 +336,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     }
 
     QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
-    result->setTopic(topicArray);
+    result->setTopic(QString::fromUtf8(topicArray));
     result->setClient(m_client);
     result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);

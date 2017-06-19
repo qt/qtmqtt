@@ -64,8 +64,8 @@ QmlMqttSubscription* QmlMqttClient::subscribe(const QString &topic)
 }
 
 QmlMqttSubscription::QmlMqttSubscription(QSharedPointer<QMqttSubscription> s, QmlMqttClient *c)
-    : client(c)
-    , sub(s)
+    : sub(s)
+    , client(c)
 {
     connect(sub.data(), &QMqttSubscription::messageReceived, this, &QmlMqttSubscription::handleMessage);
     m_topic = sub->topic();

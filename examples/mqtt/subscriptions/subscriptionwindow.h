@@ -73,8 +73,8 @@ public slots:
     void updateMessage(const QMqttMessage &msg);
     void updateStatus(QMqttSubscription::SubscriptionState state);
 private:
-    QSharedPointer<QMqttSubscription> m_sub;
     Ui::SubscriptionWindow *ui;
+    QSharedPointer<QMqttSubscription> m_sub;
 };
 
 #endif // SUBSCRIPTIONWINDOW_H
