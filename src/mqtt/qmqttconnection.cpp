@@ -164,7 +164,7 @@ bool QMqttConnection::sendControlConnect()
     quint8 flags = 0;
     // Clean session
     if (m_client->cleanSession())
-        flags |= 1;
+        flags |= 1 << 1;
 
     if (!m_client->willMessage().isEmpty()) {
         flags |= 1 << 2;
@@ -475,13 +475,8 @@ void QMqttConnection::finalize_connack()
     // MQTT-3.2.2-1 & MQTT-3.2.2-2
     if (sessionPresent) {
         emit m_client->brokerSessionRestored();
-        if (m_client->cleanSession()) {
+        if (m_client->cleanSession())
             qWarning("Connected with a clean session, ack contains session present");
-            // ### TODO: RABBIT MQ Spec Misalign
-            // If a clean session is requested by the client, the server has to have an empty
-            // session. However Rabbit MQ sends a 1 here for unknown reasons.
-            //break;
-        }
     }
 
     quint8 connectResultValue;
