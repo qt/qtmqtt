@@ -19,6 +19,8 @@
 **
 ******************************************************************************/
 
+#include "broker_connection.h"
+
 #include <QtCore/QString>
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
@@ -39,6 +41,7 @@ private Q_SLOTS:
     void stressTest2_data();
     void stressTest2();
 private:
+    QProcess m_brokerProcess;
     QString m_testBroker;
     quint16 m_port{1883};
 };
@@ -49,11 +52,9 @@ Tst_QMqttClient::Tst_QMqttClient()
 
 void Tst_QMqttClient::initTestCase()
 {
-    m_testBroker = qgetenv("MQTT_TEST_BROKER");
-    if (m_testBroker.isEmpty()) {
-        QFAIL("No test server given. Please specify MQTT_TEST_BROKER in your environment.");
-        return;
-    }
+    m_testBroker = invokeOrInitializeBroker(&m_brokerProcess);
+    if (m_testBroker.isEmpty())
+        qFatal("No MQTT broker present to test against.");
 }
 
 void Tst_QMqttClient::cleanupTestCase()

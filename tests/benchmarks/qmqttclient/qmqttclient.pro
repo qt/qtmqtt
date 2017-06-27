@@ -7,4 +7,11 @@ TARGET = tst_qmqttclient
 
 SOURCES += \
     tst_qmqttclient.cpp
+
+HEADERS += \
+    $$PWD/../../common/broker_connection.h
+
+INCLUDEPATH += \
+    $$PWD/../../common
+
 DEFINES += SRCDIR=\\\"$$PWD/\\\"

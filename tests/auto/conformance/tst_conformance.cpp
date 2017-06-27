@@ -54,6 +54,7 @@ private Q_SLOTS:
     // keepalive_test // The module handles sending ping requests
     void subscribe_failure_test();
 private:
+    QProcess m_brokerProcess;
     QString m_testBroker;
     quint16 m_port{1883};
 };
@@ -64,7 +65,7 @@ Tst_MqttConformance::Tst_MqttConformance()
 
 void Tst_MqttConformance::initTestCase()
 {
-    invokeOrInitializeBroker(&m_testBroker);
+    m_testBroker = invokeOrInitializeBroker(&m_brokerProcess);
     if (m_testBroker.isEmpty()) {
         QFAIL("No test server given. Please specify MQTT_TEST_BROKER in your environment.");
         return;
@@ -73,7 +74,6 @@ void Tst_MqttConformance::initTestCase()
 
 void Tst_MqttConformance::cleanupTestCase()
 {
-    shutDownBroker();
 }
 
 void Tst_MqttConformance::basic_test()
