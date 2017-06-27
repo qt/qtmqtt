@@ -53,6 +53,7 @@ void Tst_QMqttControlPacket::cleanupTestCase()
 
 void Tst_QMqttControlPacket::header()
 {
+#ifdef QT_BUILD_INTERNAL
     {
         QMqttControlPacket packet;
         QVERIFY(packet.header() == QMqttControlPacket::UNKNOWN);
@@ -70,10 +71,14 @@ void Tst_QMqttControlPacket::header()
         packet.setHeader(42);
         QVERIFY(packet.header() == QMqttControlPacket::UNKNOWN);
     }
+#else
+    QSKIP("This test requires a Qt -developer-build.");
+#endif
 }
 
 void Tst_QMqttControlPacket::append()
 {
+#ifdef QT_BUILD_INTERNAL
     QMqttControlPacket packet;
     QCOMPARE(packet.payload().size(), 0);
 
@@ -111,6 +116,9 @@ void Tst_QMqttControlPacket::append()
     payload = packet.payload();
     QCOMPARE(payload.size(), data.size());
     QCOMPARE(payload, data);
+#else
+    QSKIP("This test requires a Qt -developer-build.");
+#endif
 }
 
 void Tst_QMqttControlPacket::simple_data()
