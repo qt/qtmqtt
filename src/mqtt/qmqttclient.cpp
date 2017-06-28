@@ -22,8 +22,8 @@
 #include "qmqttclient.h"
 #include "qmqttclient_p.h"
 
-#include <QUuid>
-#include <QtEndian>
+#include <QtCore/QUuid>
+#include <QtCore/QtEndian>
 
 QT_BEGIN_NAMESPACE
 
