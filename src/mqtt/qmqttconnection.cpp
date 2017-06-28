@@ -26,6 +26,9 @@
 #include <QtCore/QLoggingCategory>
 #include <QtNetwork/QSslSocket>
 #include <QtNetwork/QTcpSocket>
+#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+#include <QtCore/QRandomGenerator>
+#endif
 
 #include <stdint.h>
 
@@ -325,7 +328,13 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     QMqttControlPacket packet(header);
 
     // Add Packet Identifier
-    const quint16 identifier = qrand();
+    const quint16 identifier =
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+            qrand();
+#else
+            QRandomGenerator::get32();
+#endif
+
     packet.append(identifier);
 
     // Overflow protection
@@ -380,7 +389,13 @@ bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
     QMqttControlPacket packet(header);
 
     // Add Packet Identifier
-    const quint16 identifier = qrand();
+    const quint16 identifier =
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+            qrand();
+#else
+            QRandomGenerator::get32();
+#endif
+
     packet.append(identifier);
 
     packet.append(topic.toUtf8());
