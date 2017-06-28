@@ -22,7 +22,6 @@
 #include "qmqttclient.h"
 #include "qmqttclient_p.h"
 
-#include <QTcpSocket>
 #include <QUuid>
 #include <QtEndian>
 
@@ -285,10 +284,12 @@ void QMqttClient::connectToHost()
 
     \a sslPeerName specifies the peer name to be passed to the socket.
  */
+#ifndef QT_NO_SSL
 void QMqttClient::connectToHostEncrypted(const QString &sslPeerName)
 {
     connectToHost(true, sslPeerName);
 }
+#endif
 
 void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
 {

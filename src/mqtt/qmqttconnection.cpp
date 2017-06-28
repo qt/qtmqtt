@@ -85,7 +85,11 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
         qWarning("Trying to create a transport layer, but no hostname is specified");
         return false;
     }
-    auto socket = createSecureIfNeeded ? new QSslSocket() : new QTcpSocket();
+    auto socket =
+#ifndef QT_NO_SSL
+            createSecureIfNeeded ? new QSslSocket() :
+#endif
+                                   new QTcpSocket();
     m_transport = socket;
     m_ownTransport = true;
     m_transportType = createSecureIfNeeded ? QMqttClient::SecureSocket : QMqttClient::AbstractSocket;
@@ -119,7 +123,9 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             qWarning("Could not establish socket connection for transport");
             return false;
         }
-    } else if (m_transportType == QMqttClient::SecureSocket) {
+    }
+#ifndef QT_NO_SSL
+    else if (m_transportType == QMqttClient::SecureSocket) {
         auto socket = dynamic_cast<QSslSocket*>(m_transport);
         Q_ASSERT(socket);
         if (socket->state() == QAbstractSocket::ConnectedState)
@@ -136,6 +142,9 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             return false;
         }
     }
+#else
+    Q_UNUSED(sslPeerName);
+#endif
 
     return true;
 }

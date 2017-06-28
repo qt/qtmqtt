@@ -28,6 +28,7 @@
 #include <QObject>
 #include <QtCore/QIODevice>
 #include <QtCore/QSharedPointer>
+#include <QtNetwork/QTcpSocket>
 
 QT_BEGIN_NAMESPACE
 
@@ -87,7 +88,9 @@ public:
     ProtocolVersion protocolVersion() const;
 
     Q_INVOKABLE void connectToHost();
+#ifndef QT_NO_SSL
     Q_INVOKABLE void connectToHostEncrypted(const QString &sslPeerName = QString());
+#endif
     Q_INVOKABLE void disconnectFromHost();
 
     State state() const;
