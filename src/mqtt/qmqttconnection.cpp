@@ -294,7 +294,10 @@ bool QMqttConnection::sendControlPublishAcknowledge(quint16 id)
 bool QMqttConnection::sendControlPublishRelease(quint16 id)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << id;
-    QMqttControlPacket packet(QMqttControlPacket::PUBREL);
+    quint8 header = QMqttControlPacket::PUBREL;
+    header |= 0x02; // MQTT-3.6.1-1
+
+    QMqttControlPacket packet(header);
     packet.append(id);
     return writePacketToTransport(packet);
 }
