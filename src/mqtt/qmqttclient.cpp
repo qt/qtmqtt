@@ -295,6 +295,11 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
 {
     Q_D(QMqttClient);
 
+    if (state() == QMqttClient::Connected) {
+        qWarning("Already connected to a broker. Rejecting connection request.");
+        return;
+    }
+
     if (!d->m_connection.ensureTransport(encrypted)) {
         qWarning("Could not ensure connection");
         setState(Disconnected);
