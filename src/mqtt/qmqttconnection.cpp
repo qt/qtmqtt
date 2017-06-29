@@ -612,9 +612,14 @@ void QMqttConnection::finalize_publish()
         const QVector<QStringRef> topicSplit = topic.splitRef(QLatin1Char('/'));
         if (subTopicSplit.size() != topicSplit.size())
             continue;
-        const QVector<QStringRef> subPlusSplit = subTopic.splitRef(QLatin1Char('+'));
+        bool match = true;
+        for (int i = 0; i < subTopicSplit.size() && match; ++i) {
+            if (subTopicSplit.at(i) == QLatin1Char('+') || subTopicSplit.at(i) == topicSplit.at(i))
+                continue;
+            match = false;
+        }
 
-        if (topic.startsWith(subPlusSplit.at(0)) && topic.endsWith(subPlusSplit.at(1))) {
+        if (match) {
             emit sub.value()->messageReceived(qmsg);
         }
     }
