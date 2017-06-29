@@ -512,9 +512,12 @@ void QMqttConnection::finalize_connack()
     if (connectResultValue != 0) {
         qWarning("Connection has been rejected");
         // MQTT-3.2.2-5
-        // ConnectionError
+        // ### TODO: ConnectionError
         m_readBuffer.clear();
         m_transport->close();
+        m_internalState = BrokerDisconnected;
+        m_client->setState(QMqttClient::Disconnected);
+        return;
     }
     m_internalState = BrokerConnected;
     m_client->setState(QMqttClient::Connected);
