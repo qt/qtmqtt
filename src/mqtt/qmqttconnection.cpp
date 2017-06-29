@@ -367,6 +367,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
 
     // SUBACK must contain identifier MQTT-3.8.4-2
     m_pendingSubscriptionAck.insert(identifier, result);
+    m_activeSubscriptions.insert(result->topic(), result);
     return result;
 }
 
@@ -543,7 +544,6 @@ void QMqttConnection::finalize_suback()
             emit sub->qosChanged(result);
         }
         sub->setState(QMqttSubscription::Subscribed);
-        m_activeSubscriptions.insert(sub->topic(), sub);
     } else if (result == 0x80) {
         qWarning() << "Subscription for id " << id << " failed.";
         sub->setState(QMqttSubscription::Error);
