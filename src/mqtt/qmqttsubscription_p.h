@@ -36,6 +36,8 @@
 #include "qmqttsubscription.h"
 #include <private/qobject_p.h>
 
+QT_BEGIN_NAMESPACE
+
 class QMqttSubscriptionPrivate : public QObjectPrivate
 {
     Q_DECLARE_PUBLIC(QMqttSubscription)
@@ -47,5 +49,7 @@ public:
     QString m_topic;
     quint8 m_qos{0};
 };
+
+QT_END_NAMESPACE
 
 #endif // QMQTTSUBSCRIPTION_P_H
