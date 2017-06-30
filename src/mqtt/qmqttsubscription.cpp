@@ -70,11 +70,9 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
-    \fn QMqttSubscription::messageReceived(QByteArray msg, QString topic)
+    \fn QMqttSubscription::messageReceived(QMqttMessage msg)
 
-    This signal is emitted when a new message \a msg has been received. When a subscription
-    contains a wildcard, \a topic provides the exact topic of the message matching the criteria
-    for the subscription.
+    This signal is emitted when a new message \a msg has been received.
 */
 
 QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(*(new QMqttSubscriptionPrivate), parent)

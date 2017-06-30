@@ -102,6 +102,27 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
+    \property QMqttClient::willTopic
+    \brief Specifies the topic of the will testament.
+*/
+
+/*!
+    \property QMqttClient::willMessage
+    \brief Specifies the payload of a will testament message.
+*/
+
+/*!
+    \property QMqttClient::willQoS
+    \brief Specifies the level of QoS the will testament message is send and stored.
+*/
+
+/*!
+    \property QMqttClient::willRetain
+    \brief Specifies whether the will testament message should retain on the broker for future
+           subscribers to receive.
+*/
+
+/*!
     \enum QMqttClient::TransportType
 
     This enum type specifies the connection method to be used to instantiate a connection with
@@ -111,18 +132,33 @@ QT_BEGIN_NAMESPACE
            The transport uses a class based on a QIODevice.
     \value AbstractSocket
            The transport uses a class based on a QAbstractSocket.
+    \value SecureSocket
+           The transport uses a class based on a QSslSocket.
 */
 
 /*!
     \enum QMqttClient::State
 
-    This enum type specifies the states a client can enter
+    This enum type specifies the states a client can enter.
+
     \value Disconnected
            The client is disconnected from the broker.
     \value Connecting
            A connection request has been made, but the broker has not approved the connection yet.
     \value Connected
            The client is connected to the broker.
+*/
+
+/*!
+    \enum QMqttClient::ProtocolVersion
+
+    This enum specifies the protocol version of MQTT standard to use during communication
+    with a broker.
+
+    \value MQTT_3_1
+           MQTT Standard 3.1
+    \value MQTT_3_1_1
+           MQTT Standard 3.1.1, publicly referred to as version 4
 */
 
 /*!
@@ -158,6 +194,15 @@ QT_BEGIN_NAMESPACE
 
     If requestPing() is called or every keepAlive() milliseconds, this signal is emitted after
     the broker reponded and the connection is still valid.
+*/
+
+/*!
+    \fn QMqttClient::brokerSessionRestored()
+
+    After a client has successfully connected to a broker with the cleanSession property set to
+    false, and the broker is capable of restoring a session, this signal will be emitted.
+
+    Sessions can be restored if a client has connected previously using the same clientId.
 */
 
 /*!
@@ -228,7 +273,8 @@ void QMqttClient::unsubscribe(const QString &topic)
     Publishes a \a message to the broker with the specified \a topic. \a qos specifies the level
     of required security that the message is transfered.
 
-    If \a retain is set to true, the message will...
+    If \a retain is set to true, the message will stay on the broker for later clients to connect
+    and receive this message.
 
     Returns an \c ID which is used internally to identify the message.
  */
