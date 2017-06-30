@@ -26,6 +26,8 @@
 #include <QtTest/QSignalSpy>
 #include <QtMqtt/QMqttClient>
 
+#include <limits>
+
 class Tst_QMqttClient : public QObject
 {
     Q_OBJECT
@@ -268,9 +270,9 @@ void Tst_QMqttClient::longTopic_data()
     QTest::newRow("subPath") << QString::fromLatin1("topic/subtopic");
 
     QString l;
-    l.fill(QLatin1Char('T'), UINT16_MAX);
+    l.fill(QLatin1Char('T'), std::numeric_limits<std::uint16_t>::max());
     QTest::newRow("maxSize") << l;
-    l.fill(QLatin1Char('M'), 2 * UINT16_MAX);
+    l.fill(QLatin1Char('M'), 2 * std::numeric_limits<std::uint16_t>::max());
     QTest::newRow("overflow") << l;
 }
 
@@ -278,7 +280,7 @@ void Tst_QMqttClient::longTopic()
 {
     QFETCH(QString, topic);
     QString truncTopic = topic;
-    truncTopic.truncate(UINT16_MAX);
+    truncTopic.truncate(std::numeric_limits<std::uint16_t>::max());
 
     QMqttClient publisher;
     publisher.setClientId(QLatin1String("publisher"));
@@ -323,7 +325,7 @@ void Tst_QMqttClient::subscribeLongTopic()
     QTRY_COMPARE(subscriber.state(), QMqttClient::Connected);
 
     QString topic;
-    topic.fill(QLatin1Char('s'), 2 * UINT16_MAX);
+    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
     auto sub = subscriber.subscribe(topic);
     QVERIFY(sub.isNull());
 }

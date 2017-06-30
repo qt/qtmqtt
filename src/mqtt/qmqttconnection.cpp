@@ -30,7 +30,7 @@
 #include <QtCore/QRandomGenerator>
 #endif
 
-#include <stdint.h>
+#include <limits>
 
 QT_BEGIN_NAMESPACE
 
@@ -253,9 +253,10 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
     QSharedPointer<QMqttControlPacket> packet(new QMqttControlPacket(header));
 
     QByteArray topicArray = topic.toUtf8();
-    if (topicArray.size() > UINT16_MAX) {
+    const std::uint16_t u16max = std::numeric_limits<std::uint16_t>::max();
+    if (topicArray.size() > u16max) {
         qWarning("Published topic is too long. Need to truncate");
-        topicArray.truncate(UINT16_MAX);
+        topicArray.truncate(u16max);
     }
 
     packet->append(topicArray);
@@ -263,7 +264,7 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
     if (qos > 0) {
         // Add Packet Identifier
         static quint16 publishIdCounter = 0;
-        if (publishIdCounter + 1 == UINT16_MAX)
+        if (publishIdCounter + 1 == u16max)
             publishIdCounter = 0;
         else
             publishIdCounter++;
@@ -342,7 +343,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
 
     // Overflow protection
     QByteArray topicArray = topic.toUtf8();
-    if (topicArray.size() > UINT16_MAX) {
+    if (topicArray.size() > std::numeric_limits<std::uint16_t>::max()) {
         qWarning("Subscribed topic is too long.");
         return QSharedPointer<QMqttSubscription>();
     }
