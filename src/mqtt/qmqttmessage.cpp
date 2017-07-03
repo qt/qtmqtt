@@ -21,6 +21,8 @@
 
 #include "qmqttmessage.h"
 
+QT_BEGIN_NAMESPACE
+
 QByteArray QMqttMessage::payload() const
 {
     return m_payload;
@@ -60,3 +62,5 @@ QMqttMessage::QMqttMessage(const QString &topic, const QByteArray &content, quin
     , m_retain(retain)
 {
 }
+
+QT_END_NAMESPACE
