@@ -1,6 +1,7 @@
 TEMPLATE = subdirs
 SUBDIRS += \
            simpleclient \
-           subscriptions \
-           quicksubscription \
-           websocketsubscription
+           subscriptions
+
+qtHaveModule(quick): SUBDIRS += quicksubscription
+qtHaveModule(websockets): SUBDIRS += websocketsubscription
