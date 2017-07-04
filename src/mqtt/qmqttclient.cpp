@@ -72,7 +72,7 @@ QT_BEGIN_NAMESPACE
     \property QMqttClient::protocolVersion
     \brief The MQTT standard version to use for connections.
 
-    Specifies the version of the standard the client uses for connecting to a broker. Values values
+    Specifies the version of the standard the client uses for connecting to a broker. Valid values
     are
 
     \list
