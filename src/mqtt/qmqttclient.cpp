@@ -193,7 +193,7 @@ QT_BEGIN_NAMESPACE
     \fn QMqttClient::pingResponse()
 
     If requestPing() is called or every keepAlive() milliseconds, this signal is emitted after
-    the broker reponded and the connection is still valid.
+    the broker responded and the connection is still valid.
 */
 
 /*!
