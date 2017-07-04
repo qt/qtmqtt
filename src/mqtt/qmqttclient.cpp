@@ -187,7 +187,7 @@ QT_BEGIN_NAMESPACE
 /*!
     \fn QMqttClient::messageSent(qint32 id)
 
-    A message which has been sent via \l QMqttClient::publish has been received at the broker.
+    A message which has been sent via \l QMqttClient::publish has been received by the broker.
     The \a id is the same as returned by \l QMqttClient::publish to help tracking of the status
     of the message.
 */
