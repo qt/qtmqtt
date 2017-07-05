@@ -31,6 +31,7 @@
 #endif
 
 #include <limits>
+#include <cstdint>
 
 QT_BEGIN_NAMESPACE
 
