@@ -36,7 +36,7 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
 {
     Q_OBJECT
     Q_ENUMS(SubscriptionState)
-    Q_PROPERTY(SubscriptionState state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(SubscriptionState state READ state NOTIFY stateChanged)
     Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
     Q_PROPERTY(QString topic READ topic)
 public:
@@ -59,12 +59,12 @@ Q_SIGNALS:
     void messageReceived(QMqttMessage msg);
 
 public Q_SLOTS:
-    void setState(SubscriptionState state);
     void unsubscribe();
 
 private:
     Q_DECLARE_PRIVATE(QMqttSubscription)
     Q_DISABLE_COPY(QMqttSubscription)
+    void setState(SubscriptionState state);
     void setTopic(const QString &topic);
     void setClient(QMqttClient *client);
     void setQos(quint8 qos);
