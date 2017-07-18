@@ -25,8 +25,8 @@
 #include <QtMqtt/qmqttglobal.h>
 #include <QtMqtt/QMqttSubscription>
 
-#include <QObject>
 #include <QtCore/QIODevice>
+#include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QTcpSocket>
 

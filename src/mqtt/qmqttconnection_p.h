@@ -37,12 +37,12 @@
 #include "qmqttcontrolpacket_p.h"
 #include "qmqttmessage.h"
 #include "qmqttsubscription.h"
+#include <QtCore/QBuffer>
+#include <QtCore/QMap>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
-#include <QtCore/QMap>
 #include <QtCore/QTimer>
 #include <QtCore/QtEndian>
-#include <QtCore/QBuffer>
 
 QT_BEGIN_NAMESPACE
 

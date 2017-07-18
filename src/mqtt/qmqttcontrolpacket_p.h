@@ -34,8 +34,8 @@
 //
 #include "qmqttglobal.h"
 
-#include <QtCore/QtGlobal>
 #include <QtCore/QByteArray>
+#include <QtCore/QtGlobal>
 
 QT_BEGIN_NAMESPACE
 

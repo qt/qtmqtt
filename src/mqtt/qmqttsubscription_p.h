@@ -34,7 +34,7 @@
 //
 
 #include "qmqttsubscription.h"
-#include <private/qobject_p.h>
+#include <QtCore/private/qobject_p.h>
 
 QT_BEGIN_NAMESPACE
 
