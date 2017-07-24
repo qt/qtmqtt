@@ -1,4 +1,4 @@
-CONFIG += testcase
+CONFIG += benchmark
 QT       += network testlib mqtt
 QT       -= gui
 QT_PRIVATE += mqtt-private
