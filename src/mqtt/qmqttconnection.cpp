@@ -650,7 +650,7 @@ void QMqttConnection::finalize_pubAckRecComp()
 
     auto pendingMsg = m_pendingMessages.take(id);
     if (!pendingMsg) {
-        qWarning(qPrintable(QString::fromLatin1("Received PUBACK for unknown message: %1").arg(id)));
+        qWarning() << QLatin1String("Received PUBACK for unknown message: ") << id;
         return;
     }
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREC) {
