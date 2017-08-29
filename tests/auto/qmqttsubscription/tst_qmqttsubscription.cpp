@@ -25,13 +25,14 @@
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
 #include <QtMqtt/QMqttClient>
+#include <QtMqtt/QMqttSubscription>
 
-class Tst_QMqttClient : public QObject
+class Tst_QMqttSubscription : public QObject
 {
     Q_OBJECT
 
 public:
-    Tst_QMqttClient();
+    Tst_QMqttSubscription();
 
 private Q_SLOTS:
     void initTestCase();
@@ -45,26 +46,26 @@ private:
     quint16 m_port{1883};
 };
 
-Tst_QMqttClient::Tst_QMqttClient()
+Tst_QMqttSubscription::Tst_QMqttSubscription()
 {
 }
 
-void Tst_QMqttClient::initTestCase()
+void Tst_QMqttSubscription::initTestCase()
 {
     m_testBroker = invokeOrInitializeBroker(&m_brokerProcess);
     if (m_testBroker.isEmpty())
         qFatal("No MQTT broker present to test against.");
 }
 
-void Tst_QMqttClient::cleanupTestCase()
+void Tst_QMqttSubscription::cleanupTestCase()
 {
 }
 
-void Tst_QMqttClient::getSetCheck()
+void Tst_QMqttSubscription::getSetCheck()
 {
 }
 
-void Tst_QMqttClient::wildCards_data()
+void Tst_QMqttSubscription::wildCards_data()
 {
     QTest::addColumn<QString>("subscription");
     QTest::addColumn<int>("expectedReceival");
@@ -82,7 +83,7 @@ void Tst_QMqttClient::wildCards_data()
     QTest::newRow("Qt/a/+/c") << "Qt/a/+/c" << 1;
 }
 
-void Tst_QMqttClient::wildCards()
+void Tst_QMqttSubscription::wildCards()
 {
     QFETCH(QString, subscription);
     QFETCH(int, expectedReceival);
@@ -133,6 +134,6 @@ void Tst_QMqttClient::wildCards()
     QTRY_VERIFY2(publisher.state() == QMqttClient::Disconnected, "Could not disconnect.");
 }
 
-QTEST_MAIN(Tst_QMqttClient)
+QTEST_MAIN(Tst_QMqttSubscription)
 
 #include "tst_qmqttsubscription.moc"
