@@ -69,13 +69,15 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+public slots:
+    void setClientPort(int p);
+
 private slots:
     void on_buttonConnect_clicked();
     void on_buttonQuit_clicked();
     void updateLogStateChange();
 
     void brokerDisconnected();
-    void setClientPort(int p);
 
     void on_buttonPublish_clicked();
 
