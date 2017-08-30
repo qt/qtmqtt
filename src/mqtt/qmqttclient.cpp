@@ -245,9 +245,9 @@ QIODevice *QMqttClient::transport() const
 }
 
 /*!
-    Adds a new subscription to receive notifications on \a topic. \a qos specifies the level
-    of security messages are received. For more information on various QoS levels, please refer
-    to \l {Quality of Service}.
+    Adds a new subscription to receive notifications on \a topic. The parameter \a qos specifies
+    on which level of security messages are received. For more information on various QoS levels,
+    please refer to \l {Quality of Service}.
 
     This functions returns a \l QSharedPointer to a \l QMqttSubscription. If a subscription to
     the same topic is made twice, the return value is pointing to the same subscription instance.
@@ -296,11 +296,11 @@ qint32 QMqttClient::publish(const QString &topic, const QByteArray &message, qui
 /*!
     Sends a ping message to the broker and expects a pong to be send back by the broker. If the
     connection is active, \l QMqttClient will automatically send a ping message every
-    \l QMqttClient::keepAlive miliseconds.
+    \l QMqttClient::keepAlive milliseconds.
 
     To check whether the ping is successful, connect to the \l pingResponse signal.
 
-    Returns \c true if the ping request could be send.
+    Returns \c true if the ping request could be sent.
  */
 bool QMqttClient::requestPing()
 {
