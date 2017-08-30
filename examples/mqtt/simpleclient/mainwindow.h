@@ -52,8 +52,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QTcpSocket>
-#include <QtMqtt/QMqttClient>
+#include <QMqttClient>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
