@@ -683,7 +683,7 @@ void QMqttConnection::finalize_pingresp()
     readBuffer((char*)&v, 1);
     if (v != 0)
         qWarning("Received a PINGRESP with payload!");
-    emit m_client->pingResponse();
+    emit m_client->pingResponseReceived();
 }
 
 void QMqttConnection::processData()

@@ -79,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->editLog->insertPlainText(content);
     });
 
-    connect(m_client, &QMqttClient::pingResponse, this, [this]() {
+    connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
         ui->buttonPing->setEnabled(true);
         const QString content = QDateTime::currentDateTime().toString()
                     + QLatin1String(" PingResponse")
