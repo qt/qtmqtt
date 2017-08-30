@@ -1,6 +1,7 @@
 TEMPLATE = subdirs
-SUBDIRS += cmake \
-    conformance \
-    qmqttcontrolpacket \
-    qmqttclient \
-    qmqttsubscription
+
+win32|if(linux:!cross_compile): SUBDIRS += cmake \
+                                      conformance \
+                                      qmqttcontrolpacket \
+                                      qmqttclient \
+                                      qmqttsubscription
