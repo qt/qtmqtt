@@ -97,12 +97,12 @@ void ClientSubscription::connectAndSubscribe()
                 emit errorOccured();
             }
 
-            connect(m_subscription.data(), &QMqttSubscription::stateChanged,
+            connect(m_subscription, &QMqttSubscription::stateChanged,
                     [](QMqttSubscription::SubscriptionState s) {
                 qCDebug(lcWebSocketMqtt) << "Subscription state changed:" << s;
             });
 
-            connect(m_subscription.data(), &QMqttSubscription::messageReceived,
+            connect(m_subscription, &QMqttSubscription::messageReceived,
                     [this](QMqttMessage msg) {
                 handleMessage(msg.payload());
             });

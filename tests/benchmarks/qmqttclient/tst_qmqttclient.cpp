@@ -82,7 +82,7 @@ void Tst_QMqttClient::stressTest()
     publisher.setPort(m_port);
 
     quint64 messageCount = 0;
-    QSharedPointer<QMqttSubscription> subscription;
+    QMqttSubscription *subscription;
     const QString testTopic = QLatin1String("test/topic");
 
     connect(&subscriber, &QMqttClient::connected, [&](){
@@ -90,7 +90,7 @@ void Tst_QMqttClient::stressTest()
         if (!subscription)
             qFatal("Failed to create subscription");
 
-        connect(subscription.data(), &QMqttSubscription::messageReceived, [&](QMqttMessage) {
+        connect(subscription, &QMqttSubscription::messageReceived, [&](QMqttMessage) {
             messageCount++;
             publisher.publish(testTopic, QByteArray("some message"), qos);
         });

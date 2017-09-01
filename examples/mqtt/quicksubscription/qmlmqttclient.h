@@ -52,7 +52,6 @@
 #define QMLMQTTCLIENT_H
 
 #include <QtCore/QMap>
-#include <QtCore/QSharedPointer>
 #include <QtMqtt/QMqttClient>
 #include <QtMqtt/QMqttSubscription>
 
@@ -63,7 +62,7 @@ class QmlMqttSubscription : public QObject
     Q_OBJECT
     Q_PROPERTY(QString topic MEMBER m_topic NOTIFY topicChanged)
 public:
-    QmlMqttSubscription(QSharedPointer<QMqttSubscription> s, QmlMqttClient *c);
+    QmlMqttSubscription(QMqttSubscription *s, QmlMqttClient *c);
     ~QmlMqttSubscription();
 
 Q_SIGNALS:
@@ -75,7 +74,7 @@ public slots:
 
 private:
     Q_DISABLE_COPY(QmlMqttSubscription)
-    QSharedPointer<QMqttSubscription> sub;
+    QMqttSubscription *sub;
     QmlMqttClient *client;
     QString m_topic;
 };

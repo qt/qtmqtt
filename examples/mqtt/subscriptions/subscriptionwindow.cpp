@@ -51,7 +51,7 @@
 #include "subscriptionwindow.h"
 #include "ui_subscriptionwindow.h"
 
-SubscriptionWindow::SubscriptionWindow(const QSharedPointer<QMqttSubscription> &sub, QWidget *parent) :
+SubscriptionWindow::SubscriptionWindow(QMqttSubscription *sub, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SubscriptionWindow),
     m_sub(sub)
@@ -61,12 +61,12 @@ SubscriptionWindow::SubscriptionWindow(const QSharedPointer<QMqttSubscription> &
     ui->labelSub->setText(m_sub->topic());
     ui->labelQoS->setText(QString::number(m_sub->qos()));
     updateStatus(m_sub->state());
-    connect(m_sub.data(), &QMqttSubscription::messageReceived, this, &SubscriptionWindow::updateMessage);
-    connect(m_sub.data(), &QMqttSubscription::stateChanged, this, &SubscriptionWindow::updateStatus);
-    connect(m_sub.data(), &QMqttSubscription::qosChanged, [this](quint8 qos) {
+    connect(m_sub, &QMqttSubscription::messageReceived, this, &SubscriptionWindow::updateMessage);
+    connect(m_sub, &QMqttSubscription::stateChanged, this, &SubscriptionWindow::updateStatus);
+    connect(m_sub, &QMqttSubscription::qosChanged, [this](quint8 qos) {
         ui->labelQoS->setText(QString::number(qos));
     });
-    connect(ui->pushButton, &QAbstractButton::clicked, m_sub.data(), &QMqttSubscription::unsubscribe);
+    connect(ui->pushButton, &QAbstractButton::clicked, m_sub, &QMqttSubscription::unsubscribe);
 }
 
 SubscriptionWindow::~SubscriptionWindow()

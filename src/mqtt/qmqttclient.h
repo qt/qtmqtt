@@ -74,10 +74,10 @@ public:
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
 
-    QSharedPointer<QMqttSubscription> subscribe(const QString& topic, quint8 qos = 0);
-    void unsubscribe(const QString& topic);
+    QMqttSubscription *subscribe(const QString &topic, quint8 qos = 0);
+    void unsubscribe(const QString &topic);
 
-    Q_INVOKABLE qint32 publish(const QString &topic, const QByteArray& message = QByteArray(),
+    Q_INVOKABLE qint32 publish(const QString &topic, const QByteArray &message = QByteArray(),
                  quint8 qos = 0, bool retain = false);
     bool requestPing();
 

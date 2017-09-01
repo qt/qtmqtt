@@ -143,12 +143,12 @@ void Tst_QMqttClient::sendReceive()
     bool verified = false;
     auto sub = subscriber.subscribe(testTopic, 1);
     QVERIFY(sub);
-    connect(sub.data(), &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
+    connect(sub, &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
         verified = msg.payload() == data;
         received = true;
     });
 
-    QTRY_COMPARE(sub.data()->state(), QMqttSubscription::Subscribed);
+    QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);
 
     publisher.publish(testTopic, data, 1);
 
@@ -220,14 +220,14 @@ void Tst_QMqttClient::willMessage()
     QTRY_COMPARE(client1.state(), QMqttClient::Connected);
 
     auto client1Sub = client1.subscribe(willTopic, 1);
-    connect(client1Sub.data(), &QMqttSubscription::messageReceived, [=](QMqttMessage message) {
+    connect(client1Sub, &QMqttSubscription::messageReceived, [=](QMqttMessage message) {
         Q_UNUSED(message);
         // Just debug purposes
         //qDebug() << "Got something:" << message;
     });
     QTRY_COMPARE(client1Sub->state(), QMqttSubscription::Subscribed);
 
-    QSignalSpy messageSpy(client1Sub.data(), SIGNAL(messageReceived(QMqttMessage)));
+    QSignalSpy messageSpy(client1Sub, SIGNAL(messageReceived(QMqttMessage)));
 
     // Client B connects (via TcpSocket)
     QTcpSocket sock;
@@ -327,7 +327,7 @@ void Tst_QMqttClient::subscribeLongTopic()
     QString topic;
     topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
     auto sub = subscriber.subscribe(topic);
-    QVERIFY(sub.isNull());
+    QCOMPARE(sub, nullptr);
 }
 
 QTEST_MAIN(Tst_QMqttClient)

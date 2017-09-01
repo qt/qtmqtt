@@ -98,7 +98,7 @@ void Tst_MqttConformance::basic_test()
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe");
 
     int msgCount = 0;
-    connect(sub.data(), &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage msg) {
+    connect(sub, &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage msg) {
         qDebug() << "Message received:" << msg.payload();
         msgCount++;
     });
@@ -158,7 +158,7 @@ void Tst_MqttConformance::retained_message_test()
     auto sub = client.subscribe(subTop, 2);
     int msgCount = 0;
 
-    connect(sub.data(), &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage) {
+    connect(sub, &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage) {
         msgCount++;
         qDebug() << "Message received, current count:" << msgCount;
     });
@@ -200,7 +200,7 @@ void Tst_MqttConformance::will_message_test()
 
     bool receivedWill = false;
     auto sub = recipient.subscribe(wTopic, 1);
-    connect(sub.data(), &QMqttSubscription::messageReceived, this, [wMessage, &receivedWill](QMqttMessage m) {
+    connect(sub, &QMqttSubscription::messageReceived, this, [wMessage, &receivedWill](QMqttMessage m) {
         if (m.payload() == wMessage)
             receivedWill = true;
     });
@@ -255,6 +255,7 @@ void Tst_MqttConformance::offline_message_queueing_test()
 
     const QString subTopic{"Qt/offline/#"};
     auto sub = client.subscribe(subTopic, 2);
+    Q_UNUSED(sub);
 
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect.");

@@ -249,15 +249,16 @@ QIODevice *QMqttClient::transport() const
     on which level of security messages are received. For more information on various QoS levels,
     please refer to \l {Quality of Service}.
 
-    This functions returns a \l QSharedPointer to a \l QMqttSubscription. If a subscription to
+    This functions returns a pointer to a \l QMqttSubscription. If a subscription to
     the same topic is made twice, the return value is pointing to the same subscription instance.
+    The \l QMqttClient is the owner of the subscription.
  */
-QSharedPointer<QMqttSubscription> QMqttClient::subscribe(const QString &topic, quint8 qos)
+QMqttSubscription *QMqttClient::subscribe(const QString &topic, quint8 qos)
 {
     Q_D(QMqttClient);
 
     if (d->m_state != QMqttClient::Connected)
-        return QSharedPointer<QMqttSubscription>();
+        return nullptr;
 
     return d->m_connection.sendControlSubscribe(topic, qos);
 }

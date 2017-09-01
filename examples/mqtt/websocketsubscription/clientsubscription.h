@@ -76,7 +76,7 @@ public slots:
 
 private:
     QMqttClient m_client;
-    QSharedPointer<QMqttSubscription> m_subscription;
+    QMqttSubscription *m_subscription;
     QUrl m_url;
     QString m_topic;
     WebSocketIODevice m_device;

@@ -320,7 +320,7 @@ bool QMqttConnection::sendControlPublishComp(quint16 id)
     return writePacketToTransport(packet);
 }
 
-QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QString &topic, quint8 qos)
+QMqttSubscription *QMqttConnection::sendControlSubscribe(const QString &topic, quint8 qos)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
@@ -346,7 +346,7 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     QByteArray topicArray = topic.toUtf8();
     if (topicArray.size() > std::numeric_limits<std::uint16_t>::max()) {
         qWarning("Subscribed topic is too long.");
-        return QSharedPointer<QMqttSubscription>();
+        return nullptr;
     }
 
     packet.append(topicArray);
@@ -355,17 +355,19 @@ QSharedPointer<QMqttSubscription> QMqttConnection::sendControlSubscribe(const QS
     case 0: packet.append(char(0x0)); break;
     case 1: packet.append(char(0x1)); break;
     case 2: packet.append(char(0x2)); break;
-    default: return QSharedPointer<QMqttSubscription>();
+    default: return nullptr;
     }
 
-    QSharedPointer<QMqttSubscription> result(new QMqttSubscription);
+    auto result = new QMqttSubscription(this);
     result->setTopic(QString::fromUtf8(topicArray));
     result->setClient(m_client);
     result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);
 
-    if (!writePacketToTransport(packet))
-        return QSharedPointer<QMqttSubscription>();
+    if (!writePacketToTransport(packet)) {
+        delete result;
+        return nullptr;
+    }
 
     // SUBACK must contain identifier MQTT-3.8.4-2
     m_pendingSubscriptionAck.insert(identifier, result);

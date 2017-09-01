@@ -66,7 +66,7 @@ class SubscriptionWindow : public QWidget
     Q_OBJECT
 
 public:
-    explicit SubscriptionWindow(const QSharedPointer<QMqttSubscription> &sub, QWidget *parent = 0);
+    explicit SubscriptionWindow(QMqttSubscription *sub, QWidget *parent = nullptr);
     ~SubscriptionWindow();
 
 public slots:
@@ -74,7 +74,7 @@ public slots:
     void updateStatus(QMqttSubscription::SubscriptionState state);
 private:
     Ui::SubscriptionWindow *ui;
-    QSharedPointer<QMqttSubscription> m_sub;
+    QMqttSubscription *m_sub;
 };
 
 #endif // SUBSCRIPTIONWINDOW_H

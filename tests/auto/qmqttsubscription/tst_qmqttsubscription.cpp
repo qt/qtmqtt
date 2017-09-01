@@ -104,7 +104,7 @@ void Tst_QMqttSubscription::wildCards()
     auto sub = client.subscribe(subscription, 1);
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic.");
 
-    QSignalSpy receivalSpy(sub.data(), SIGNAL(messageReceived(QMqttMessage)));
+    QSignalSpy receivalSpy(sub, SIGNAL(messageReceived(QMqttMessage)));
 
     QStringList topics;
     topics << "Qt/a"
