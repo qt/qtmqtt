@@ -39,24 +39,43 @@ QString invokeOrInitializeBroker(QProcess *gBrokerProcess)
 
     // Start the paho test broker
     QString python = QFile::decodeName(qgetenv("PYTHON3_PATH"));
-    if (python.isEmpty()) {
-        const QString usrPython = QFile::decodeName("/usr/bin/python3");
-        if (QFile::exists(usrPython))
-            python = usrPython;
-        else // We assume it to be in the path
-            python = QLatin1String("python3");
+    if (!python.isEmpty()) {
+#ifdef Q_OS_WIN
+        python += QLatin1String("/python.exe");
+#else
+        python += QLatin1String("/python3");
+#endif
+        if (!QFileInfo::exists(python)) {
+            qWarning() << "Could not find Python at:" << python << ". Assuming it in PATH.";
+            python.clear();
+        }
     }
+
+    if (python.isEmpty()) {
+#ifdef Q_OS_WIN
+        python = QLatin1String("python.exe");
+#else
+        python = QLatin1String("python3");
+#endif
+    }
+
     const QStringList arguments = QStringList() << brokerLocation;
+    qDebug() << "Launching broker:" << python << arguments;
     gBrokerProcess->start(python, arguments);
     if (!gBrokerProcess->waitForStarted())
         qFatal("Could not start MQTT test broker.");
 
-    // Give the server some time to initialize, not only launch
-    QTcpSocket socket;
-    socket.connectToHost(QLatin1String("localhost"), 1883);
+    const int maxTries = 6;
+    // Give the server some time to initialize, not only launch.
+    // Cannot use QTRY_*
+    for (int tryCounter = 0; tryCounter < maxTries; ++tryCounter) {
+        QTcpSocket socket;
+        socket.connectToHost(QLatin1String("localhost"), 1883);
 
-    if (socket.waitForConnected(5000))
-        return QLatin1String("localhost");
+        if (socket.waitForConnected(5000))
+            return QLatin1String("localhost");
+        QTest::qWait(5000);
+    }
 
     qWarning("Could not launch MQTT test broker.");
     return QString();
