@@ -441,8 +441,6 @@ bool QMqttConnection::sendControlDisconnect()
 
     m_pingTimer.stop();
 
-    for (auto sub : m_activeSubscriptions)
-        sub->unsubscribe();
     m_activeSubscriptions.clear();
 
     const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
