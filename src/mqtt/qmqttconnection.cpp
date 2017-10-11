@@ -34,9 +34,6 @@
 #include <QtCore/QLoggingCategory>
 #include <QtNetwork/QSslSocket>
 #include <QtNetwork/QTcpSocket>
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
-#include <QtCore/QRandomGenerator>
-#endif
 
 #include <limits>
 #include <cstdint>
@@ -271,24 +268,15 @@ qint32 QMqttConnection::sendControlPublish(const QString &topic, const QByteArra
     packet->append(topicArray);
     quint16 identifier = 0;
     if (qos > 0) {
-        // Add Packet Identifier
-        static quint16 publishIdCounter = 0;
-        if (publishIdCounter + 1 == u16max)
-            publishIdCounter = 0;
-        else
-            publishIdCounter++;
-
-        identifier = publishIdCounter;
+        identifier = unusedPacketIdentifier();
         packet->append(identifier);
+        m_pendingMessages.insert(identifier, packet);
     }
     packet->appendRaw(message);
 
-    if (qos)
-        m_pendingMessages.insert(identifier, packet);
-
     const bool written = writePacketToTransport(*packet.data());
 
-    if (!written)
+    if (!written && qos > 0)
         m_pendingMessages.remove(identifier);
     return written ? identifier : -1;
 }
@@ -341,12 +329,7 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QString &topic, q
     QMqttControlPacket packet(header);
 
     // Add Packet Identifier
-    const quint16 identifier =
-#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
-            qrand();
-#else
-            QRandomGenerator::get32();
-#endif
+    const quint16 identifier = unusedPacketIdentifier();
 
     packet.append(identifier);
 
@@ -405,12 +388,7 @@ bool QMqttConnection::sendControlUnsubscribe(const QString &topic)
     QMqttControlPacket packet(header);
 
     // Add Packet Identifier
-    const quint16 identifier =
-#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
-            qrand();
-#else
-            QRandomGenerator::get32();
-#endif
+    const quint16 identifier = unusedPacketIdentifier();
 
     packet.append(identifier);
 
@@ -469,6 +447,31 @@ bool QMqttConnection::sendControlDisconnect()
 void QMqttConnection::setClient(QMqttClient *client)
 {
     m_client = client;
+}
+
+quint16 QMqttConnection::unusedPacketIdentifier() const
+{
+    // MQTT-2.3.1-1 Control Packets MUST contain a non-zero 16-bit Packet Identifier
+    static quint16 packetIdentifierCounter = 1;
+    const std::uint16_t u16max = std::numeric_limits<std::uint16_t>::max();
+
+    // MQTT-2.3.1-2 ...it MUST assign it a currently unused Packet Identifier
+    const quint16 lastIdentifier = packetIdentifierCounter;
+    do {
+        if (packetIdentifierCounter == u16max)
+            packetIdentifierCounter = 1;
+        else
+            packetIdentifierCounter++;
+
+        if (lastIdentifier == packetIdentifierCounter) {
+            qWarning("Can't generate unique packet identifier.");
+            break;
+        }
+    } while (m_pendingSubscriptionAck.contains(packetIdentifierCounter)
+             || m_pendingUnsubscriptions.contains(packetIdentifierCounter)
+             || m_pendingMessages.contains(packetIdentifierCounter)
+             || m_pendingReleaseMessages.contains(packetIdentifierCounter));
+    return packetIdentifierCounter;
 }
 
 void QMqttConnection::transportConnectionClosed()
