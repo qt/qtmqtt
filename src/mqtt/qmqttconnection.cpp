@@ -735,8 +735,15 @@ void QMqttConnection::processData()
         m_missingData = 0;
     }
 
-    if (m_readBuffer.size() == 0)
+    // MQTT-2.2 A fixed header of a control packet must be at least 2 bytes. If the payload is
+    // longer than 127 bytes the header can be up to 5 bytes long.
+    const int readBufferSize = m_readBuffer.size();
+    if (readBufferSize < 2
+        || (readBufferSize == 2 && (m_readBuffer.at(1) & 128) != 0)
+        || (readBufferSize == 3 && (m_readBuffer.at(2) & 128) != 0)
+        || (readBufferSize == 4 && (m_readBuffer.at(3) & 128) != 0)) {
         return;
+    }
 
     readBuffer((char*)&m_currentPacket, 1);
 
