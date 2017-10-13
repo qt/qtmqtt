@@ -37,42 +37,45 @@ QT_BEGIN_NAMESPACE
     \class QMqttSubscription
 
     \inmodule QtMqtt
-    \brief The QMqttSubscription class receives notifications from a MQTT broker about a
-           specified topic.
+    \brief The QMqttSubscription class receives notifications from an MQTT
+    broker about a specified topic.
 */
 
 /*!
     \property QMqttSubscription::state
-    \brief The state of the subscription
+    \brief This property holds the state of the subscription.
 */
 
 /*!
     \property QMqttSubscription::qos
-    \brief The QoS Level the subscription has been made with.
+    \brief This property holds the QoS level at which the subscription has been
+    made.
 
-    The QoS Level of the subscription specifies the \b maximum QoS level the subscription
-    will receive messages. The publisher can still send messages with a lower level.
+    The QoS level of the subscription specifies the \e maximum QoS level at
+    which the client will receive messages. The publisher can still send
+    messages at a lower level.
 */
 
 /*!
     \property QMqttSubscription::topic
-    \brief The topic of the subscription.
+    \brief This property holds the topic of the subscription.
 */
 
 /*!
     \enum QMqttSubscription::SubscriptionState
 
-    Describes the states a subscription can have.
+    This enum type describes the states a subscription can have.
 
     \value Unsubscribed
-           The QMqttSubscription has unsubcribed from this topic.
+           The topic has been unsubscribed from.
     \value SubscriptionPending
-           A request for a subscription has been sent, but is not confirmed by the broker yet.
+           A request for a subscription has been sent, but is has not been
+           confirmed by the broker yet.
     \value Subscribed
-           The subscription has been successful and messages will be received.
+           The subscription was successful and messages will be received.
     \value UnsubscriptionPending
-           A requestion to unsubscribe to a topic has been sent, but is not confirmed by the broker
-           yet.
+           A request to unsubscribe from a topic has been sent, but it has not
+           been confirmed by the broker yet.
     \value Error
            An error occured.
 */
@@ -80,7 +83,7 @@ QT_BEGIN_NAMESPACE
 /*!
     \fn QMqttSubscription::messageReceived(QMqttMessage msg)
 
-    This signal is emitted when a new message \a msg has been received.
+    This signal is emitted when the new message \a msg has been received.
 */
 
 QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(*(new QMqttSubscriptionPrivate), parent)
@@ -89,8 +92,8 @@ QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(*(new QMqttSubsc
 }
 
 /*!
-    Deletes a subscription. If the subscription did not unsubscribe from topic(), then it
-    will automatically do so.
+    Deletes a subscription. If the \l topic was not already unsubscribed from,
+    it will be unsubscribed from automatically.
 */
 QMqttSubscription::~QMqttSubscription()
 {
@@ -128,8 +131,10 @@ void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 }
 
 /*!
-    Unsubscribes from \l topic. Note that this might affect all shared pointer instance
-    returned by \l QMqttClient::subscribe()
+    Unsubscribes from \l topic.
+
+    \note This might affect all shared pointer instances returned by
+    \l QMqttClient::subscribe().
 */
 void QMqttSubscription::unsubscribe()
 {

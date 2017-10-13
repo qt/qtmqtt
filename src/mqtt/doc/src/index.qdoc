@@ -30,9 +30,25 @@
 /*!
     \page qtmqtt-index.html
     \title Qt MQTT
-    \brief Provides an API to make MQTT programming simple and portable.
+    \brief Provides classes and functions to make MQTT programming simple and
+    portable.
 
-    To use these classes in your application, use the following include statement:
+    \l{MQTT} is a machine-to-machine (M2M) protocol utilizing the
+    publish-and-subscribe paradigm. Its purpose is to provide a channel with
+    minimal communication overhead.
+
+    Generally, MQTT is used on top of a TCP connection. However, the base
+    requirement is defined as an ordered, lossless, bidirectional connection.
+
+    The Qt MQTT module provides a standard compliant implementation of the MQTT
+    protocol specification. It enables applications to act as telemetry displays
+    and devices to publish telemetry data. The supported versions are MQTT 3.1
+    and MQTT 3.1.1.
+
+    \section1 Getting Started
+
+    To include the definitions of the module's classes, use the following
+    directive:
 
     \code
     #include <QtMqtt/QtMqtt>
@@ -44,8 +60,21 @@
     QT += mqtt
     \endcode
 
-    \section1 Related Information
+    \section1 Articles and Guides
+
     \list
-    \li \l{Qt MQTT C++ Classes}{C++ Classes}
+        \li \l{Qt MQTT Overview}{Overview}
+    \endlist
+
+    \section1 Examples
+
+    \list
+        \li \l{Qt MQTT Examples}
+    \endlist
+
+    \section1 Reference
+
+    \list
+         \li \l{Qt MQTT C++ Classes}{C++ Classes}
     \endlist
 */

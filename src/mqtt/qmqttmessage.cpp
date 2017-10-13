@@ -35,55 +35,55 @@ QT_BEGIN_NAMESPACE
     \class QMqttMessage
 
     \inmodule QtMqtt
-    \brief The QMqttMessage class provides all required information about a message received
-           from a message broker based on a subscription.
+    \brief The QMqttMessage class provides information about a message received
+    from a message broker based on a subscription.
 
-    A QMqttMessage only is created inside the module and returned via the
+    An MQTT message is created inside the module and returned via the
     \l QMqttSubscription::messageReceived() signal.
 */
 
 /*!
     \property QMqttMessage::topic
-    \brief The topic of a message.
+    \brief This property holds the topic of a message.
 
-    In case a wildcard has been used for a subscription, QMqttMessage::topic describes the
-    topic matching this subscription. This property never contains any wildcard.
+    In case a wildcard has been used for a subscription, describes the topic
+    matching this subscription. This property never contains wildcards.
 */
 
 /*!
     \property QMqttMessage::payload
-    \brief The payload of a message.
+    \brief This property holds the payload of a message.
 */
 
 /*!
     \property QMqttMessage::id
-    \brief The id of the message.
+    \brief This property holds the ID of the message.
 
-    Ids are used for messages with a QoS level above zero.
+    IDs are used for messages with a QoS level above zero.
 */
 
 /*!
     \property QMqttMessage::qos
-    \brief The QoS level of a message.
+    \brief This property holds the QoS level of a message.
 */
 
 /*!
     \property QMqttMessage::duplicate
-    \brief Specifies whether the message is a duplicate.
+    \brief This property holds whether the message is a duplicate.
 
-    Duplicate messages indicate that the message has been sent earlier, but has not been
-    confirmed yet. Hence, the broker assumes that it needs to resend to verify transport of
-    the message itself. Duplicate messages can only occur in the situation of a QoS level of
-    one or two.
+    Duplicate messages indicate that the message has been sent earlier, but it
+    has not been confirmed yet. Hence, the broker assumes that it needs to
+    resend to verify the transport of the message itself. Duplicate messages
+    can only occur if the QoS level is one or two.
 */
 
 /*!
     \property QMqttMessage::retain
-    \brief Specify whether the message has been retained.
+    \brief This property holds whether the message has been retained.
 
-    A retained message is kept on the broker for future clients to subscribe. Consequently,
-    a retained message has been created previously and is not a live update. A broker can only
-    store one retained message per topic.
+    A retained message is kept on the broker for future clients to subscribe.
+    Consequently, a retained message has been created previously and is not a
+    live update. A broker can store only one retained message per topic.
 */
 
 QByteArray QMqttMessage::payload() const

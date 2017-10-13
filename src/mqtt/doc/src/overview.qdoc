@@ -1,0 +1,79 @@
+/******************************************************************************
+**
+** Copyright (C) 2017 The Qt Company Ltd.
+** Contact: http://www.qt.io/licensing/
+**
+** This file is part of the QtMqtt module.
+**
+** $QT_BEGIN_LICENSE:COMM$
+**
+** Commercial License Usage
+** Licensees holding valid commercial Qt licenses may use this file in
+** accordance with the commercial license agreement provided with the
+** Software or, alternatively, in accordance with the terms contained in
+** a written agreement between you and The Qt Company. For licensing terms
+** and conditions see http://www.qt.io/terms-conditions. For further
+** information use the contact form at http://www.qt.io/contact-us.
+**
+** $QT_END_LICENSE$
+**
+******************************************************************************/
+
+/*!
+    \page mqtt-overview.html
+    \title Qt MQTT Overview
+    \brief Provides insight into the MQTT protocol and the Qt MQTT module.
+
+    Qt MQTT enables you to create applications and devices communicating over
+    the \l{MQTT} machine-to-machine protocol. This topic describes the specifics
+    of the MQTT protocol.
+
+    \section1 Quality of Service
+
+    The following quality of service (QoS) levels for messages are defined:
+
+    \list
+        \li \e {At most once (0)} means that messages are delivered according to
+            the best efforts of the operating environment, and therefore message
+            loss can occur. This level could be used, for example, with ambient
+            sensor data where it does not matter if an individual reading is
+            lost as the next one will be published soon after.
+        \li \e {At least once (1)} means that messages are assured to arrive but
+            duplicates can occur.
+        \li \e {Exactly once (2)} means that messages are assured to arrive
+            exactly once. This level could be used, for example, with billing
+            systems where duplicate or lost messages could lead to incorrect
+            charges being applied.
+    \endlist
+
+    \section1 Will Messages
+
+    A \e {Will Message}, also called \e testament, is a message sent from a
+    client and stored at the broker location. If the connection between the
+    client and broker breaks in an unexpected way, the Will Message will be
+    forwarded to any subscriber of the \e {Will Topic}.
+
+    Will Messages must be specified at the connecting stage. Hence, it is
+    mandatory to set them before invoking QMqttClient::connectToHost() or
+    QMqttClient::connectToHostEncrypted(). A Will Message has all the properties
+    of a regular message, as well as a Will Topic, QoS level, retained flag, and
+    message payload.
+
+    If the client disconnects from the broker in a regular fashion by calling
+    QMqttClient::disconnectFromHost(), the broker will discard the Will Message.
+    If needed, the client is responsible for sending all the required messages
+    before disconnecting.
+
+    \section1 Retained Messages
+
+    Retained messages are stored on the broker side. As future clients connect,
+    they will receive such messages. A typical use case is to store the current
+    health status of the publisher in a retained message. Subscribers will
+    instantly receive a message about the status.
+
+    A broker can only store the last retained message sent for a specified
+    topic. If a client publishes a retained message with the QoS level zero,
+    any previously retained message for its topic at the broker \e{must} be
+    discarded. The broker \e{should} store the last message, but \e{may}
+    also discard it. This depends on the implementation of the broker.
+*/

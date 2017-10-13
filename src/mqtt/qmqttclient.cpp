@@ -39,105 +39,119 @@ QT_BEGIN_NAMESPACE
     \class QMqttClient
 
     \inmodule QtMqtt
-    \brief The QMqttClient class represents the central access communicating with
-    a MQTT broker.
+    \brief The QMqttClient class represents the central access communicating
+    with an MQTT broker.
+
+    An MQTT client is a program or device that uses MQTT to create a network
+    connection to an MQTT server, also called a \e broker. The connection
+    request must contain a unique client identifier. Optionally, it can contain
+    a Will Topic, Will Message, user name, and password.
+
+    Once a connection is created, a client can send messages that other clients
+    might be interested in receiving, subscribe to request notifications on
+    topics, unsubscribe to remove a request for notifications, and disconnect
+    from the broker.
 */
 
 /*!
     \property QMqttClient::clientId
-    \brief The clients identifier value.
+    \brief This property holds the client's identifier value.
 
-    Each client needs to have a unique ID to be able to connect to a MQTT broker. If no client ID
-    is specified by the user, one will be generated automatically when a connection is established.
+    Each client needs to have a unique ID to be able to connect to an MQTT
+    broker. If no client ID is specified by the user, one will be generated
+    automatically when a connection is established.
 */
 
 /*!
     \property QMqttClient::hostname
-    \brief The hostname of the MQTT broker to connect to.
+    \brief This property holds the hostname of the MQTT broker to connect to.
 
-    If no transport is specified via \l QMqttClient::setTransport(), then the client will
-    instantiate a socket connection to the specified hostname itself.
+    If no transport is specified via setTransport(), the client will instantiate
+    a socket connection to the specified hostname itself.
 */
 
 /*!
     \property QMqttClient::port
-    \brief The port to connect to the MQTT broker.
+    \brief This property holds the port to connect to the MQTT broker.
 
-    If no transport is specified via \l QMqttClient::setTransport, then the client will
-    instantiate a socket connection to a host with this port number.
+    If no transport is specified via setTransport(), the client will instantiate
+    a socket connection to a host with this port number.
 */
 
 /*!
     \property QMqttClient::keepAlive
-    \brief Period to send regular ping messages to the broker.
+    \brief This property holds the interval at which regular ping messages are
+    sent to the broker.
 
-    Once a connection to a broker is established, the client needs to send frequent updates to
-    propagate it can still be reached. The interval between those updates is specified by this
-    property.
+    Once a connection to a broker is established, the client needs to send
+    frequent updates to propagate it can still be reached. The interval between
+    those updates is specified by this property.
 
-    The interval is specified in milliseconds. Note that most brokers are not capable of using
-    such a high granularity and will fallback to an interval specified in seconds.
+    The interval is specified in milliseconds. However, most brokers are not
+    capable of using such a high granularity and will fall back to an interval
+    specified in seconds.
 */
 
 /*!
     \property QMqttClient::protocolVersion
-    \brief The MQTT standard version to use for connections.
+    \brief This property holds the MQTT standard version to use for connections.
 
-    Specifies the version of the standard the client uses for connecting to a broker. Valid values
-    are
+    Specifies the version of the standard the client uses for connecting to a
+    broker. Valid values are:
 
     \list
-    \li 3: MQTT standard version 3.1.
-    \li 4: MQTT standard version 3.1.1, often referred to MQTT 4.
+        \li 3: MQTT standard version 3.1.
+        \li 4: MQTT standard version 3.1.1, often referred to MQTT 4.
     \endlist
 */
 
 /*!
     \property QMqttClient::state
-    \brief Specifies the current state of the client.
+    \brief This property holds the current state of the client.
 */
 
 /*!
     \property QMqttClient::username
-    \brief Specifies the user name for connecting to a broker.
+    \brief This property holds the user name for connecting to a broker.
 */
 
 /*!
     \property QMqttClient::password
-    \brief Specifies the password for connecting to a broker.
+    \brief This property holds the password for connecting to a broker.
 */
 
 /*!
     \property QMqttClient::cleanSession
-    \brief Specifies the state after connecting to a broker.
+    \brief This property holds the state after connecting to a broker.
 */
 
 /*!
     \property QMqttClient::willTopic
-    \brief Specifies the topic of the will testament.
+    \brief This property holds the Will Topic.
 */
 
 /*!
     \property QMqttClient::willMessage
-    \brief Specifies the payload of a will testament message.
+    \brief This property holds the payload of a Will Message.
 */
 
 /*!
     \property QMqttClient::willQoS
-    \brief Specifies the level of QoS the will testament message is send and stored.
+    \brief This property holds the level of QoS for sending and storing the
+    Will Message.
 */
 
 /*!
     \property QMqttClient::willRetain
-    \brief Specifies whether the will testament message should retain on the broker for future
-           subscribers to receive.
+    \brief This property holds whether the Will Message should be retained on
+    the broker for future subscribers to receive.
 */
 
 /*!
     \enum QMqttClient::TransportType
 
-    This enum type specifies the connection method to be used to instantiate a connection with
-    a broker.
+    This enum type specifies the connection method to be used to instantiate a
+    connection to a broker.
 
     \value IODevice
            The transport uses a class based on a QIODevice.
@@ -155,7 +169,8 @@ QT_BEGIN_NAMESPACE
     \value Disconnected
            The client is disconnected from the broker.
     \value Connecting
-           A connection request has been made, but the broker has not approved the connection yet.
+           A connection request has been made, but the broker has not approved
+           the connection yet.
     \value Connected
            The client is connected to the broker.
 */
@@ -163,8 +178,8 @@ QT_BEGIN_NAMESPACE
 /*!
     \enum QMqttClient::ProtocolVersion
 
-    This enum specifies the protocol version of MQTT standard to use during communication
-    with a broker.
+    This enum specifies the protocol version of the MQTT standard to use during
+    communication with a broker.
 
     \value MQTT_3_1
            MQTT Standard 3.1
@@ -181,43 +196,46 @@ QT_BEGIN_NAMESPACE
 /*!
     \fn QMqttClient::disconnected()
 
-    This signal is emitted when a connection has been closed. A disconnect can happen because
-    of a call of connectToHost() or the broker disconnected.
+    This signal is emitted when a connection has been closed. A connection may
+    be closed when disconnectFromHost() is called or when the broker
+    disconnects.
 */
 
 /*!
     \fn QMqttClient::messageReceived(const QByteArray &message, const QString &topic)
 
-    This signal is emitted when a new message has been received. The category of the message is
-    specified in \a topic with the content being \a message.
+    This signal is emitted when a new message has been received. The category of
+    the message is specified by \a topic with the content being \a message.
 */
 
 /*!
     \fn QMqttClient::messageSent(qint32 id)
 
-    A message which has been sent via \l QMqttClient::publish has been received by the broker.
-    The \a id is the same as returned by \l QMqttClient::publish to help tracking of the status
-    of the message.
+    Indicates that a message that was sent via the publish() function has been
+    received by the broker. The \a id is the same as returned by \c publish() to
+    help tracking the status of the message.
 */
 
 /*!
-    \fn QMqttClient::pingResponse()
+    \fn QMqttClient::pingResponseReceived()
 
-    If requestPing() is called or every keepAlive() milliseconds, this signal is emitted after
-    the broker responded and the connection is still valid.
+    This signal is emitted after the broker responds to a requestPing() call or
+    a keepAlive() ping message, and the connection is still valid.
 */
 
 /*!
     \fn QMqttClient::brokerSessionRestored()
 
-    After a client has successfully connected to a broker with the cleanSession property set to
-    false, and the broker is capable of restoring a session, this signal will be emitted.
+    This signal is emitted after a client has successfully connected to a broker
+    with the cleanSession property set to \c false, and the broker has restored
+    the session.
 
-    Sessions can be restored if a client has connected previously using the same clientId.
+    Sessions can be restored if a client has connected previously using the same
+    clientId.
 */
 
 /*!
-    Creates a new QMqttClient instance with the specified \a parent
+    Creates a new MQTT client instance with the specified \a parent.
  */
 QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate), parent)
 {
@@ -229,8 +247,8 @@ QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate), p
     Sets the transport to \a device. A transport can be either a socket type
     or derived from QIODevice and is specified by \a transport.
 
-    Note that the transport can only be exchanged if the \l QMqttClient is in \l Disconnected
-    state.
+    \note The transport can only be exchanged if the MQTT client is in the
+    \l Disconnected state.
  */
 void QMqttClient::setTransport(QIODevice *device, QMqttClient::TransportType transport)
 {
@@ -253,13 +271,13 @@ QIODevice *QMqttClient::transport() const
 }
 
 /*!
-    Adds a new subscription to receive notifications on \a topic. The parameter \a qos specifies
-    on which level of security messages are received. For more information on various QoS levels,
-    please refer to \l {Quality of Service}.
+    Adds a new subscription to receive notifications on \a topic. The parameter
+    \a qos specifies the level at which security messages are received. For more
+    information about the available QoS levels, see \l {Quality of Service}.
 
-    This functions returns a pointer to a \l QMqttSubscription. If a subscription to
-    the same topic is made twice, the return value is pointing to the same subscription instance.
-    The \l QMqttClient is the owner of the subscription.
+    This function returns a pointer to a \l QMqttSubscription. If the same topic
+    is subscribed twice, the return value points to the same subscription
+    instance. The MQTT client is the owner of the subscription.
  */
 QMqttSubscription *QMqttClient::subscribe(const QString &topic, quint8 qos)
 {
@@ -272,8 +290,11 @@ QMqttSubscription *QMqttClient::subscribe(const QString &topic, quint8 qos)
 }
 
 /*!
-    Unsubscribes from \a topic. No notifications will be sent to any of the subscriptions made
-    by \l QMqttClient::subscribe().
+    Unsubscribes from \a topic. No notifications will be sent to any of the
+    subscriptions made by calling subscribe().
+
+    \note If a client disconnects from a broker without unsubscribing, the
+    broker will store all messages and publish them on the next reconnect.
  */
 void QMqttClient::unsubscribe(const QString &topic)
 {
@@ -282,13 +303,13 @@ void QMqttClient::unsubscribe(const QString &topic)
 }
 
 /*!
-    Publishes a \a message to the broker with the specified \a topic. \a qos specifies the level
-    of required security that the message is transfered.
+    Publishes a \a message to the broker with the specified \a topic. \a qos
+    specifies the level of security required for transferring the message.
 
-    If \a retain is set to true, the message will stay on the broker for later clients to connect
-    and receive this message.
+    If \a retain is set to \c true, the message will stay on the broker for
+    other clients to connect and receive the message.
 
-    Returns an \c ID which is used internally to identify the message.
+    Returns an ID that is used internally to identify the message.
  */
 qint32 QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
 {
@@ -303,11 +324,12 @@ qint32 QMqttClient::publish(const QString &topic, const QByteArray &message, qui
 }
 
 /*!
-    Sends a ping message to the broker and expects a pong to be send back by the broker. If the
-    connection is active, \l QMqttClient will automatically send a ping message every
-    \l QMqttClient::keepAlive milliseconds.
+    Sends a ping message to the broker and expects a reply. If the connection
+    is active, the MQTT client will automatically send a ping message at
+    \l keepAlive intervals.
 
-    To check whether the ping is successful, connect to the \l pingResponse signal.
+    To check whether the ping is successful, connect to the
+    \l pingResponseReceived() signal.
 
     Returns \c true if the ping request could be sent.
  */
@@ -380,7 +402,7 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
 }
 
 /*!
-    Disconnect from the MQTT broker.
+    Disconnects from the MQTT broker.
  */
 void QMqttClient::disconnectFromHost()
 {

@@ -32,9 +32,10 @@
     \title Qt MQTT C++ Classes
     \ingroup modules
     \qtvariable mqtt
-    \brief List of C++ classes that enable sending messages via the MQTT protocol.
+    \brief Provides classes that enable sending messages via the MQTT protocol.
 
-    To use these classes in your application, use the following include statement:
+    To use these classes in your application, use the following include
+    statement:
 
     \code
     #include <QtMqtt/QtMqtt>
