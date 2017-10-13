@@ -630,6 +630,7 @@ QMqttClientPrivate::QMqttClientPrivate()
     m_clientId.remove(QLatin1Char('{'), Qt::CaseInsensitive);
     m_clientId.remove(QLatin1Char('}'), Qt::CaseInsensitive);
     m_clientId.remove(QLatin1Char('-'), Qt::CaseInsensitive);
+    m_clientId.resize(23);
 }
 
 QMqttClientPrivate::~QMqttClientPrivate()

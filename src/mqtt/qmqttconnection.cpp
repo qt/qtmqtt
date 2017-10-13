@@ -210,8 +210,7 @@ bool QMqttConnection::sendControlConnect()
 
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
-    // Client id maximum left is 23
-    const QByteArray clientStringArray = m_client->clientId().left(23).toUtf8();
+    const QByteArray clientStringArray = m_client->clientId().toUtf8();
     if (clientStringArray.size()) {
         packet.append(clientStringArray);
     } else {
