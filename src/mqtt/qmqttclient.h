@@ -50,10 +50,22 @@ public:
         AbstractSocket,
         SecureSocket
     };
-    enum State {
+    enum ClientState {
         Disconnected = 0,
         Connecting,
         Connected
+    };
+    enum ClientError {
+        // Protocol states
+        NoError                = 0,
+        InvalidProtocolVersion = 1,
+        IdRejected             = 2,
+        ServerUnavailable      = 3,
+        BadUsernameOrPassword  = 4,
+        NotAuthorized          = 5,
+        // Qt states
+        TransportInvalid       = 256,
+        UnknownError
     };
     enum ProtocolVersion {
         MQTT_3_1 = 3,
@@ -62,13 +74,15 @@ public:
 
 private:
     Q_OBJECT
-    Q_ENUMS(State)
+    Q_ENUMS(ClientState)
+    Q_ENUMS(ClientError)
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(quint16 keepAlive READ keepAlive WRITE setKeepAlive NOTIFY keepAliveChanged)
     Q_PROPERTY(ProtocolVersion protocolVersion READ protocolVersion WRITE setProtocolVersion NOTIFY protocolVersionChanged)
-    Q_PROPERTY(State state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(ClientState state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(ClientError error READ error WRITE setError NOTIFY errorChanged)
     Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
     Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
     Q_PROPERTY(bool cleanSession READ cleanSession WRITE setCleanSession NOTIFY cleanSessionChanged)
@@ -101,7 +115,8 @@ public:
 #endif
     Q_INVOKABLE void disconnectFromHost();
 
-    State state() const;
+    ClientState state() const;
+    ClientError error() const;
 
     QString username() const;
     QString password() const;
@@ -125,7 +140,8 @@ Q_SIGNALS:
     void clientIdChanged(QString clientId);
     void keepAliveChanged(quint16 keepAlive);
     void protocolVersionChanged(ProtocolVersion protocolVersion);
-    void stateChanged(State state);
+    void stateChanged(ClientState state);
+    void errorChanged(ClientError error);
     void usernameChanged(QString username);
     void passwordChanged(QString password);
     void cleanSessionChanged(bool cleanSession);
@@ -141,7 +157,8 @@ public Q_SLOTS:
     void setClientId(const QString &clientId);
     void setKeepAlive(quint16 keepAlive);
     void setProtocolVersion(ProtocolVersion protocolVersion);
-    void setState(State state);
+    void setState(ClientState state);
+    void setError(ClientError error);
     void setUsername(const QString &username);
     void setPassword(const QString &password);
     void setCleanSession(bool cleanSession);
@@ -157,6 +174,14 @@ private:
     Q_DECLARE_PRIVATE(QMqttClient)
 };
 
+Q_DECLARE_TYPEINFO(QMqttClient::TransportType, Q_PRIMITIVE_TYPE);
+Q_DECLARE_TYPEINFO(QMqttClient::ClientState, Q_PRIMITIVE_TYPE);
+Q_DECLARE_TYPEINFO(QMqttClient::ClientError, Q_PRIMITIVE_TYPE);
+
 QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(QMqttClient::TransportType)
+Q_DECLARE_METATYPE(QMqttClient::ClientState)
+Q_DECLARE_METATYPE(QMqttClient::ClientError)
 
 #endif // QTMQTTCLIENT_H

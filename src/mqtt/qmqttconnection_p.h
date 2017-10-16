@@ -54,6 +54,8 @@
 
 QT_BEGIN_NAMESPACE
 
+class QMqttClientPrivate;
+
 class Q_AUTOTEST_EXPORT QMqttConnection : public QObject
 {
     Q_OBJECT
@@ -64,14 +66,6 @@ public:
         BrokerConnected
     };
 
-    enum ConnectionError {
-        NoError                = 0,
-        InvalidProtocolVersion = 1,
-        IdRejected             = 2,
-        ServerUnavailable      = 3,
-        BadUsernameOrPassword  = 4,
-        NotAuthorized          = 5
-    };
     explicit QMqttConnection(QObject *parent = 0);
     ~QMqttConnection() override;
 
@@ -92,7 +86,7 @@ public:
     bool sendControlPingRequest();
     bool sendControlDisconnect();
 
-    void setClient(QMqttClient *client);
+    void setClient(QMqttClient *client, QMqttClientPrivate *clientPrivate);
 
     inline quint16 unusedPacketIdentifier() const;
     inline InternalConnectionState internalState() const { return m_internalState; }
@@ -106,6 +100,7 @@ public:
     QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
     bool m_ownTransport{false};
     QMqttClient *m_client{nullptr};
+    QMqttClientPrivate *m_clientPrivate{nullptr};
 private:
     Q_DISABLE_COPY(QMqttConnection)
     void someFuncToBeRemoved();

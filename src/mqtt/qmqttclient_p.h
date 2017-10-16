@@ -56,6 +56,7 @@ class QMqttClientPrivate : public QObjectPrivate
 public:
     QMqttClientPrivate();
     ~QMqttClientPrivate() override;
+    void setStateAndError(QMqttClient::ClientState s, QMqttClient::ClientError e = QMqttClient::NoError);
     QString m_hostname;
     quint16 m_port{0};
     QMqttConnection m_connection;
@@ -64,7 +65,8 @@ public:
     // 3 == MQTT Standard 3.1
     // 4 == MQTT Standard 3.1.1
     QMqttClient::ProtocolVersion m_protocolVersion{QMqttClient::MQTT_3_1_1};
-    QMqttClient::State m_state{QMqttClient::Disconnected};
+    QMqttClient::ClientState m_state{QMqttClient::Disconnected};
+    QMqttClient::ClientError m_error{QMqttClient::NoError};
     QString m_willTopic;
     QByteArray m_willMessage;
     quint8 m_willQoS{0};

@@ -30,6 +30,7 @@
 #include "qmqttconnection_p.h"
 #include "qmqttcontrolpacket_p.h"
 #include "qmqttsubscription_p.h"
+#include "qmqttclient_p.h"
 
 #include <QtCore/QLoggingCategory>
 #include <QtNetwork/QSslSocket>
@@ -443,9 +444,10 @@ bool QMqttConnection::sendControlDisconnect()
     return false;
 }
 
-void QMqttConnection::setClient(QMqttClient *client)
+void QMqttConnection::setClient(QMqttClient *client, QMqttClientPrivate *clientPrivate)
 {
     m_client = client;
+    m_clientPrivate = clientPrivate;
 }
 
 quint16 QMqttConnection::unusedPacketIdentifier() const
@@ -478,6 +480,7 @@ void QMqttConnection::transportConnectionClosed()
     m_readBuffer.clear();
     m_pingTimer.stop();
     m_client->setState(QMqttClient::Disconnected);
+    m_client->setError(QMqttClient::TransportInvalid);
 }
 
 void QMqttConnection::transportReadReady()
@@ -524,11 +527,11 @@ void QMqttConnection::finalize_connack()
     if (connectResultValue != 0) {
         qWarning("Connection has been rejected");
         // MQTT-3.2.2-5
-        // ### TODO: ConnectionError
         m_readBuffer.clear();
         m_transport->close();
         m_internalState = BrokerDisconnected;
-        m_client->setState(QMqttClient::Disconnected);
+        // Table 3.1, values 1-5
+        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, static_cast<QMqttClient::ClientError>(connectResultValue));
         return;
     }
     m_internalState = BrokerConnected;

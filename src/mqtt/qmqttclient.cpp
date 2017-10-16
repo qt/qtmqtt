@@ -111,6 +111,11 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
+    \property QMqttClient::error
+    \brief Specifies the current error of the client.
+*/
+
+/*!
     \property QMqttClient::username
     \brief This property holds the user name for connecting to a broker.
 */
@@ -162,7 +167,7 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
-    \enum QMqttClient::State
+    \enum QMqttClient::ClientState
 
     This enum type specifies the states a client can enter.
 
@@ -173,6 +178,31 @@ QT_BEGIN_NAMESPACE
            the connection yet.
     \value Connected
            The client is connected to the broker.
+*/
+
+/*!
+    \enum QMqttClient::ClientError
+
+    This enum type specifies the error state of a client.
+
+    \value NoError
+           No Error occurred.
+    \value InvalidProtocolVersion
+           The broker does not accept a connection using the specified protocol version.
+    \value IdRejected
+           The client ID is malformed. This might be related to the length of the ID.
+    \value ServerUnavailable
+           The network connection has been establied, but the service is unavailable on the
+           broker side.
+    \value BadUsernameOrPassword
+           The data in the username or password is malformed.
+    \value NotAuthorized
+           The client is not authorized to connect
+    \value TransportInvalid
+           The underlying transport caused an error, eg. the connection has been interrupted
+           unexpectedly.
+    \value UnknownError
+           An unknown error occurred.
 */
 
 /*!
@@ -240,7 +270,7 @@ QT_BEGIN_NAMESPACE
 QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate), parent)
 {
     Q_D(QMqttClient);
-    d->m_connection.setClient(this);
+    d->m_connection.setClient(this, d);
 }
 
 /*!
@@ -382,21 +412,21 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
 
     if (!d->m_connection.ensureTransport(encrypted)) {
         qWarning("Could not ensure connection");
-        setState(Disconnected);
+        d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
-    setState(Connecting);
+    d->setStateAndError(Connecting);
 
     if (!d->m_connection.ensureTransportOpen(sslPeerName)) {
         qWarning("Could not ensure that connection is open");
-        setState(Disconnected);
+        d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
 
     if (!d->m_connection.sendControlConnect()) {
         qWarning("Could not send CONNECT to broker");
         // ### Who disconnects now? Connection or client?
-        setState(Disconnected);
+        d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
 }
@@ -414,7 +444,7 @@ void QMqttClient::disconnectFromHost()
     d->m_connection.sendControlDisconnect();
 }
 
-QMqttClient::State QMqttClient::state() const
+QMqttClient::ClientState QMqttClient::state() const
 {
     Q_D(const QMqttClient);
     return d->m_state;
@@ -460,6 +490,12 @@ bool QMqttClient::willRetain() const
 {
     Q_D(const QMqttClient);
     return d->m_willRetain;
+}
+
+QMqttClient::ClientError QMqttClient::error() const
+{
+    Q_D(const QMqttClient);
+    return d->m_error;
 }
 
 QMqttClient::ProtocolVersion QMqttClient::protocolVersion() const
@@ -539,7 +575,7 @@ void QMqttClient::setProtocolVersion(ProtocolVersion protocolVersion)
     emit protocolVersionChanged(protocolVersion);
 }
 
-void QMqttClient::setState(QMqttClient::State state)
+void QMqttClient::setState(ClientState state)
 {
     Q_D(QMqttClient);
     if (d->m_state == state)
@@ -623,6 +659,16 @@ void QMqttClient::setWillRetain(bool willRetain)
     emit willRetainChanged(willRetain);
 }
 
+void QMqttClient::setError(ClientError e)
+{
+    Q_D(QMqttClient);
+    if (d->m_error == e)
+        return;
+
+    d->m_error = e;
+    emit errorChanged(d->m_error);
+}
+
 QMqttClientPrivate::QMqttClientPrivate()
     : QObjectPrivate()
 {
@@ -635,6 +681,16 @@ QMqttClientPrivate::QMqttClientPrivate()
 
 QMqttClientPrivate::~QMqttClientPrivate()
 {
+}
+
+void QMqttClientPrivate::setStateAndError(QMqttClient::ClientState s, QMqttClient::ClientError e)
+{
+    Q_Q(QMqttClient);
+
+    if (s != m_state)
+        q->setState(s);
+    if (m_error != QMqttClient::NoError && m_error != e)
+        q->setError(e);
 }
 
 QT_END_NAMESPACE
