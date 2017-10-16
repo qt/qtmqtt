@@ -271,10 +271,10 @@ QT_BEGIN_NAMESPACE
 /*!
     Creates a new MQTT client instance with the specified \a parent.
  */
-QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate), parent)
+QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(this)), parent)
 {
     Q_D(QMqttClient);
-    d->m_connection.setClient(this, d);
+    d->m_connection.setClientPrivate(d);
 }
 
 /*!
@@ -670,9 +670,10 @@ void QMqttClient::setError(ClientError e)
     emit errorChanged(d->m_error);
 }
 
-QMqttClientPrivate::QMqttClientPrivate()
+QMqttClientPrivate::QMqttClientPrivate(QMqttClient *c)
     : QObjectPrivate()
 {
+    m_client = c;
     m_clientId = QUuid::createUuid().toString();
     m_clientId.remove(QLatin1Char('{'), Qt::CaseInsensitive);
     m_clientId.remove(QLatin1Char('}'), Qt::CaseInsensitive);

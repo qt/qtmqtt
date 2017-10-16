@@ -91,7 +91,7 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
         return true;
 
     // We are asked to create a transport layer
-    if (m_client->hostname().isEmpty() || m_client->port() == 0) {
+    if (m_clientPrivate->m_hostname.isEmpty() || m_clientPrivate->m_port == 0) {
         qWarning("Trying to create a transport layer, but no hostname is specified");
         return false;
     }
@@ -132,7 +132,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             return sendControlConnect();
 
         m_internalState = BrokerConnecting;
-        socket->connectToHost(m_client->hostname(), m_client->port());
+        socket->connectToHost(m_clientPrivate->m_hostname, m_clientPrivate->m_port);
     }
 #ifndef QT_NO_SSL
     else if (m_transportType == QMqttClient::SecureSocket) {
@@ -142,7 +142,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             return true;
 
         m_internalState = BrokerConnecting;
-        socket->connectToHostEncrypted(m_client->hostname(), m_client->port(), sslPeerName);
+        socket->connectToHostEncrypted(m_clientPrivate->m_hostname, m_clientPrivate->m_port, sslPeerName);
 
         if (!socket->waitForConnected()) {
             qWarning("Could not establish socket connection for transport");
@@ -170,7 +170,7 @@ bool QMqttConnection::sendControlConnect()
     // Variable header
     // 3.1.2.1 Protocol Name
     // 3.1.2.2 Protocol Level
-    const quint8 protocolVersion = m_client->protocolVersion();
+    const quint8 protocolVersion = m_clientPrivate->m_protocolVersion;
     if (protocolVersion == 3) {
         packet.append("MQIsdp");
         packet.append(char(3)); // Version 3.1
@@ -184,36 +184,36 @@ bool QMqttConnection::sendControlConnect()
     // 3.1.2.3 Connect Flags
     quint8 flags = 0;
     // Clean session
-    if (m_client->cleanSession())
+    if (m_clientPrivate->m_cleanSession)
         flags |= 1 << 1;
 
-    if (!m_client->willMessage().isEmpty()) {
+    if (!m_clientPrivate->m_willMessage.isEmpty()) {
         flags |= 1 << 2;
-        if (m_client->willQoS() > 2) {
+        if (m_clientPrivate->m_willQoS > 2) {
             qWarning("Will QoS does not have a valid value");
             return false;
         }
-        if (m_client->willQoS() == 1)
+        if (m_clientPrivate->m_willQoS == 1)
             flags |= 1 << 3;
-        else if (m_client->willQoS() == 2)
+        else if (m_clientPrivate->m_willQoS == 2)
             flags |= 1 << 4;
-        if (m_client->willRetain())
+        if (m_clientPrivate->m_willRetain)
             flags |= 1 << 5;
     }
-    if (m_client->username().size())
+    if (m_clientPrivate->m_username.size())
         flags |= 1 << 7;
 
-    if (m_client->password().size())
+    if (m_clientPrivate->m_password.size())
         flags |= 1 << 6;
 
     packet.append(char(flags));
 
     // 3.1.2.10 Keep Alive
-    packet.append(m_client->keepAlive());
+    packet.append(m_clientPrivate->m_keepAlive);
 
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
-    const QByteArray clientStringArray = m_client->clientId().toUtf8();
+    const QByteArray clientStringArray = m_clientPrivate->m_clientId.toUtf8();
     if (clientStringArray.size()) {
         packet.append(clientStringArray);
     } else {
@@ -221,16 +221,16 @@ bool QMqttConnection::sendControlConnect()
         packet.append(char(0));
     }
 
-    if (!m_client->willMessage().isEmpty()) {
-        packet.append(m_client->willTopic().toUtf8());
-        packet.append(m_client->willMessage());
+    if (!m_clientPrivate->m_willMessage.isEmpty()) {
+        packet.append(m_clientPrivate->m_willTopic.toUtf8());
+        packet.append(m_clientPrivate->m_willMessage);
     }
 
-    if (m_client->username().size())
-        packet.append(m_client->username().toUtf8());
+    if (m_clientPrivate->m_username.size())
+        packet.append(m_clientPrivate->m_username.toUtf8());
 
-    if (m_client->password().size())
-        packet.append(m_client->password().toUtf8());
+    if (m_clientPrivate->m_password.size())
+        packet.append(m_clientPrivate->m_password.toUtf8());
 
     if (!writePacketToTransport(packet)) {
         qWarning("Could not write CONNECT frame to transport");
@@ -353,7 +353,7 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QString &topic, q
 
     auto result = new QMqttSubscription(this);
     result->setTopic(QString::fromUtf8(topicArray));
-    result->setClient(m_client);
+    result->setClient(m_clientPrivate->m_client);
     result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);
 
@@ -446,9 +446,8 @@ bool QMqttConnection::sendControlDisconnect()
     return false;
 }
 
-void QMqttConnection::setClient(QMqttClient *client, QMqttClientPrivate *clientPrivate)
+void QMqttConnection::setClientPrivate(QMqttClientPrivate *clientPrivate)
 {
-    m_client = client;
     m_clientPrivate = clientPrivate;
 }
 
@@ -495,8 +494,7 @@ void QMqttConnection::transportConnectionClosed()
 {
     m_readBuffer.clear();
     m_pingTimer.stop();
-    m_client->setState(QMqttClient::Disconnected);
-    m_client->setError(QMqttClient::TransportInvalid);
+    m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
 }
 
 void QMqttConnection::transportReadReady()
@@ -544,8 +542,8 @@ void QMqttConnection::finalize_connack()
 
     // MQTT-3.2.2-1 & MQTT-3.2.2-2
     if (sessionPresent) {
-        emit m_client->brokerSessionRestored();
-        if (m_client->cleanSession())
+        emit m_clientPrivate->m_client->brokerSessionRestored();
+        if (m_clientPrivate->m_cleanSession)
             qWarning("Connected with a clean session, ack contains session present");
     }
 
@@ -562,9 +560,9 @@ void QMqttConnection::finalize_connack()
         return;
     }
     m_internalState = BrokerConnected;
-    m_client->setState(QMqttClient::Connected);
+    m_clientPrivate->setStateAndError(QMqttClient::Connected);
 
-    m_pingTimer.setInterval(m_client->keepAlive() * 1000);
+    m_pingTimer.setInterval(m_clientPrivate->m_keepAlive * 1000);
     m_pingTimer.start();
 }
 
@@ -631,7 +629,7 @@ void QMqttConnection::finalize_publish()
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBLISH: topic:" << topic
                                      << " payloadLength:" << payloadLength;;
 
-    emit m_client->messageReceived(message, topic);
+    emit m_clientPrivate->m_client->messageReceived(message, topic);
 
     QMqttMessage qmsg(topic, message, id, m_currentPublish.qos,
                       m_currentPublish.dup, m_currentPublish.retain);
@@ -684,7 +682,7 @@ void QMqttConnection::finalize_pubAckRecComp()
         auto pendingRelease = m_pendingReleaseMessages.take(id);
         if (!pendingRelease)
             qWarning("Received PUBCOMP for unknown released message");
-        emit m_client->messageSent(id);
+        emit m_clientPrivate->m_client->messageSent(id);
         return;
     }
 
@@ -699,7 +697,7 @@ void QMqttConnection::finalize_pubAckRecComp()
         sendControlPublishRelease(id);
     } else {
         qCDebug(lcMqttConnectionVerbose) << " PUBACK:" << id;
-        emit m_client->messageSent(id);
+        emit m_clientPrivate->m_client->messageSent(id);
     }
 }
 
@@ -726,7 +724,7 @@ void QMqttConnection::finalize_pingresp()
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
-    emit m_client->pingResponseReceived();
+    emit m_clientPrivate->m_client->pingResponseReceived();
 }
 
 void QMqttConnection::processData()

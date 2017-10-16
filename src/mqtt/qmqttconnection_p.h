@@ -87,7 +87,7 @@ public:
     bool sendControlPingRequest();
     bool sendControlDisconnect();
 
-    void setClient(QMqttClient *client, QMqttClientPrivate *clientPrivate);
+    void setClientPrivate(QMqttClientPrivate *clientPrivate);
 
     inline quint16 unusedPacketIdentifier() const;
     inline InternalConnectionState internalState() const { return m_internalState; }
@@ -101,7 +101,6 @@ public:
     QIODevice *m_transport{nullptr};
     QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
     bool m_ownTransport{false};
-    QMqttClient *m_client{nullptr};
     QMqttClientPrivate *m_clientPrivate{nullptr};
 private:
     Q_DISABLE_COPY(QMqttConnection)
