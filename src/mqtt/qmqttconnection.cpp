@@ -496,6 +496,17 @@ void QMqttConnection::readBuffer(char *data, qint64 size)
     m_readBuffer = m_readBuffer.mid(size);
 }
 
+void QMqttConnection::closeConnection(QMqttClient::ClientError error)
+{
+    m_readBuffer.clear();
+    m_pingTimer.stop();
+    m_activeSubscriptions.clear();
+    m_internalState = BrokerDisconnected;
+    m_transport->disconnect();
+    m_transport->close();
+    m_clientPrivate->setStateAndError(QMqttClient::Disconnected, error);
+}
+
 QByteArray QMqttConnection::readBuffer(qint64 size)
 {
     QByteArray res = m_readBuffer.left(size);
@@ -510,7 +521,7 @@ void QMqttConnection::finalize_connack()
     readBuffer((char*)&ackFlags, 1);
     if (ackFlags > 1) { // MQTT-3.2.2.1
         qWarning("Unexpected CONNACK Flags set");
-        // ## SET SOME ERROR
+        closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
     bool sessionPresent = ackFlags == 1;
@@ -694,8 +705,11 @@ void QMqttConnection::finalize_pingresp()
     qCDebug(lcMqttConnectionVerbose) << "Finalize PINGRESP";
     quint8 v;
     readBuffer((char*)&v, 1);
-    if (v != 0)
+    if (v != 0) {
         qWarning("Received a PINGRESP with payload!");
+        closeConnection(QMqttClient::ProtocolViolation);
+        return;
+    }
     emit m_client->pingResponseReceived();
 }
 
@@ -726,13 +740,13 @@ void QMqttConnection::processData()
         case QMqttControlPacket::PINGRESP:
             finalize_pingresp();
             break;
-        case QMqttControlPacket::PUBREL: {
+        case QMqttControlPacket::PUBREL:
             finalize_pubrel();
             break;
-        }
         default:
-            qFatal("Unknown packet to finalize");
-            break;
+            qWarning("Unknown packet to finalize");
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
         }
         m_missingData = 0;
     }
@@ -754,15 +768,16 @@ void QMqttConnection::processData()
         qCDebug(lcMqttConnectionVerbose) << "Received CONNACK";
         if (m_internalState != BrokerWaitForConnectAck) {
             qWarning("Received CONNACK at unexpected time!");
-            break;
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
         }
 
         quint8 payloadSize;
         readBuffer((char*)&payloadSize, 1);
         if (payloadSize != 2) {
             qWarning("Unexpected FRAME size in CONNACK");
-            // ## SET SOME ERROR
-            break;
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
         }
         m_missingData = 2;
         break;
@@ -779,6 +794,12 @@ void QMqttConnection::processData()
         m_currentPublish.dup = m_currentPacket & 0x08;
         m_currentPublish.qos = (m_currentPacket & 0x06) >> 1;
         m_currentPublish.retain = m_currentPacket & 0x01;
+        if ((m_currentPublish.qos == 0 && m_currentPublish.dup != 0)
+            || m_currentPublish.qos > 2) {
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        }
+
         // remaining length
         quint32 multiplier = 1;
         quint32 msgLength = 0;
@@ -789,8 +810,11 @@ void QMqttConnection::processData()
             msgLength += (b & 127) * multiplier;
             multiplier *= 128;
             iteration++;
-            if (iteration > 4)
-                qFatal("Publish message is too big to handle");
+            if (iteration > 4) {
+                qWarning("Publish message is too big to handle");
+                closeConnection(QMqttClient::ProtocolViolation);
+                return;
+            }
         } while ((b & 128) != 0);
         m_missingData = msgLength;
         break;
@@ -799,22 +823,50 @@ void QMqttConnection::processData()
         qCDebug(lcMqttConnectionVerbose) << "Received PINGRESP";
         m_missingData = 1;
         break;
+
+
+    case QMqttControlPacket::PUBREL: {
+        qCDebug(lcMqttConnectionVerbose) << "Received PUBREL";
+        char remaining;
+        readBuffer(&remaining, 1);
+        if (remaining != 0x02) {
+            qWarning("Received 2 byte message with invalid remaining length");
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        }
+        if ((m_currentPacket & 0x0F) != 0x02) {
+            qWarning("Malformed fixed header for PUBREL");
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        }
+        m_missingData = 2;
+        break;
+    }
+
     case QMqttControlPacket::UNSUBACK:
     case QMqttControlPacket::PUBACK:
     case QMqttControlPacket::PUBREC:
-    case QMqttControlPacket::PUBCOMP:
-    case QMqttControlPacket::PUBREL: {
-        qCDebug(lcMqttConnectionVerbose) << "Received UNSUBACK/PUBACK/PUBREC/PUBCOMP/PUBREL";
+    case QMqttControlPacket::PUBCOMP: {
+        qCDebug(lcMqttConnectionVerbose) << "Received UNSUBACK/PUBACK/PUBREC/PUBCOMP";
+        if ((m_currentPacket & 0x0F) != 0) {
+            qWarning("Malformed fixed header");
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        }
         char remaining;
-        readBuffer(&remaining, 1); // ### TODO: verify this is 2
-        if (remaining != 0x02)
+        readBuffer(&remaining, 1);
+        if (remaining != 0x02) {
             qWarning("Received 2 byte message with invalid remaining length");
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        }
         m_missingData = 2;
         break;
     }
     default:
-        qFatal("Received unknown command");
-        break;
+        qWarning("Received unknown command");
+        closeConnection(QMqttClient::ProtocolViolation);
+        return;
     }
 
     /* set current command CONNACK - PINGRESP */

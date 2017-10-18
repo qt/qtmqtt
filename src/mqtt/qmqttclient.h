@@ -65,6 +65,7 @@ public:
         NotAuthorized          = 5,
         // Qt states
         TransportInvalid       = 256,
+        ProtocolViolation,
         UnknownError
     };
     enum ProtocolVersion {
