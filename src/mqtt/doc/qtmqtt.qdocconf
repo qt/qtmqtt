@@ -39,5 +39,8 @@ excludedirs += ../qt4support
 
 depends += qtcore qtdoc qtnetwork qmake qtwebsockets
 
+#add generic thumbnail images for example documentation that does not have an image.
+manifestmeta.thumbnail.names  += "QtMqtt/WebSockets MQTT Subscription*"
+
 navigation.landingpage = "Qt MQTT"
 navigation.cppclassespage = "Qt MQTT C++ Classes"
