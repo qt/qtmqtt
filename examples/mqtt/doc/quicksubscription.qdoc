@@ -55,11 +55,56 @@
     \brief Registering QMqttClient to QML and using it in a Qt Quick user
     interface.
 
-    \e {Quick MQTT} demonstrates how to register QMqttClient to QML and use it
-    in a Qt Quick user interface
+    \image quicksubscription.png
+
+    \e {Quick MQTT} demonstrates how to register QMqttClient as a QML type and
+    use it in a Qt Quick application.
 
     \l {Qt MQTT} does not provide a QML API in its current version. However,
-    making the C++ classes of the module available to QML is very easy and
-    described in this example.
+    you can make the C++ classes of the module available to QML.
 
+    \section1 Creating a Client
+
+    We create a \c QmlMqttClient class with the QMqttClient class as a base
+    class:
+
+    \quotefromfile quicksubscription/qmlmqttclient.cpp
+    \skipto QmlMqttClient(
+    \printuntil }
+
+    We use the \c subscribe() function to create a subscription object:
+
+    \printuntil }
+
+    We connect to QMqttSubscription::messageReceived( ) to receive all messages
+    sent to the broker:
+
+    \printuntil }
+
+    We use an QMqttMessage object to store the payload of a received
+    message:
+
+    \skipto handleMessage
+    \printuntil }
+
+    \section1 Registering Classes in QML
+
+    In the \c main.cpp file, we register the \c QmlMqttClient class as a
+    QML type, MqttClient:
+
+    \quotefromfile quicksubscription/main.cpp
+    \skipto main(int
+    \printuntil qmlRegisterType
+
+    In addition, we register the \c QmlMqttSubscription class as an uncreatable
+    type:
+
+    \printuntil qmlRegisterUncreatableType
+
+    We can now use the MqttClient type in the \c main.qml file to create an
+    MQTT client:
+
+    \quotefromfile quicksubscription/main.qml
+    \skipto MqttClient {
+    \printuntil }
 */
