@@ -54,8 +54,52 @@
     \ingroup qtmqtt-examples
     \brief Creating a application that communicates with an MQTT broker.
 
-    \e {MQTT Subscriptions} shows how to use the QMqttClient, QMqttSubscription,
-    and QMqttMessage classes for creating an application communicating with an
-    MQTT broker.
+    \image subscriptions.png
 
+    \e {MQTT Subscriptions} shows how to create an application that communicates
+    with an MQTT broker. A new dialog opens for each subscription, where you can
+    see the messages on the subscribed topics.
+
+    \section1 Creating a Client
+
+    We use the QMqttClient class to create an MQTT client and to set the broker
+    host name and port to use for the connection:
+
+    \quotefromfile subscriptions/mainwindow.cpp
+    \skipto m_client
+    \printuntil setPort
+
+    \section1 Subscribing to Topics
+
+    When users subscribe to topics in the client, a new subscription object is
+    created:
+
+    \skipto on_buttonSubscribe_clicked
+    \printuntil }
+    \printuntil }
+
+    We use the QMqttSubscription class to store the topic, state, and QoS level
+    of a subscription:
+
+    \quotefromfile subscriptions/subscriptionwindow.cpp
+    \skipto QMqttSubscription
+    \printuntil });
+    \printuntil }
+
+    The QoS level can be set separately for a message and for a subscription.
+    The QoS level set for a subscription determines the minimum QoS level. If
+    a message is sent with a higher QoS level, the broker increases the QoS of
+    that message to the higher level. For example, if client A subscribed to
+    \e topic with QoS 1, and client B publishes a message on the topic, with
+    QoS 0, the broker will automatically increase the QoS of the message to 1.
+    If client B publishes a message on the topic with the QoS 2, the broker
+    will send it with QoS 2.
+
+    \section2 Receiving Messages
+
+    When the client receives a message, the QMqttMessage class is used to store
+    the actual message payload:
+
+    \skipto updateMessage
+    \printuntil }
 */
