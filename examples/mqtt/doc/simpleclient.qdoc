@@ -54,7 +54,49 @@
     \ingroup qtmqtt-examples
     \brief Creating a minimalistic telemetry application.
 
-    \e {Simple MQTT Client} demonstrates how to use the QMqttClient class
-    for creating a minimalistic telemetry application.
+    \image simpleclient.png
 
+    \e {Simple MQTT Client} demonstrates how to create a minimalistic client
+    application.
+
+    To use the application, you first specify a broker, such as
+    \e test.mosquitto.org or \e broker.hivemq.com and the port number 1883, and
+    connect to it. You can then subscribe to a topic and send a message, which
+    you will also receive.
+
+    \note Port number 1883 is not encrypted, and therefore it is suitable only
+    for development and testing purposes. In production, always use encrypted
+    connections.
+
+    \section1 Creating a Client
+
+    First, we use the QMqttClient class to create an MQTT client. The class
+    provides properties for setting a unique client ID as well as the broker
+    host name and port to connect to:
+
+    \quotefromfile simpleclient/mainwindow.cpp
+    \skipto m_client
+    \printuntil setPort
+
+    We do not set the client ID, and therefore it will be automatically
+    generated for us.
+
+    Next, we connect to QMqttClient::messageReceived() to receive all messages
+    sent to the broker:
+
+    \skipto messageReceived
+    \printuntil }
+
+    When users subscribe to topics in the client, we call
+    QMqttClient::subscribe() on the specified topic:
+
+    \skipto on_buttonSubscribe_clicked
+    \printuntil }
+
+    In this example, we subscribe to all topics. For more information about
+    how to receive messages on particular topics, see
+    \l {MQTT Subscriptions Example}.
+
+    For an example of how to use the QMqttClient class in a Qt Quick
+    application, see \l {Quick MQTT Example}.
 */

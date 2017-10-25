@@ -33,7 +33,8 @@ headerdirs  += ..
 sourcedirs  += ..
 exampledirs = ../../../examples/mqtt \
               snippets
-imagedirs   += images
+imagedirs   += images \
+               ../../../examples/mqtt/doc/images
 excludedirs += ../qt4support
 
 depends += qtcore qtdoc qtnetwork qmake
