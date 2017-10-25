@@ -37,7 +37,7 @@ imagedirs   += images \
                ../../../examples/mqtt/doc/images
 excludedirs += ../qt4support
 
-depends += qtcore qtdoc qtnetwork qmake
+depends += qtcore qtdoc qtnetwork qmake qtwebsockets
 
 navigation.landingpage = "Qt MQTT"
 navigation.cppclassespage = "Qt MQTT C++ Classes"
