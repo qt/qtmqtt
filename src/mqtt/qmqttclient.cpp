@@ -186,21 +186,22 @@ QT_BEGIN_NAMESPACE
     This enum type specifies the error state of a client.
 
     \value NoError
-           No Error occurred.
+           No error occurred.
     \value InvalidProtocolVersion
-           The broker does not accept a connection using the specified protocol version.
+           The broker does not accept a connection using the specified protocol
+           version.
     \value IdRejected
-           The client ID is malformed. This might be related to the length of the ID.
+           The client ID is malformed. This might be related to its length.
     \value ServerUnavailable
-           The network connection has been establied, but the service is unavailable on the
-           broker side.
+           The network connection has been established, but the service is
+           unavailable on the broker side.
     \value BadUsernameOrPassword
            The data in the username or password is malformed.
     \value NotAuthorized
-           The client is not authorized to connect
+           The client is not authorized to connect.
     \value TransportInvalid
-           The underlying transport caused an error, eg. the connection has been interrupted
-           unexpectedly.
+           The underlying transport caused an error. For example, the connection
+           might have been interrupted unexpectedly.
     \value ProtocolViolation
            The client encountered a protocol violation, and therefore closed the
            connection.
