@@ -201,6 +201,9 @@ QT_BEGIN_NAMESPACE
     \value TransportInvalid
            The underlying transport caused an error, eg. the connection has been interrupted
            unexpectedly.
+    \value ProtocolViolation
+           The client encountered a protocol violation, and therefore closed the
+           connection.
     \value UnknownError
            An unknown error occurred.
 */
