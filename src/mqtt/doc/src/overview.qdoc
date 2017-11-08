@@ -24,9 +24,71 @@
     \title Qt MQTT Overview
     \brief Provides insight into the MQTT protocol and the Qt MQTT module.
 
-    Qt MQTT enables you to create applications and devices communicating over
-    the \l{MQTT} machine-to-machine protocol. This topic describes the specifics
-    of the MQTT protocol.
+    Qt MQTT enables you to create applications and devices that can communicate
+    over the MQ telemetry transport (MQTT) protocol. It fully complies to the
+    MQTT protocol specification.
+
+    \section1 Publish and Subscribe
+
+    \l{MQTT} is a machine-to-machine connectivity protocol that operates on the
+    publish-and-subscribe model. An MQTT client is a program or device that
+    uses MQTT to create a network connection to an MQTT server, also called a
+    \e broker. Once a connection is created, the client can send messages to the
+    broker. The other clients can subscribe to notifications on particular
+    topics sent by the client.
+
+    \image mqtt.png
+
+    For example, if \e {Client 2} subscribes to messages on \e {Topic A}, it
+    receives a notification when \e {Client 1} sends a message on that topic.
+    If \e {Client 3} subscribes to \e {Topic A} and \e {Topic B}, it receives
+    notifications about messages on both those topics.
+
+    Qt MQTT is a client solution that does not include a broker. It is
+    especially suitable for developing telemetry applications for embedded
+    devices. However, Qt MQTT has no external dependencies, and therefore the
+    implemented clients can be run on all supported Qt platforms.
+
+    \section1 Topics
+
+    Topics are stored in a hierarchical tree structure. The standard does not
+    specify how the tree should be designed, nor does it provide predefined
+    hierarchy sets. You can freely design the hierarchy as required by your
+    project. The following is an example of a topic hierarchy, where \e active
+    means all active sensors, whereas \e house and \e garage are individual
+    sensors:
+
+    \badcode
+    sensors/active
+    sensors/house/temperature
+    sensors/house/bedroom/light
+    sensors/house/livingroom/light
+    sensors/garage/temperature
+    sensors/garage/light
+    \endcode
+
+    \section1 Subscribing to Topics Using Wildcards
+
+    When clients subscribe to topics, they can use the hash mark (#) and plus
+    sign (+) as wildcards. The hash mark indicates that the client wants to
+    receive notifications on all messages on a topic and its subtopics. For
+    example, if a client subscribes to \e sensors/house/#, it receives all
+    messages on the \e house sensor.
+
+    The plus sign indicates that a branch on the tree can be skipped over when
+    looking for a matching subtopic. For example, if a client subscribes to
+    \e sensors/+/temperature, it receives messages on \e temperature regardless
+    of which sensor sent them. You can use multiple plus signs to skip over
+    multiple branches. For example, \e house/+/+/temperature could be used to
+    receive messages on the temperature of all rooms in all apartments in a
+    house.
+
+    \section1 Security
+
+    The connections between the clients and the broker are secured by an
+    in-built authentication system that uses user names and passwords. Messages
+    are encrypted by using SSL/TLS at the transport layer. The standardized port
+    number for encrypted MQTT messages is 8883.
 
     \section1 Quality of Service
 
