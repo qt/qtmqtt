@@ -104,6 +104,7 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
     m_ownTransport = true;
     m_transportType = createSecureIfNeeded ? QMqttClient::SecureSocket : QMqttClient::AbstractSocket;
 
+    connect(socket, &QAbstractSocket::connected, this, &QMqttConnection::transportConnectionEstablished);
     connect(socket, &QAbstractSocket::disconnected, this, &QMqttConnection::transportConnectionClosed);
     connect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
     connect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadReady);
@@ -118,21 +119,20 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
         if (m_transport->isOpen())
             return true;
 
-        if (m_transport->open(QIODevice::ReadWrite)) {
+        if (!m_transport->open(QIODevice::ReadWrite)) {
             qWarning("Could not open Transport IO device");
+            m_internalState = BrokerDisconnected;
             return false;
         }
+        return sendControlConnect();
     } else if (m_transportType == QMqttClient::AbstractSocket) {
         auto socket = dynamic_cast<QTcpSocket*>(m_transport);
         Q_ASSERT(socket);
         if (socket->state() == QAbstractSocket::ConnectedState)
-            return true;
+            return sendControlConnect();
 
+        m_internalState = BrokerConnecting;
         socket->connectToHost(m_client->hostname(), m_client->port());
-        if (!socket->waitForConnected()) {
-            qWarning("Could not establish socket connection for transport");
-            return false;
-        }
     }
 #ifndef QT_NO_SSL
     else if (m_transportType == QMqttClient::SecureSocket) {
@@ -141,7 +141,9 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
         if (socket->state() == QAbstractSocket::ConnectedState)
             return true;
 
+        m_internalState = BrokerConnecting;
         socket->connectToHostEncrypted(m_client->hostname(), m_client->port(), sslPeerName);
+
         if (!socket->waitForConnected()) {
             qWarning("Could not establish socket connection for transport");
             return false;
@@ -473,6 +475,20 @@ quint16 QMqttConnection::unusedPacketIdentifier() const
              || m_pendingMessages.contains(packetIdentifierCounter)
              || m_pendingReleaseMessages.contains(packetIdentifierCounter));
     return packetIdentifierCounter;
+}
+
+void QMqttConnection::transportConnectionEstablished()
+{
+    if (m_internalState != BrokerConnecting) {
+        qCWarning(lcMqttConnection) << "Connection established at an unexpected time";
+        return;
+    }
+
+    if (!sendControlConnect()) {
+        qWarning("Could not send CONNECT to broker");
+        // ### Who disconnects now? Connection or client?
+        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
+    }
 }
 
 void QMqttConnection::transportConnectionClosed()

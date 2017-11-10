@@ -427,12 +427,9 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
         return;
     }
 
-    if (!d->m_connection.sendControlConnect()) {
-        qWarning("Could not send CONNECT to broker");
-        // ### Who disconnects now? Connection or client?
-        d->setStateAndError(Disconnected, TransportInvalid);
-        return;
-    }
+    // Once transport has connected, it will invoke
+    // QMqttConnection::sendControlConnect to
+    // handshake with the broker
 }
 
 /*!

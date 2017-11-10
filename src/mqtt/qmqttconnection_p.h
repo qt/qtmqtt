@@ -62,6 +62,7 @@ class Q_AUTOTEST_EXPORT QMqttConnection : public QObject
 public:
     enum InternalConnectionState {
         BrokerDisconnected = 0,
+        BrokerConnecting,
         BrokerWaitForConnectAck,
         BrokerConnected
     };
@@ -92,6 +93,7 @@ public:
     inline InternalConnectionState internalState() const { return m_internalState; }
 
 public Q_SLOTS:
+    void transportConnectionEstablished();
     void transportConnectionClosed();
     void transportReadReady();
 
