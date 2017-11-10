@@ -53,6 +53,7 @@ private Q_SLOTS:
     void longTopic_data();
     void longTopic();
     void subscribeLongTopic();
+    void dataIncludingZero();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -335,6 +336,41 @@ void Tst_QMqttClient::subscribeLongTopic()
     topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
     auto sub = subscriber.subscribe(topic);
     QCOMPARE(sub, nullptr);
+}
+
+void Tst_QMqttClient::dataIncludingZero()
+{
+    QByteArray data;
+    const int dataSize = 200;
+    data.fill('A', dataSize);
+    data[100] = '\0';
+
+    QMqttClient client;
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    bool received = false;
+    bool verified = false;
+    bool correctSize = false;
+    const QString testTopic(QLatin1String("some/topic"));
+    auto sub = client.subscribe(testTopic, 1);
+    QVERIFY(sub);
+    connect(sub, &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
+        verified = msg.payload() == data;
+        correctSize = msg.payload().size() == dataSize;
+        received = true;
+    });
+
+    QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);
+
+    client.publish(testTopic, data, 1);
+
+    QTRY_VERIFY2(received, "Subscriber did not receive message");
+    QVERIFY2(verified, "Subscriber received different message");
+    QVERIFY2(correctSize, "Subscriber received message of different size");
 }
 
 QTEST_MAIN(Tst_QMqttClient)

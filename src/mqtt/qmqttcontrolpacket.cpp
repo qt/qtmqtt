@@ -80,12 +80,12 @@ void QMqttControlPacket::append(quint16 value)
 void QMqttControlPacket::append(const QByteArray &data)
 {
     append(static_cast<quint16>(data.size()));
-    m_payload.append(data.constData());
+    m_payload.append(data);
 }
 
 void QMqttControlPacket::appendRaw(const QByteArray &data)
 {
-    m_payload.append(data.constData());
+    m_payload.append(data);
 }
 
 QByteArray QMqttControlPacket::serialize() const
