@@ -170,15 +170,19 @@ bool QMqttConnection::sendControlConnect()
     // Variable header
     // 3.1.2.1 Protocol Name
     // 3.1.2.2 Protocol Level
-    const quint8 protocolVersion = m_clientPrivate->m_protocolVersion;
-    if (protocolVersion == 3) {
+    switch (m_clientPrivate->m_protocolVersion) {
+    case QMqttClient::MQTT_3_1:
         packet.append("MQIsdp");
         packet.append(char(3)); // Version 3.1
-    } else if (protocolVersion == 4) {
+        break;
+    case QMqttClient::MQTT_3_1_1:
         packet.append("MQTT");
         packet.append(char(4)); // Version 3.1.1
-    } else {
-        qFatal("Illegal MQTT VERSION");
+        break;
+    default:
+        qCWarning(lcMqttConnection) << "Illegal MQTT Version";
+        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::InvalidProtocolVersion);
+        return false;
     }
 
     // 3.1.2.3 Connect Flags
