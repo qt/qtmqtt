@@ -32,6 +32,7 @@
 
 #include <QtMqtt/qmqttglobal.h>
 #include <QtMqtt/QMqttSubscription>
+#include <QtMqtt/QMqttTopicFilter>
 
 #include <QtCore/QIODevice>
 #include <QtCore/QObject>
@@ -97,10 +98,10 @@ public:
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
 
-    QMqttSubscription *subscribe(const QString &topic, quint8 qos = 0);
-    void unsubscribe(const QString &topic);
+    QMqttSubscription *subscribe(const QMqttTopicFilter &topic, quint8 qos = 0);
+    void unsubscribe(const QMqttTopicFilter &topic);
 
-    Q_INVOKABLE qint32 publish(const QString &topic, const QByteArray &message = QByteArray(),
+    Q_INVOKABLE qint32 publish(const QMqttTopicName &topic, const QByteArray &message = QByteArray(),
                  quint8 qos = 0, bool retain = false);
     bool requestPing();
 
@@ -131,7 +132,7 @@ public:
 Q_SIGNALS:
     void connected();
     void disconnected();
-    void messageReceived(const QByteArray &message, const QString &topic = QString());
+    void messageReceived(const QByteArray &message, const QMqttTopicName &topic = QMqttTopicName());
     void messageSent(qint32 id);
     void pingResponseReceived();
     void brokerSessionRestored();

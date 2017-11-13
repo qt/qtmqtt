@@ -108,7 +108,7 @@ QMqttSubscription::SubscriptionState QMqttSubscription::state() const
     return d->m_state;
 }
 
-QString QMqttSubscription::topic() const
+QMqttTopicFilter QMqttSubscription::topic() const
 {
     Q_D(const QMqttSubscription);
     return d->m_topic;
@@ -143,7 +143,7 @@ void QMqttSubscription::unsubscribe()
     setState(Unsubscribed);
 }
 
-void QMqttSubscription::setTopic(const QString &topic)
+void QMqttSubscription::setTopic(const QMqttTopicFilter &topic)
 {
     Q_D(QMqttSubscription);
     d->m_topic = topic;

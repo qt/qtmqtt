@@ -101,7 +101,7 @@ quint16 QMqttMessage::id() const
     return m_id;
 }
 
-QString QMqttMessage::topic() const
+QMqttTopicName QMqttMessage::topic() const
 {
     return m_topic;
 }
@@ -116,7 +116,7 @@ bool QMqttMessage::retain() const
     return m_retain;
 }
 
-QMqttMessage::QMqttMessage(const QString &topic, const QByteArray &content, quint16 id, quint8 qos, bool dup, bool retain)
+QMqttMessage::QMqttMessage(const QMqttTopicName &topic, const QByteArray &content, quint16 id, quint8 qos, bool dup, bool retain)
     : m_topic(topic)
     , m_payload(content)
     , m_id(id)

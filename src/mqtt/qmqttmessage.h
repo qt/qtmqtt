@@ -32,6 +32,8 @@
 
 #include "qmqttglobal.h"
 
+#include <QtMqtt/QMqttTopicName>
+
 #include <QtCore/QObject>
 
 QT_BEGIN_NAMESPACE
@@ -39,7 +41,7 @@ QT_BEGIN_NAMESPACE
 class Q_MQTT_EXPORT QMqttMessage
 {
     Q_GADGET
-    Q_PROPERTY(QString topic READ topic CONSTANT)
+    Q_PROPERTY(QMqttTopicName topic READ topic CONSTANT)
     Q_PROPERTY(QByteArray payload READ payload CONSTANT)
     Q_PROPERTY(quint16 id READ id CONSTANT)
     Q_PROPERTY(quint8 qos READ qos CONSTANT)
@@ -49,16 +51,16 @@ public:
     QByteArray payload() const;
     quint8 qos() const;
     quint16 id() const;
-    QString topic() const;
+    QMqttTopicName topic() const;
     bool duplicate() const;
     bool retain() const;
 
 private:
     friend class QMqttConnection;
-    explicit QMqttMessage(const QString &topic, const QByteArray &payload,
+    explicit QMqttMessage(const QMqttTopicName &topic, const QByteArray &payload,
                           quint16 id, quint8 qos,
                           bool dup, bool retain);
-    QString m_topic;
+    QMqttTopicName m_topic;
     QByteArray m_payload;
     quint16 m_id;
     quint8 m_qos;

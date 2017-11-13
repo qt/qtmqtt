@@ -274,15 +274,15 @@ void Tst_MqttConformance::offline_message_queueing_test()
     QTRY_VERIFY2(publisher.state() == QMqttClient::Connected, "Could not connect to broker.");
 
     QSignalSpy pubCounter(&publisher, SIGNAL(messageSent(qint32)));
-    publisher.publish("Qt/offline/foo/bar", "msg1", 1);
-    publisher.publish("Qt/offline/foo/bar2", "msg2", 1);
-    publisher.publish("Qt/offline/foo2/bar", "msg3", 1);
+    publisher.publish(QLatin1String("Qt/offline/foo/bar"), "msg1", 1);
+    publisher.publish(QLatin1String("Qt/offline/foo/bar2"), "msg2", 1);
+    publisher.publish(QLatin1String("Qt/offline/foo2/bar"), "msg3", 1);
     QTRY_VERIFY2(pubCounter.size() == 3, "Could not publish all messages.");
 
     publisher.disconnectFromHost();
     QTRY_VERIFY2(publisher.state() == QMqttClient::Disconnected, "Could not disconnect.");
 
-    QSignalSpy receiveCounter(&client, SIGNAL(messageReceived(QByteArray,QString)));
+    QSignalSpy receiveCounter(&client, SIGNAL(messageReceived(QByteArray,QMqttTopicName)));
 
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
@@ -306,7 +306,7 @@ void Tst_MqttConformance::subscribe_failure_test()
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
 
-    auto sub = client.subscribe(forbiddenTopic, 1);
+    auto sub = client.subscribe(QMqttTopicFilter(forbiddenTopic), 1);
     QVERIFY2(sub->state() == QMqttSubscription::SubscriptionPending, "Could not initiate subscription");
 
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Error, "Did not receive error state for sub.");

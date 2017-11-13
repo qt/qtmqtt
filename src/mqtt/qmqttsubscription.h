@@ -33,6 +33,8 @@
 #include "qmqttmessage.h"
 
 #include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/QMqttTopicFilter>
+
 #include <QtCore/QObject>
 
 QT_BEGIN_NAMESPACE
@@ -46,7 +48,7 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
     Q_ENUMS(SubscriptionState)
     Q_PROPERTY(SubscriptionState state READ state NOTIFY stateChanged)
     Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
-    Q_PROPERTY(QString topic READ topic)
+    Q_PROPERTY(QMqttTopicFilter topic READ topic)
 public:
     ~QMqttSubscription() override;
     enum SubscriptionState {
@@ -58,7 +60,7 @@ public:
     };
 
     SubscriptionState state() const;
-    QString topic() const;
+    QMqttTopicFilter topic() const;
     quint8 qos() const;
 
 Q_SIGNALS:
@@ -73,7 +75,7 @@ private:
     Q_DECLARE_PRIVATE(QMqttSubscription)
     Q_DISABLE_COPY(QMqttSubscription)
     void setState(SubscriptionState state);
-    void setTopic(const QString &topic);
+    void setTopic(const QMqttTopicFilter &topic);
     void setClient(QMqttClient *client);
     void setQos(quint8 qos);
     friend class QMqttConnection;

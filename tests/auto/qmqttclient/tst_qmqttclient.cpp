@@ -50,10 +50,11 @@ private Q_SLOTS:
     void sendReceive();
     void retainMessage();
     void willMessage();
-    void longTopic_data();
-    void longTopic();
+    void compliantTopic_data();
+    void compliantTopic();
     void subscribeLongTopic();
     void dataIncludingZero();
+    void publishLongTopic();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -202,7 +203,7 @@ void Tst_QMqttClient::retainMessage()
                 msgCount++;
         });
 
-        QSignalSpy messageSpy(&sub, SIGNAL(messageReceived(QByteArray,QString)));
+        QSignalSpy messageSpy(&sub, SIGNAL(messageReceived(QByteArray,QMqttTopicName)));
         sub.connectToHost();
         QTRY_COMPARE(sub.state(), QMqttClient::Connected);
 
@@ -271,7 +272,7 @@ void Tst_QMqttClient::willMessage()
     }
 }
 
-void Tst_QMqttClient::longTopic_data()
+void Tst_QMqttClient::compliantTopic_data()
 {
     QTest::addColumn<QString>("topic");
     QTest::newRow("simple") << QString::fromLatin1("topic");
@@ -280,11 +281,9 @@ void Tst_QMqttClient::longTopic_data()
     QString l;
     l.fill(QLatin1Char('T'), std::numeric_limits<std::uint16_t>::max());
     QTest::newRow("maxSize") << l;
-    l.fill(QLatin1Char('M'), 2 * std::numeric_limits<std::uint16_t>::max());
-    QTest::newRow("overflow") << l;
 }
 
-void Tst_QMqttClient::longTopic()
+void Tst_QMqttClient::compliantTopic()
 {
     QFETCH(QString, topic);
     QString truncTopic = topic;
@@ -308,7 +307,7 @@ void Tst_QMqttClient::longTopic()
 
     bool received = false;
     bool verified = false;
-    connect(&subscriber, &QMqttClient::messageReceived, [&](const QByteArray &, const QString &t) {
+    connect(&subscriber, &QMqttClient::messageReceived, [&](const QByteArray &, const QMqttTopicName &t) {
         received = true;
         verified = t == truncTopic;
     });
@@ -371,6 +370,22 @@ void Tst_QMqttClient::dataIncludingZero()
     QTRY_VERIFY2(received, "Subscriber did not receive message");
     QVERIFY2(verified, "Subscriber received different message");
     QVERIFY2(correctSize, "Subscriber received message of different size");
+}
+
+void Tst_QMqttClient::publishLongTopic()
+{
+    QMqttClient publisher;
+    publisher.setClientId(QLatin1String("publisher"));
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    publisher.connectToHost();
+    QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
+
+    QString topic;
+    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
+    auto pub = publisher.publish(topic);
+    QCOMPARE(pub, -1);
 }
 
 QTEST_MAIN(Tst_QMqttClient)

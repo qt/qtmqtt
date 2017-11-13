@@ -60,7 +60,7 @@ class QmlMqttClient;
 class QmlMqttSubscription : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString topic MEMBER m_topic NOTIFY topicChanged)
+    Q_PROPERTY(QMqttTopicFilter topic MEMBER m_topic NOTIFY topicChanged)
 public:
     QmlMqttSubscription(QMqttSubscription *s, QmlMqttClient *c);
     ~QmlMqttSubscription();
@@ -76,7 +76,7 @@ private:
     Q_DISABLE_COPY(QmlMqttSubscription)
     QMqttSubscription *sub;
     QmlMqttClient *client;
-    QString m_topic;
+    QMqttTopicFilter m_topic;
 };
 
 class QmlMqttClient : public QMqttClient
