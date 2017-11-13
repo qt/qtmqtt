@@ -35,8 +35,11 @@
 #include <QtMqtt/QMqttTopicName>
 
 #include <QtCore/QObject>
+#include <QtCore/QSharedDataPointer>
 
 QT_BEGIN_NAMESPACE
+
+class QMqttMessagePrivate;
 
 class Q_MQTT_EXPORT QMqttMessage
 {
@@ -47,8 +50,17 @@ class Q_MQTT_EXPORT QMqttMessage
     Q_PROPERTY(quint8 qos READ qos CONSTANT)
     Q_PROPERTY(bool duplicate READ duplicate CONSTANT)
     Q_PROPERTY(bool retain READ retain CONSTANT)
+
 public:
-    QByteArray payload() const;
+    QMqttMessage();
+    QMqttMessage(const QMqttMessage& other);
+    ~QMqttMessage();
+
+    QMqttMessage& operator=(const QMqttMessage &other);
+    bool operator==(const QMqttMessage &other) const;
+    inline bool operator!=(const QMqttMessage &other) const;
+
+    const QByteArray &payload() const;
     quint8 qos() const;
     quint16 id() const;
     QMqttTopicName topic() const;
@@ -57,17 +69,14 @@ public:
 
 private:
     friend class QMqttConnection;
-    explicit QMqttMessage(const QMqttTopicName &topic, const QByteArray &payload,
+    QMqttMessage(const QMqttTopicName &topic, const QByteArray &payload,
                           quint16 id, quint8 qos,
                           bool dup, bool retain);
-    QMqttTopicName m_topic;
-    QByteArray m_payload;
-    quint16 m_id;
-    quint8 m_qos;
-    bool m_duplicate;
-    bool m_retain;
+    QExplicitlySharedDataPointer<QMqttMessagePrivate> d;
 };
 
 QT_END_NAMESPACE
+
+Q_DECLARE_METATYPE(QMqttMessage)
 
 #endif // QMQTTMESSAGE_H
