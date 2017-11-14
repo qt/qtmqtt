@@ -92,6 +92,8 @@ public:
     inline quint16 unusedPacketIdentifier() const;
     inline InternalConnectionState internalState() const { return m_internalState; }
 
+    void cleanSubscriptions();
+
 public Q_SLOTS:
     void transportConnectionEstablished();
     void transportConnectionClosed();

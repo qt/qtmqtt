@@ -471,6 +471,21 @@ quint16 QMqttConnection::unusedPacketIdentifier() const
     return packetIdentifierCounter;
 }
 
+void QMqttConnection::cleanSubscriptions()
+{
+    for (auto item : m_pendingSubscriptionAck)
+        item->setState(QMqttSubscription::Unsubscribed);
+    m_pendingSubscriptionAck.clear();
+
+    for (auto item : m_pendingUnsubscriptions)
+        item->setState(QMqttSubscription::Unsubscribed);
+    m_pendingUnsubscriptions.clear();
+
+    for (auto item : m_activeSubscriptions)
+        item->setState(QMqttSubscription::Unsubscribed);
+    m_activeSubscriptions.clear();
+}
+
 void QMqttConnection::transportConnectionEstablished()
 {
     if (m_internalState != BrokerConnecting) {
@@ -540,6 +555,10 @@ void QMqttConnection::finalize_connack()
         emit m_clientPrivate->m_client->brokerSessionRestored();
         if (m_clientPrivate->m_cleanSession)
             qWarning("Connected with a clean session, ack contains session present");
+    } else {
+        // MQTT-4.1.0.-1 MQTT-4.1.0-2 Session not stored on broker side
+        // regardless whether cleanSession is false
+        cleanSubscriptions();
     }
 
     quint8 connectResultValue;

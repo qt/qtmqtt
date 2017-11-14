@@ -421,6 +421,9 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
     }
     d->setStateAndError(Connecting);
 
+    if (d->m_cleanSession)
+        d->m_connection.cleanSubscriptions();
+
     if (!d->m_connection.ensureTransportOpen(sslPeerName)) {
         qWarning("Could not ensure that connection is open");
         d->setStateAndError(Disconnected, TransportInvalid);
