@@ -106,7 +106,11 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
                                    new QTcpSocket();
     m_transport = socket;
     m_ownTransport = true;
-    m_transportType = createSecureIfNeeded ? QMqttClient::SecureSocket : QMqttClient::AbstractSocket;
+    m_transportType =
+#ifndef QT_NO_SSL
+        createSecureIfNeeded ? QMqttClient::SecureSocket :
+#endif
+                               QMqttClient::AbstractSocket;
 
     connect(socket, &QAbstractSocket::connected, this, &QMqttConnection::transportConnectionEstablished);
     connect(socket, &QAbstractSocket::disconnected, this, &QMqttConnection::transportConnectionClosed);
