@@ -419,6 +419,7 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
         d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
+    d->m_error = QMqttClient::NoError; // Fresh reconnect, unset error
     d->setStateAndError(Connecting);
 
     if (d->m_cleanSession)

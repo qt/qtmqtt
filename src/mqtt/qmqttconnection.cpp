@@ -87,8 +87,12 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transport;
 
-    if (m_transport)
-        return true;
+    if (m_transport) {
+        if (m_ownTransport)
+            delete m_transport;
+        else
+            return true;
+    }
 
     // We are asked to create a transport layer
     if (m_clientPrivate->m_hostname.isEmpty() || m_clientPrivate->m_port == 0) {

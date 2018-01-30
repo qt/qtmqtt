@@ -29,6 +29,7 @@
 #include "broker_connection.h"
 
 #include <QtCore/QString>
+#include <QtNetwork/QTcpServer>
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
 #include <QtMqtt/QMqttClient>
@@ -55,6 +56,7 @@ private Q_SLOTS:
     void subscribeLongTopic();
     void dataIncludingZero();
     void publishLongTopic();
+    void reconnect_QTBUG65726();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -386,6 +388,63 @@ void Tst_QMqttClient::publishLongTopic()
     topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
     auto pub = publisher.publish(topic);
     QCOMPARE(pub, -1);
+}
+
+class FakeServer : public QObject
+{
+    Q_OBJECT
+public:
+    FakeServer() {
+        server = new QTcpServer();
+        connect(server, &QTcpServer::newConnection, this, &FakeServer::createSocket);
+        server->listen(QHostAddress::Any, 5726);
+    }
+public slots:
+    void createSocket() {
+        socket = server->nextPendingConnection();
+        connect(socket, &QTcpSocket::readyRead, this, &FakeServer::connectionRequested);
+    }
+
+    void connectionRequested() {
+        // We assume it is always a connect statement, so no verification is done
+        socket->readAll();
+        QByteArray response;
+        response += 0x20;
+        response += quint8(2); // Payload size
+        if (!connectionSuccess) {
+            response += quint8(255); // Causes ProtocolViolation
+            response += quint8(13);
+        } else {
+            response += char(0); // ackFlags
+            response += char(0); // result
+        }
+        qDebug() << "Fake server response:" << connectionSuccess;
+        socket->write(response);
+    }
+public:
+    QTcpServer *server;
+    QTcpSocket *socket;
+    bool connectionSuccess{false};
+};
+
+void Tst_QMqttClient::reconnect_QTBUG65726()
+{
+    FakeServer server;
+
+    QMqttClient client;
+    client.setClientId(QLatin1String("bugclient"));
+    client.setHostname(QLatin1String("localhost"));
+    client.setPort(5726);
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Disconnected);
+    QTRY_COMPARE(client.error(), QMqttClient::ProtocolViolation);
+
+    server.connectionSuccess = true;
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+    QTRY_COMPARE(client.error(), QMqttClient::NoError);
 }
 
 QTEST_MAIN(Tst_QMqttClient)
