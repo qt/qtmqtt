@@ -694,7 +694,7 @@ void QMqttClientPrivate::setStateAndError(QMqttClient::ClientState s, QMqttClien
 
     if (s != m_state)
         q->setState(s);
-    if (m_error != QMqttClient::NoError && m_error != e)
+    if (e != QMqttClient::NoError && m_error != e)
         q->setError(e);
 }
 
