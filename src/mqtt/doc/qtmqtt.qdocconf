@@ -37,6 +37,8 @@ imagedirs   += images \
                ../../../examples/mqtt/doc/images
 excludedirs += ../qt4support
 
+Cpp.ignoretokens += Q_MQTT_EXPORT
+
 depends += qtcore qtdoc qtnetwork qmake qtwebsockets
 
 #add generic thumbnail images for example documentation that does not have an image.

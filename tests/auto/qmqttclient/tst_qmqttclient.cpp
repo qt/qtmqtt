@@ -29,6 +29,7 @@
 #include "broker_connection.h"
 
 #include <QtCore/QString>
+#include <QtNetwork/QTcpServer>
 #include <QtTest/QtTest>
 #include <QtTest/QSignalSpy>
 #include <QtMqtt/QMqttClient>
@@ -50,9 +51,12 @@ private Q_SLOTS:
     void sendReceive();
     void retainMessage();
     void willMessage();
-    void longTopic_data();
-    void longTopic();
+    void compliantTopic_data();
+    void compliantTopic();
     void subscribeLongTopic();
+    void dataIncludingZero();
+    void publishLongTopic();
+    void reconnect_QTBUG65726();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -201,7 +205,7 @@ void Tst_QMqttClient::retainMessage()
                 msgCount++;
         });
 
-        QSignalSpy messageSpy(&sub, SIGNAL(messageReceived(QByteArray,QString)));
+        QSignalSpy messageSpy(&sub, SIGNAL(messageReceived(QByteArray,QMqttTopicName)));
         sub.connectToHost();
         QTRY_COMPARE(sub.state(), QMqttClient::Connected);
 
@@ -270,7 +274,7 @@ void Tst_QMqttClient::willMessage()
     }
 }
 
-void Tst_QMqttClient::longTopic_data()
+void Tst_QMqttClient::compliantTopic_data()
 {
     QTest::addColumn<QString>("topic");
     QTest::newRow("simple") << QString::fromLatin1("topic");
@@ -279,11 +283,9 @@ void Tst_QMqttClient::longTopic_data()
     QString l;
     l.fill(QLatin1Char('T'), std::numeric_limits<std::uint16_t>::max());
     QTest::newRow("maxSize") << l;
-    l.fill(QLatin1Char('M'), 2 * std::numeric_limits<std::uint16_t>::max());
-    QTest::newRow("overflow") << l;
 }
 
-void Tst_QMqttClient::longTopic()
+void Tst_QMqttClient::compliantTopic()
 {
     QFETCH(QString, topic);
     QString truncTopic = topic;
@@ -307,7 +309,7 @@ void Tst_QMqttClient::longTopic()
 
     bool received = false;
     bool verified = false;
-    connect(&subscriber, &QMqttClient::messageReceived, [&](const QByteArray &, const QString &t) {
+    connect(&subscriber, &QMqttClient::messageReceived, [&](const QByteArray &, const QMqttTopicName &t) {
         received = true;
         verified = t == truncTopic;
     });
@@ -335,6 +337,114 @@ void Tst_QMqttClient::subscribeLongTopic()
     topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
     auto sub = subscriber.subscribe(topic);
     QCOMPARE(sub, nullptr);
+}
+
+void Tst_QMqttClient::dataIncludingZero()
+{
+    QByteArray data;
+    const int dataSize = 200;
+    data.fill('A', dataSize);
+    data[100] = '\0';
+
+    QMqttClient client;
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    bool received = false;
+    bool verified = false;
+    bool correctSize = false;
+    const QString testTopic(QLatin1String("some/topic"));
+    auto sub = client.subscribe(testTopic, 1);
+    QVERIFY(sub);
+    connect(sub, &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
+        verified = msg.payload() == data;
+        correctSize = msg.payload().size() == dataSize;
+        received = true;
+    });
+
+    QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);
+
+    client.publish(testTopic, data, 1);
+
+    QTRY_VERIFY2(received, "Subscriber did not receive message");
+    QVERIFY2(verified, "Subscriber received different message");
+    QVERIFY2(correctSize, "Subscriber received message of different size");
+}
+
+void Tst_QMqttClient::publishLongTopic()
+{
+    QMqttClient publisher;
+    publisher.setClientId(QLatin1String("publisher"));
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    publisher.connectToHost();
+    QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
+
+    QString topic;
+    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
+    auto pub = publisher.publish(topic);
+    QCOMPARE(pub, -1);
+}
+
+class FakeServer : public QObject
+{
+    Q_OBJECT
+public:
+    FakeServer() {
+        server = new QTcpServer();
+        connect(server, &QTcpServer::newConnection, this, &FakeServer::createSocket);
+        server->listen(QHostAddress::Any, 5726);
+    }
+public slots:
+    void createSocket() {
+        socket = server->nextPendingConnection();
+        connect(socket, &QTcpSocket::readyRead, this, &FakeServer::connectionRequested);
+    }
+
+    void connectionRequested() {
+        // We assume it is always a connect statement, so no verification is done
+        socket->readAll();
+        QByteArray response;
+        response += 0x20;
+        response += quint8(2); // Payload size
+        if (!connectionSuccess) {
+            response += quint8(255); // Causes ProtocolViolation
+            response += quint8(13);
+        } else {
+            response += char(0); // ackFlags
+            response += char(0); // result
+        }
+        qDebug() << "Fake server response:" << connectionSuccess;
+        socket->write(response);
+    }
+public:
+    QTcpServer *server;
+    QTcpSocket *socket;
+    bool connectionSuccess{false};
+};
+
+void Tst_QMqttClient::reconnect_QTBUG65726()
+{
+    FakeServer server;
+
+    QMqttClient client;
+    client.setClientId(QLatin1String("bugclient"));
+    client.setHostname(QLatin1String("localhost"));
+    client.setPort(5726);
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Disconnected);
+    QTRY_COMPARE(client.error(), QMqttClient::ProtocolViolation);
+
+    server.connectionSuccess = true;
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+    QTRY_COMPARE(client.error(), QMqttClient::NoError);
 }
 
 QTEST_MAIN(Tst_QMqttClient)

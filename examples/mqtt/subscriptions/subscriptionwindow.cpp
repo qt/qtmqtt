@@ -58,7 +58,7 @@ SubscriptionWindow::SubscriptionWindow(QMqttSubscription *sub, QWidget *parent) 
 {
     ui->setupUi(this);
 
-    ui->labelSub->setText(m_sub->topic());
+    ui->labelSub->setText(m_sub->topic().filter());
     ui->labelQoS->setText(QString::number(m_sub->qos()));
     updateStatus(m_sub->state());
     connect(m_sub, &QMqttSubscription::messageReceived, this, &SubscriptionWindow::updateMessage);

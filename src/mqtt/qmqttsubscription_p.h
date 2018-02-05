@@ -54,7 +54,7 @@ public:
     ~QMqttSubscriptionPrivate() override = default;
     QMqttClient *m_client{nullptr};
     QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
-    QString m_topic;
+    QMqttTopicFilter m_topic;
     quint8 m_qos{0};
 };
 

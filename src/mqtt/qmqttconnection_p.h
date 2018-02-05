@@ -77,20 +77,22 @@ public:
     bool ensureTransportOpen(const QString &sslPeerName = QString());
 
     bool sendControlConnect();
-    qint32 sendControlPublish(const QString &topic, const QByteArray &message, quint8 qos = 0, bool retain = false);
+    qint32 sendControlPublish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos = 0, bool retain = false);
     bool sendControlPublishAcknowledge(quint16 id);
     bool sendControlPublishRelease(quint16 id);
     bool sendControlPublishReceive(quint16 id);
     bool sendControlPublishComp(quint16 id);
-    QMqttSubscription *sendControlSubscribe(const QString &topic, quint8 qos = 0);
-    bool sendControlUnsubscribe(const QString &topic);
+    QMqttSubscription *sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos = 0);
+    bool sendControlUnsubscribe(const QMqttTopicFilter &topic);
     bool sendControlPingRequest();
     bool sendControlDisconnect();
 
-    void setClient(QMqttClient *client, QMqttClientPrivate *clientPrivate);
+    void setClientPrivate(QMqttClientPrivate *clientPrivate);
 
     inline quint16 unusedPacketIdentifier() const;
     inline InternalConnectionState internalState() const { return m_internalState; }
+
+    void cleanSubscriptions();
 
 public Q_SLOTS:
     void transportConnectionEstablished();
@@ -101,7 +103,6 @@ public:
     QIODevice *m_transport{nullptr};
     QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
     bool m_ownTransport{false};
-    QMqttClient *m_client{nullptr};
     QMqttClientPrivate *m_clientPrivate{nullptr};
 private:
     Q_DISABLE_COPY(QMqttConnection)
@@ -130,7 +131,7 @@ private:
     bool writePacketToTransport(const QMqttControlPacket &p);
     QMap<quint16, QMqttSubscription *> m_pendingSubscriptionAck;
     QMap<quint16, QMqttSubscription *> m_pendingUnsubscriptions;
-    QMap<QString, QMqttSubscription *> m_activeSubscriptions;
+    QMap<QMqttTopicFilter, QMqttSubscription *> m_activeSubscriptions;
     QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingMessages;
     QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
     InternalConnectionState m_internalState{BrokerDisconnected};

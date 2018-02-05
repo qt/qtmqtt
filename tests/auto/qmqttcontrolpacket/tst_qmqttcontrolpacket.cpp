@@ -123,6 +123,19 @@ void Tst_QMqttControlPacket::append()
     payload = packet.payload();
     QCOMPARE(payload.size(), data.size());
     QCOMPARE(payload, data);
+
+    const QByteArray containsZero("Some data\0 with zero", 21);
+    packet.clear();
+    packet.appendRaw(containsZero);
+    payload = packet.payload();
+    QCOMPARE(containsZero, payload);
+    QCOMPARE(payload.size(), 21);
+
+    packet.clear();
+    packet.append(containsZero);
+    payload = packet.payload().mid(2); // mid because size got prepended
+    QCOMPARE(containsZero, payload);
+    QCOMPARE(payload.size(), 21);
 #else
     QSKIP("This test requires a Qt -developer-build.");
 #endif

@@ -236,7 +236,7 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
-    \fn QMqttClient::messageReceived(const QByteArray &message, const QString &topic)
+    \fn QMqttClient::messageReceived(const QByteArray &message, const QMqttTopicName &topic)
 
     This signal is emitted when a new message has been received. The category of
     the message is specified by \a topic with the content being \a message.
@@ -271,10 +271,10 @@ QT_BEGIN_NAMESPACE
 /*!
     Creates a new MQTT client instance with the specified \a parent.
  */
-QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate), parent)
+QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(this)), parent)
 {
     Q_D(QMqttClient);
-    d->m_connection.setClient(this, d);
+    d->m_connection.setClientPrivate(d);
 }
 
 /*!
@@ -313,7 +313,7 @@ QIODevice *QMqttClient::transport() const
     is subscribed twice, the return value points to the same subscription
     instance. The MQTT client is the owner of the subscription.
  */
-QMqttSubscription *QMqttClient::subscribe(const QString &topic, quint8 qos)
+QMqttSubscription *QMqttClient::subscribe(const QMqttTopicFilter &topic, quint8 qos)
 {
     Q_D(QMqttClient);
 
@@ -330,7 +330,7 @@ QMqttSubscription *QMqttClient::subscribe(const QString &topic, quint8 qos)
     \note If a client disconnects from a broker without unsubscribing, the
     broker will store all messages and publish them on the next reconnect.
  */
-void QMqttClient::unsubscribe(const QString &topic)
+void QMqttClient::unsubscribe(const QMqttTopicFilter &topic)
 {
     Q_D(QMqttClient);
     d->m_connection.sendControlUnsubscribe(topic);
@@ -345,7 +345,7 @@ void QMqttClient::unsubscribe(const QString &topic)
 
     Returns an ID that is used internally to identify the message.
  */
-qint32 QMqttClient::publish(const QString &topic, const QByteArray &message, quint8 qos, bool retain)
+qint32 QMqttClient::publish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos, bool retain)
 {
     Q_D(QMqttClient);
     if (qos > 2)
@@ -419,7 +419,11 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
         d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
+    d->m_error = QMqttClient::NoError; // Fresh reconnect, unset error
     d->setStateAndError(Connecting);
+
+    if (d->m_cleanSession)
+        d->m_connection.cleanSubscriptions();
 
     if (!d->m_connection.ensureTransportOpen(sslPeerName)) {
         qWarning("Could not ensure that connection is open");
@@ -670,13 +674,14 @@ void QMqttClient::setError(ClientError e)
     emit errorChanged(d->m_error);
 }
 
-QMqttClientPrivate::QMqttClientPrivate()
+QMqttClientPrivate::QMqttClientPrivate(QMqttClient *c)
     : QObjectPrivate()
 {
+    m_client = c;
     m_clientId = QUuid::createUuid().toString();
-    m_clientId.remove(QLatin1Char('{'), Qt::CaseInsensitive);
-    m_clientId.remove(QLatin1Char('}'), Qt::CaseInsensitive);
-    m_clientId.remove(QLatin1Char('-'), Qt::CaseInsensitive);
+    m_clientId.remove(QLatin1Char('{'));
+    m_clientId.remove(QLatin1Char('}'));
+    m_clientId.remove(QLatin1Char('-'));
     m_clientId.resize(23);
 }
 
@@ -690,7 +695,7 @@ void QMqttClientPrivate::setStateAndError(QMqttClient::ClientState s, QMqttClien
 
     if (s != m_state)
         q->setState(s);
-    if (m_error != QMqttClient::NoError && m_error != e)
+    if (e != QMqttClient::NoError && m_error != e)
         q->setError(e);
 }
 

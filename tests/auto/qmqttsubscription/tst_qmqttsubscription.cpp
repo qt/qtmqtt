@@ -47,6 +47,7 @@ private Q_SLOTS:
     void getSetCheck();
     void wildCards_data();
     void wildCards();
+    void reconnect();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -139,6 +140,81 @@ void Tst_QMqttSubscription::wildCards()
 
     publisher.disconnectFromHost();
     QTRY_VERIFY2(publisher.state() == QMqttClient::Disconnected, "Could not disconnect.");
+}
+
+void Tst_QMqttSubscription::reconnect()
+{
+    // QTBUG-64042
+    //    - Connect with clean session
+    QMqttClient client;
+
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+    client.setCleanSession(true);
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    //    - Subscribe to topic A
+    const QString subscription("topics/resub");
+    auto sub = client.subscribe(subscription, 1);
+    QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic.");
+
+    //    - Loose connection / connection drop
+    QAbstractSocket *transport = qobject_cast<QAbstractSocket *>(client.transport());
+    QVERIFY2(transport, "Transport has to be QAbstractSocket-based.");
+    transport->disconnectFromHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "State not correctly switched.");
+
+    //    - Reconnect (keeping cleansession)
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+    // old subs should get updated / invalidated
+    QCOMPARE(sub->state(), QMqttSubscription::Unsubscribed);
+
+    //    - Resubscribe
+    auto reSub = client.subscribe(subscription, 1);
+    QTRY_VERIFY2(reSub->state() == QMqttSubscription::Subscribed, "Could not re-subscribe to topic.");
+    QSignalSpy receivalSpy(reSub, SIGNAL(messageReceived(QMqttMessage)));
+
+    QSignalSpy pubSpy(&client, SIGNAL(messageSent(qint32)));
+    client.publish(subscription, "Sending after reconnect 1", 1);
+    QTRY_VERIFY2(pubSpy.size() == 1, "Could not publish message.");
+
+    QTRY_VERIFY2(receivalSpy.size() == 1, "Did not receive message on re-subscribe.");
+
+    //    - Loose connection / connection drop
+    transport = qobject_cast<QAbstractSocket *>(client.transport());
+    QVERIFY2(transport, "Transport has to be QAbstractSocket-based.");
+    transport->disconnectFromHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "State not correctly switched.");
+
+    //    - Reconnect (no cleansession)
+    QSignalSpy restoredSpy(&client, SIGNAL(brokerSessionRestored()));
+
+    client.setCleanSession(false);
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+    // Could not identify a broker doing this. The specs states:
+    // [MQTT-4.1.0-1] The Client and Server MUST store Session state for the entire
+    //                duration of the Session.
+    // [MQTT-4.1.0-2] A Session MUST last at least as long it has an active Network Connection.
+    // All testbrokers delete the session at transport disconnect, regardless of DISCONNECT been
+    // send before or not.
+    if (restoredSpy.count() > 0) {
+        QCOMPARE(reSub->state(), QMqttSubscription::Subscribed);
+        pubSpy.clear();
+        receivalSpy.clear();
+        client.publish(subscription, "Sending after reconnect 2", 1);
+        QTRY_VERIFY2(pubSpy.size() == 1, "Could not publish message.");
+        QTRY_VERIFY2(receivalSpy.size() == 1, "Did not receive message on re-subscribe.");
+    } else {
+        // No need to test this
+        qDebug() << "Test broker does not support long-livety sessions.";
+    }
+    //    - Old subscription is still active
+
+    client.disconnectFromHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect.");
 }
 
 QTEST_MAIN(Tst_QMqttSubscription)

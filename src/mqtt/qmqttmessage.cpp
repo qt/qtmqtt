@@ -86,44 +86,117 @@ QT_BEGIN_NAMESPACE
     live update. A broker can store only one retained message per topic.
 */
 
-QByteArray QMqttMessage::payload() const
+class QMqttMessagePrivate : public QSharedData
 {
-    return m_payload;
+public:
+    bool operator==(const QMqttMessagePrivate &other) {
+        return m_topic == other.m_topic &&
+                m_payload == other.m_payload &&
+                m_id == other.m_id &&
+                m_qos == other.m_qos &&
+                m_duplicate == other.m_duplicate &&
+                m_retain == other.m_retain;
+    }
+    QMqttTopicName m_topic;
+    QByteArray m_payload;
+    quint16 m_id{0};
+    quint8 m_qos{0};
+    bool m_duplicate{false};
+    bool m_retain{false};
+};
+
+/*!
+    Creates a new MQTT message.
+*/
+QMqttMessage::QMqttMessage()
+    : d(new QMqttMessagePrivate())
+{
+}
+
+/*!
+    Constructs a new MQTT message that is a copy of \a other.
+*/
+QMqttMessage::QMqttMessage(const QMqttMessage &other)
+    : d(other.d)
+{
+}
+
+QMqttMessage::~QMqttMessage()
+{
+}
+
+/*!
+    Makes this object a copy of \a other and returns the new value of this object.
+*/
+QMqttMessage &QMqttMessage::operator=(const QMqttMessage &other)
+{
+    d = other.d;
+    return *this;
+}
+
+/*!
+    Returns \c true if the message and \a other are equal, otherwise returns \c false.
+*/
+bool QMqttMessage::operator==(const QMqttMessage &other) const
+{
+    return d == other.d;
+}
+
+/*!
+    Returns \c true if the message and \a other are not equal, otherwise returns \c false.
+*/
+bool QMqttMessage::operator!=(const QMqttMessage &other) const
+{
+    return !(*this == other);
+}
+
+const QByteArray &QMqttMessage::payload() const
+{
+    return d->m_payload;
 }
 
 quint8 QMqttMessage::qos() const
 {
-    return m_qos;
+    return d->m_qos;
 }
 
 quint16 QMqttMessage::id() const
 {
-    return m_id;
+    return d->m_id;
 }
 
-QString QMqttMessage::topic() const
+QMqttTopicName QMqttMessage::topic() const
 {
-    return m_topic;
+    return d->m_topic;
 }
 
 bool QMqttMessage::duplicate() const
 {
-    return m_duplicate;
+    return d->m_duplicate;
 }
 
 bool QMqttMessage::retain() const
 {
-    return m_retain;
+    return d->m_retain;
 }
 
-QMqttMessage::QMqttMessage(const QString &topic, const QByteArray &content, quint16 id, quint8 qos, bool dup, bool retain)
-    : m_topic(topic)
-    , m_payload(content)
-    , m_id(id)
-    , m_qos(qos)
-    , m_duplicate(dup)
-    , m_retain(retain)
+/*!
+    \internal
+    Constructs a new MQTT message with \a content on the topic \a topic.
+    Furthermore the properties \a id, \a qos, \a dup, \a retain must be specified.
+
+    This constructor is mostly used internally to construct a QMqttMessage at message
+    receival.
+*/
+QMqttMessage::QMqttMessage(const QMqttTopicName &topic, const QByteArray &content, quint16 id, quint8 qos, bool dup, bool retain)
+    : d(new QMqttMessagePrivate)
 {
+    d->m_topic = topic;
+    d->m_payload = content;
+    d->m_id = id;
+    d->m_qos = qos;
+    d->m_duplicate = dup;
+    d->m_retain = retain;
 }
 
 QT_END_NAMESPACE
