@@ -85,6 +85,7 @@ QIODevice *QMqttConnection::transport() const
 
 bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 {
+    Q_UNUSED(createSecureIfNeeded); // QT_NO_SSL
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transport;
 
     if (m_transport) {
