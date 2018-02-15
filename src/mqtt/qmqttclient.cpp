@@ -443,10 +443,17 @@ void QMqttClient::disconnectFromHost()
 {
     Q_D(QMqttClient);
 
-    if (d->m_connection.internalState() != QMqttConnection::BrokerConnected)
+    switch (d->m_connection.internalState()) {
+    case QMqttConnection::BrokerConnected:
+        d->m_connection.sendControlDisconnect();
+    case QMqttConnection::BrokerDisconnected:
         return;
-
-    d->m_connection.sendControlDisconnect();
+    case QMqttConnection::BrokerConnecting:
+    case QMqttConnection::BrokerWaitForConnectAck:
+    default:
+        d->m_connection.m_transport->close();
+        break;
+    }
 }
 
 QMqttClient::ClientState QMqttClient::state() const
