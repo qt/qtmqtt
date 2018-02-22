@@ -76,4 +76,12 @@
     \list
          \li \l{Qt MQTT C++ Classes}{C++ Classes}
     \endlist
+
+    \section1 Licenses and Attributions
+
+    Qt MQTT is available under commercial licenses from \l{The Qt Company}.
+    In addition, it is available under the
+    the \l{GNU General Public License, version 3}.
+
+    \generatelist{groupsbymodule attributions-qtmqtt}
 */
