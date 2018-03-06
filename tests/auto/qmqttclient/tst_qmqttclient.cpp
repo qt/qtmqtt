@@ -395,7 +395,7 @@ class FakeServer : public QObject
     Q_OBJECT
 public:
     FakeServer() {
-        server = new QTcpServer();
+        server = new QTcpServer(this);
         connect(server, &QTcpServer::newConnection, this, &FakeServer::createSocket);
         server->listen(QHostAddress::Any, 5726);
     }
