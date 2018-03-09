@@ -126,7 +126,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
 
     if (m_transportType == QMqttClient::IODevice) {
         if (m_transport->isOpen())
-            return true;
+            return sendControlConnect();
 
         if (!m_transport->open(QIODevice::ReadWrite)) {
             qWarning("Could not open Transport IO device");

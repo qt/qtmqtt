@@ -57,6 +57,7 @@ private Q_SLOTS:
     void dataIncludingZero();
     void publishLongTopic();
     void reconnect_QTBUG65726();
+    void openIODevice_QTBUG66955();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -445,6 +446,41 @@ void Tst_QMqttClient::reconnect_QTBUG65726()
     client.connectToHost();
     QTRY_COMPARE(client.state(), QMqttClient::Connected);
     QTRY_COMPARE(client.error(), QMqttClient::NoError);
+}
+
+class IOTransport : public QIODevice
+{
+public:
+    bool open(OpenMode mode) override {
+        return QIODevice::open(mode);
+    }
+    qint64 readData(char *data, qint64 maxlen) override {
+        Q_UNUSED(data);
+        Q_UNUSED(maxlen);
+        return 0;
+    }
+    qint64 writeData(const char *data, qint64 len) override {
+        Q_UNUSED(data);
+        Q_UNUSED(len);
+        if (data[0] == 0x10)
+            written = 1;
+        else
+            qWarning() << "Received unknown/invalid data";
+        return len;
+    }
+    QAtomicInt written{0};
+};
+
+void Tst_QMqttClient::openIODevice_QTBUG66955()
+{
+    IOTransport trans;
+    trans.open(QIODevice::ReadWrite);
+
+    QMqttClient client;
+    client.setTransport(&trans, QMqttClient::IODevice);
+    client.connectToHost();
+
+    QTRY_COMPARE(trans.written, 1);
 }
 
 QTEST_MAIN(Tst_QMqttClient)
