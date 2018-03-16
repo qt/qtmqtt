@@ -85,6 +85,7 @@ QIODevice *QMqttConnection::transport() const
 
 bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 {
+    Q_UNUSED(createSecureIfNeeded); // QT_NO_SSL
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << m_transport;
 
     if (m_transport) {
@@ -125,7 +126,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
 
     if (m_transportType == QMqttClient::IODevice) {
         if (m_transport->isOpen())
-            return true;
+            return sendControlConnect();
 
         if (!m_transport->open(QIODevice::ReadWrite)) {
             qWarning("Could not open Transport IO device");
