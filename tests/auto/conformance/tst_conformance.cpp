@@ -101,13 +101,19 @@ void Tst_MqttConformance::basic_test()
 
     const QString topic(QLatin1String("Qt/conformance"));
 
-    auto sub = client.subscribe(topic, 2);
+    auto sub = client.subscribe(topic, 1);
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe");
 
     int msgCount = 0;
     connect(sub, &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage msg) {
         qDebug() << "Message received:" << msg.payload();
         msgCount++;
+    });
+
+    connect(&client, &QMqttClient::messageReceived, this, [](const QByteArray &message, const QMqttTopicName &topic)
+    {
+        Q_UNUSED(message)
+        Q_UNUSED(topic)
     });
 
     client.publish(topic, "qos 0", 0);
@@ -242,7 +248,14 @@ void Tst_MqttConformance::zero_length_clientid_test()
     QVERIFY2(client.state() == QMqttClient::Connecting, "Could not set state to connecting.");
 
     if (!session) {
-        QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Sessions with empty client should not be allowed.");
+        if (client.protocolVersion() == QMqttClient::MQTT_5_0) {
+            // For MQTT 5 the broker creates an ID and returns it in CONNACK
+            QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+            // ### TODO: Enable this check:
+            //QVERIFY(!client.clientId().isEmpty())
+        } else {
+            QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Sessions with empty client should not be allowed.");
+        }
     } else {
         QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
         client.disconnectFromHost();

@@ -579,8 +579,7 @@ void QMqttClient::setProtocolVersion(ProtocolVersion protocolVersion)
     if (d->m_protocolVersion == protocolVersion)
         return;
 
-    // Only MQTT 3 and 4 are supported
-    if (protocolVersion < 3 || protocolVersion > 4)
+    if (protocolVersion < 3 || protocolVersion > 5)
         return;
 
     d->m_protocolVersion = protocolVersion;

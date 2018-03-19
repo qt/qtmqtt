@@ -63,8 +63,6 @@ public:
     QMqttConnection m_connection;
     QString m_clientId; // auto-generated
     quint16 m_keepAlive{60};
-    // 3 == MQTT Standard 3.1
-    // 4 == MQTT Standard 3.1.1
     QMqttClient::ProtocolVersion m_protocolVersion{QMqttClient::MQTT_3_1_1};
     QMqttClient::ClientState m_state{QMqttClient::Disconnected};
     QMqttClient::ClientError m_error{QMqttClient::NoError};

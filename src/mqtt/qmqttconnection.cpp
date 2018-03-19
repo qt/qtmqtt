@@ -188,6 +188,10 @@ bool QMqttConnection::sendControlConnect()
         packet.append("MQTT");
         packet.append(char(4)); // Version 3.1.1
         break;
+    case QMqttClient::MQTT_5_0:
+        packet.append("MQTT");
+        packet.append(char(5)); // Version 5.0
+        break;
     default:
         qCWarning(lcMqttConnection) << "Illegal MQTT Version";
         m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::InvalidProtocolVersion);
@@ -224,6 +228,10 @@ bool QMqttConnection::sendControlConnect()
     // 3.1.2.10 Keep Alive
     packet.append(m_clientPrivate->m_keepAlive);
 
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        packet.append(char(0)); // No properties
+        // ### TODO: Idea is to introduce QMqttConnectionProperties struct
+    }
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
     const QByteArray clientStringArray = m_clientPrivate->m_clientId.toUtf8();
@@ -235,6 +243,11 @@ bool QMqttConnection::sendControlConnect()
     }
 
     if (!m_clientPrivate->m_willMessage.isEmpty()) {
+        if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+            // ### TODO: Add Will properties
+            packet.append(char(0));
+        }
+
         packet.append(m_clientPrivate->m_willTopic.toUtf8());
         packet.append(m_clientPrivate->m_willMessage);
     }
@@ -279,6 +292,12 @@ qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic, const QB
         packet->append(identifier);
         m_pendingMessages.insert(identifier, packet);
     }
+
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        // ### TODO: Add publish properties
+        packet->append(char(0)); // No properties
+    }
+
     packet->appendRaw(message);
 
     const bool written = writePacketToTransport(*packet.data());
@@ -340,6 +359,10 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
 
     packet.append(identifier);
 
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        // ### TODO: Add properties
+        packet.append(char(0)); // No properties
+    }
     // Overflow protection
     if (!topic.isValid()) {
         qWarning("Subscribed topic filter is not valid.");
@@ -574,8 +597,13 @@ QByteArray QMqttConnection::readBuffer(qint64 size)
 void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
+
+    qint64 variableLength = m_missingData;
+
     quint8 ackFlags;
     readBuffer((char*)&ackFlags, 1);
+
+    variableLength--;
     if (ackFlags > 1) { // MQTT-3.2.2.1
         qWarning("Unexpected CONNACK Flags set");
         closeConnection(QMqttClient::ProtocolViolation);
@@ -596,6 +624,7 @@ void QMqttConnection::finalize_connack()
 
     quint8 connectResultValue;
     readBuffer((char*)&connectResultValue, 1);
+    variableLength--;
     if (connectResultValue != 0) {
         qWarning("Connection has been rejected");
         // MQTT-3.2.2-5
@@ -606,6 +635,13 @@ void QMqttConnection::finalize_connack()
         m_clientPrivate->setStateAndError(QMqttClient::Disconnected, static_cast<QMqttClient::ClientError>(connectResultValue));
         return;
     }
+
+    // MQTT 5.0 has variable part != 2 in the header
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        readBuffer(variableLength);
+        // ### TODO: Read variable content / connectionProperties
+    }
+
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
 
@@ -622,7 +658,15 @@ void QMqttConnection::finalize_suback()
         qWarning("Received SUBACK for unknown subscription request");
         return;
     }
+
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        // ### TODO: SubAck Properties
+        const quint32 propertySize = readVariableByteInteger();
+        readBuffer(propertySize);
+        m_missingData = 0;
+    }
     quint8 result;
+    // ### TODO: In MQTT5 this might be a list of reason codes, not just granted QoS, see 3.9.3
     readBuffer((char*)&result, 1);
     auto sub = m_pendingSubscriptionAck.take(id);
     qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << result;
@@ -669,6 +713,17 @@ void QMqttConnection::finalize_publish()
         id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
     }
 
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        quint8 propertyLength;
+        readBuffer(reinterpret_cast<char *>(&propertyLength), 1);
+        m_missingData -= 1;
+        // ### TODO: Handle publish properties
+        if (propertyLength > 0) {
+            readBuffer(propertyLength);
+            m_missingData -= propertyLength;
+        }
+    }
+
     // message
     qint64 payloadLength = m_missingData - (topicLength + 2) - (m_currentPublish.qos > 0 ? 2 : 0);
     const QByteArray message = readBuffer(payloadLength);
@@ -698,7 +753,21 @@ void QMqttConnection::finalize_pubAckRecComp()
     quint16 id;
     readBuffer((char*)&id, 2);
     id = qFromBigEndian<quint16>(id);
+    m_missingData -= 2;
 
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
+        // Reason Code (1byte)
+        quint8 reasonCode;
+        readBuffer(reinterpret_cast<char *>(&reasonCode), 1);
+        m_missingData--;
+        // Property Length (Variable Int)
+        qint32 byteCount = 0;
+        const qint32 propertyLength = readVariableByteInteger(&byteCount);
+        m_missingData -= byteCount;
+        // ### TODO: Publish ACK/REC/COMP property handling
+        if (propertyLength > 0)
+            readBuffer(propertyLength);
+    }
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBCOMP) {
         qCDebug(lcMqttConnectionVerbose) << " PUBCOMP:" << id;
         auto pendingRelease = m_pendingReleaseMessages.take(id);
@@ -822,12 +891,14 @@ void QMqttConnection::processData()
 
         quint8 payloadSize;
         readBuffer((char*)&payloadSize, 1);
-        if (payloadSize != 2) {
-            qWarning("Unexpected FRAME size in CONNACK");
-            closeConnection(QMqttClient::ProtocolViolation);
-            return;
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            if (payloadSize != 2) {
+                qWarning("Unexpected FRAME size in CONNACK");
+                closeConnection(QMqttClient::ProtocolViolation);
+                return;
+            }
         }
-        m_missingData = 2;
+        m_missingData = payloadSize;
         break;
     }
     case QMqttControlPacket::SUBACK: {
@@ -887,14 +958,14 @@ void QMqttConnection::processData()
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
-        char remaining;
-        readBuffer(&remaining, 1);
-        if (remaining != 0x02) {
+        quint8 remaining;
+        readBuffer(reinterpret_cast<char *>(&remaining), 1);
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0 && remaining != 0x02) {
             qWarning("Received 2 byte message with invalid remaining length");
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
-        m_missingData = 2;
+        m_missingData = remaining;
         break;
     }
     default:
