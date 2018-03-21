@@ -116,6 +116,7 @@ private:
     void finalize_pingresp();
     void processData();
     void readBuffer(char *data, qint64 size);
+    qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(qint64 size);
     QByteArray m_readBuffer;

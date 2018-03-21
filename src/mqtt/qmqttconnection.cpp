@@ -529,6 +529,30 @@ void QMqttConnection::readBuffer(char *data, qint64 size)
     m_readBuffer = m_readBuffer.mid(size);
 }
 
+qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
+{
+    quint32 multiplier = 1;
+    quint32 msgLength = 0;
+    quint8 b = 0;
+    quint8 iteration = 0;
+    if (byteCount)
+        *byteCount = 0;
+    do {
+        readBuffer((char*)&b, 1);
+        msgLength += (b & 127) * multiplier;
+        multiplier *= 128;
+        iteration++;
+        if (iteration > 4) {
+            qWarning("Publish message is too big to handle");
+            closeConnection(QMqttClient::ProtocolViolation);
+            return -1;
+        }
+    } while ((b & 128) != 0);
+    if (byteCount)
+        *byteCount += iteration;
+    return msgLength;
+}
+
 void QMqttConnection::closeConnection(QMqttClient::ClientError error)
 {
     m_readBuffer.clear();
@@ -824,23 +848,9 @@ void QMqttConnection::processData()
             return;
         }
 
-        // remaining length
-        quint32 multiplier = 1;
-        quint32 msgLength = 0;
-        quint8 b = 0;
-        quint8 iteration = 0;
-        do {
-            readBuffer((char*)&b, 1);
-            msgLength += (b & 127) * multiplier;
-            multiplier *= 128;
-            iteration++;
-            if (iteration > 4) {
-                qWarning("Publish message is too big to handle");
-                closeConnection(QMqttClient::ProtocolViolation);
-                return;
-            }
-        } while ((b & 128) != 0);
-        m_missingData = msgLength;
+        m_missingData = readVariableByteInteger();
+        if (m_missingData == -1)
+            return; // Connection closed inside readVariableByteInteger
         break;
     }
     case QMqttControlPacket::PINGRESP:
