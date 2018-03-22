@@ -28,6 +28,7 @@
 ******************************************************************************/
 
 #include "qmqttconnection_p.h"
+#include "qmqttconnectionproperties_p.h"
 #include "qmqttcontrolpacket_p.h"
 #include "qmqttsubscription_p.h"
 #include "qmqttclient_p.h"
@@ -228,10 +229,9 @@ bool QMqttConnection::sendControlConnect()
     // 3.1.2.10 Keep Alive
     packet.append(m_clientPrivate->m_keepAlive);
 
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        packet.append(char(0)); // No properties
-        // ### TODO: Idea is to introduce QMqttConnectionProperties struct
-    }
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+        packet.appendRaw(writeConnectProperties());
+
     // 3.1.3 Payload
     // 3.1.3.1 Client Identifier
     const QByteArray clientStringArray = m_clientPrivate->m_clientId.toUtf8();
@@ -594,16 +594,265 @@ QByteArray QMqttConnection::readBuffer(qint64 size)
     return res;
 }
 
+void QMqttConnection::readConnackProperties()
+{
+    qint32 propertyLength = readVariableByteInteger();
+    m_missingData = 0;
+
+    QMqttServerConnectionProperties serverProperties;
+    serverProperties.serverData->valid = true;
+
+    while (propertyLength > 0) {
+        char propertyId = 0;
+        readBuffer(&propertyId, 1);
+        propertyLength--;
+        switch (propertyId) {
+        case 0x11: { // 3.2.2.3.2 Session Expiry Interval
+            char data[4];
+            readBuffer(data, 4);
+            propertyLength -= 4;
+            quint32 expiryInterval = qFromBigEndian<quint32>(data);
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::SessionExpiryInterval;
+            serverProperties.setSessionExpiryInterval(expiryInterval);
+            break;
+        }
+        case 0x21: { // 3.2.2.3.3 Receive Maximum
+            const quint16 receiveMaximum = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumReceive;
+            serverProperties.setMaximumReceive(receiveMaximum);
+            break;
+        }
+        case 0x24: { // 3.2.2.3.4 Maximum QoS Level
+            quint8 maxQoS;
+            readBuffer(reinterpret_cast<char *>(&maxQoS), 1);
+            propertyLength--;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumQoS;
+            serverProperties.serverData->maximumQoS = maxQoS;
+            break;
+        }
+        case 0x25: { // 3.2.2.3.5 Retain available
+            quint8 retainAvailable;
+            readBuffer(reinterpret_cast<char *>(&retainAvailable), 1);
+            propertyLength--;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
+            serverProperties.serverData->retainAvailable = retainAvailable == 1 ? true : false;
+            break;
+        }
+        case 0x27: { // 3.2.2.3.6 Maximum packet size
+            char data[4];
+            readBuffer(data, 4);
+            propertyLength -= 4;
+            quint32 maxPacketSize = qFromBigEndian<quint32>(data);
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumPacketSize;
+            serverProperties.setMaximumPacketSize(maxPacketSize);
+            break;
+        }
+        case 0x12: { // 3.2.2.3.7 Assigned clientId
+            const quint16 idLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString assignedClientId = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(idLength).constData()));
+            propertyLength -= idLength;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
+            m_clientPrivate->m_client->setClientId(assignedClientId);
+            break;
+        }
+        case 0x22: { // 3.2.2.3.8 Topic Alias Maximum
+            const quint16 topicAliasMaximum = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumTopicAlias;
+            serverProperties.setMaximumTopicAlias(topicAliasMaximum);
+            break;
+        }
+        case 0x1F: { // 3.2.2.3.9 Reason String
+            const quint16 reasonLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString reasonString = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(reasonLength).constData()));
+            propertyLength -= reasonLength;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::ReasonString;
+            serverProperties.serverData->reasonString = reasonString;
+            break;
+        }
+        case 0x26: { // 3.2.2.3.10 User property
+            const quint16 propertyNameLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString propertyName = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyNameLength).constData()));
+            propertyLength -= propertyNameLength;
+
+            const quint16 propertyValueLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString propertyValue = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyValueLength).constData()));
+            propertyLength -= propertyValueLength;
+
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::UserProperty;
+            serverProperties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            break;
+        }
+        case 0x28: { // 3.2.2.3.11 Wildcard subscriptions available
+            char available;
+            readBuffer(&available, 1);
+            propertyLength--;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
+            serverProperties.serverData->wildcardSupported = available == 1 ? true : false;
+            break;
+        }
+        case 0x29: { // 3.2.2.3.12 Subscription identifiers available
+            char available;
+            readBuffer(&available, 1);
+            propertyLength--;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
+            serverProperties.serverData->subscriptionIdentifierSupported = available == 1 ? true : false;
+            break;
+        }
+        case 0x2A: { // 3.2.2.3.13 Shared subscriptions available
+            char available;
+            readBuffer(&available, 1);
+            propertyLength--;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
+            serverProperties.serverData->sharedSubscriptionSupported = available == 1 ? true : false;
+            break;
+        }
+        case 0x13: { // 3.2.2.3.14 Server Keep Alive
+            const quint16 serverKeepAlive = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerKeepAlive;
+            m_clientPrivate->m_client->setKeepAlive(serverKeepAlive);
+            break;
+        }
+        case 0x1A: { // 3.2.2.3.15 Response information
+            const quint16 responseInfoLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString responseInfo = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(responseInfoLength).constData()));
+            propertyLength -= responseInfoLength;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::ResponseInformation;
+            serverProperties.serverData->responseInformation = responseInfo;
+            break;
+        }
+        case 0x1C: { // 3.2.2.3.16 Server reference
+            const quint16 serverReferenceLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString serverReference = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(serverReferenceLength).constData()));
+            propertyLength -= serverReferenceLength;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerReference;
+            serverProperties.serverData->serverReference = serverReference;
+            break;
+        }
+        case 0x15: { // 3.2.2.3.17 Authentication method
+            const quint16 methodLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString method = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(methodLength).constData()));
+            propertyLength -= methodLength;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationMethod;
+            serverProperties.data->authenticationMethod = method;
+            break;
+        }
+        case 0x16: { // 3.2.2.3.18 Authentication data
+            const quint16 dataLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QByteArray data = readBuffer(dataLength);
+            propertyLength -= dataLength;
+            serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationData;
+            serverProperties.data->authenticationData = data;
+            break;
+        }
+        default:
+            qWarning("Unknown property id in CONNACK.");
+            break;
+        }
+    }
+    m_clientPrivate->m_serverConnectionProperties = serverProperties;
+}
+
+QByteArray QMqttConnection::writeConnectProperties()
+{
+    QMqttControlPacket properties;
+
+    // According to MQTT5 3.1.2.11 default values do not need to be included in the
+    // connect statement.
+
+    // 3.1.2.11.2
+    if (m_clientPrivate->m_connectionProperties.sessionExpiryInterval() != 0) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify sessionExpiryInterval";
+        properties.append(char(0x11));
+        properties.append(m_clientPrivate->m_connectionProperties.sessionExpiryInterval());
+    }
+
+    // 3.1.2.11.3
+    if (m_clientPrivate->m_connectionProperties.maximumReceive() != 65535) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify maximumReceive";
+        properties.append(char(0x21));
+        properties.append(m_clientPrivate->m_connectionProperties.maximumReceive());
+    }
+
+    // 3.1.2.11.4
+    if (m_clientPrivate->m_connectionProperties.maximumPacketSize() != std::numeric_limits<quint32>::max()) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify maximumPacketSize";
+        properties.append(char(0x27));
+        properties.append(m_clientPrivate->m_connectionProperties.maximumPacketSize());
+    }
+
+    // 3.1.2.11.5
+    if (m_clientPrivate->m_connectionProperties.maximumTopicAlias() != 0) {
+        // ### TODO: Verify this works, previous test server versions did set it to 2 if no value
+        // specified
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify maximumTopicAlias";
+        properties.append(char(0x22));
+        properties.append(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
+    }
+
+    // 3.1.2.11.6
+    if (m_clientPrivate->m_connectionProperties.requestResponseInformation()) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify requestResponseInformation";
+        properties.append(char(0x19));
+        properties.append(char(1));
+    }
+
+    // 3.1.2.11.7
+    if (!m_clientPrivate->m_connectionProperties.requestProblemInformation()) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify requestProblemInformation";
+        properties.append(char(0x17));
+        properties.append(char(0));
+    }
+
+    // 3.1.2.11.8 Add User properties
+    auto userProperties = m_clientPrivate->m_connectionProperties.userProperties();
+    if (!userProperties.isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify user properties";
+        for (auto it = userProperties.constBegin();
+             it != userProperties.end(); ++it) {
+            properties.append(char(0x26));
+            properties.append(it->name().toUtf8());
+            properties.append(it->value().toUtf8());
+        }
+    }
+
+    // 3.1.2.11.9 Add Authentication
+    const QString authenticationMethod = m_clientPrivate->m_connectionProperties.authenticationMethod();
+    if (!authenticationMethod.isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify AuthenticationMethod:";
+        qCDebug(lcMqttConnectionVerbose) << "    " << authenticationMethod;
+        properties.append(char(0x15));
+        properties.append(authenticationMethod.toUtf8());
+        // 3.1.2.11.10
+        const QByteArray authenticationData = m_clientPrivate->m_connectionProperties.authenticationData();
+        if (!authenticationData.isEmpty()) {
+            qCDebug(lcMqttConnectionVerbose) << "Connection Properties: Authentication Data:";
+            qCDebug(lcMqttConnectionVerbose) << "    " << authenticationData;
+            properties.append(char(0x16));
+            properties.append(authenticationData);
+        }
+    }
+
+    return properties.serializePayload();
+}
+
 void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
 
-    qint64 variableLength = m_missingData;
-
     quint8 ackFlags;
     readBuffer((char*)&ackFlags, 1);
 
-    variableLength--;
     if (ackFlags > 1) { // MQTT-3.2.2.1
         qWarning("Unexpected CONNACK Flags set");
         closeConnection(QMqttClient::ProtocolViolation);
@@ -624,7 +873,6 @@ void QMqttConnection::finalize_connack()
 
     quint8 connectResultValue;
     readBuffer((char*)&connectResultValue, 1);
-    variableLength--;
     if (connectResultValue != 0) {
         qWarning("Connection has been rejected");
         // MQTT-3.2.2-5
@@ -637,10 +885,8 @@ void QMqttConnection::finalize_connack()
     }
 
     // MQTT 5.0 has variable part != 2 in the header
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        readBuffer(variableLength);
-        // ### TODO: Read variable content / connectionProperties
-    }
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+        readConnackProperties();
 
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
@@ -889,8 +1135,7 @@ void QMqttConnection::processData()
             return;
         }
 
-        quint8 payloadSize;
-        readBuffer((char*)&payloadSize, 1);
+        qint32 payloadSize = readVariableByteInteger();
         if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
             if (payloadSize != 2) {
                 qWarning("Unexpected FRAME size in CONNACK");

@@ -117,6 +117,8 @@ private:
     void processData();
     void readBuffer(char *data, qint64 size);
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
+    void readConnackProperties();
+    QByteArray writeConnectProperties();
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(qint64 size);
     QByteArray m_readBuffer;

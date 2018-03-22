@@ -504,6 +504,24 @@ bool QMqttClient::willRetain() const
     return d->m_willRetain;
 }
 
+void QMqttClient::setConnectionProperties(const QMqttConnectionProperties &prop)
+{
+    Q_D(QMqttClient);
+    d->m_connectionProperties = prop;
+}
+
+QMqttConnectionProperties QMqttClient::connectionProperties() const
+{
+    Q_D(const QMqttClient);
+    return d->m_connectionProperties;
+}
+
+QMqttServerConnectionProperties QMqttClient::serverConnectionProperties() const
+{
+    Q_D(const QMqttClient);
+    return d->m_serverConnectionProperties;
+}
+
 QMqttClient::ClientError QMqttClient::error() const
 {
     Q_D(const QMqttClient);

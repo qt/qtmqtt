@@ -31,6 +31,7 @@
 #define QTMQTTCLIENT_H
 
 #include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/qmqttconnectionproperties.h>
 #include <QtMqtt/qmqttsubscription.h>
 #include <QtMqtt/qmqtttopicfilter.h>
 
@@ -130,6 +131,10 @@ public:
     QByteArray willMessage() const;
     bool willRetain() const;
 
+    void setConnectionProperties(const QMqttConnectionProperties &prop);
+    QMqttConnectionProperties connectionProperties() const;
+
+    QMqttServerConnectionProperties serverConnectionProperties() const;
 Q_SIGNALS:
     void connected();
     void disconnected();

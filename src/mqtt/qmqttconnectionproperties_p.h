@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtMqtt module.
@@ -27,8 +27,8 @@
 **
 ******************************************************************************/
 
-#ifndef QMQTTCLIENT_P_H
-#define QMQTTCLIENT_P_H
+#ifndef QMQTTCONNECTIONPROPERTIES_P_H
+#define QMQTTCONNECTIONPROPERTIES_P_H
 
 //
 //  W A R N I N G
@@ -41,41 +41,40 @@
 // We mean it.
 //
 
-#include "qmqttclient.h"
-#include "qmqttconnection_p.h"
-
-#include <QtNetwork/QAbstractSocket>
-
-#include <private/qobject_p.h>
+#include "qmqttconnectionproperties.h"
 
 QT_BEGIN_NAMESPACE
 
-class QMqttClientPrivate : public QObjectPrivate
+class QMqttConnectionPropertiesData : public QSharedData
 {
-    Q_DECLARE_PUBLIC(QMqttClient)
 public:
-    QMqttClientPrivate(QMqttClient *c);
-    ~QMqttClientPrivate() override;
-    void setStateAndError(QMqttClient::ClientState s, QMqttClient::ClientError e = QMqttClient::NoError);
-    QMqttClient *m_client{nullptr};
-    QString m_hostname;
-    quint16 m_port{0};
-    QMqttConnection m_connection;
-    QString m_clientId; // auto-generated
-    quint16 m_keepAlive{60};
-    QMqttClient::ProtocolVersion m_protocolVersion{QMqttClient::MQTT_3_1_1};
-    QMqttClient::ClientState m_state{QMqttClient::Disconnected};
-    QMqttClient::ClientError m_error{QMqttClient::NoError};
-    QString m_willTopic;
-    QByteArray m_willMessage;
-    quint8 m_willQoS{0};
-    bool m_willRetain{false};
-    QString m_username;
-    QString m_password;
-    bool m_cleanSession{true};
-    QMqttConnectionProperties m_connectionProperties;
-    QMqttServerConnectionProperties m_serverConnectionProperties;
+    QMqttUserProperties userProperties;
+    QString authenticationMethod;
+    QByteArray authenticationData;
+    quint32 sessionExpiryInterval{0};
+    quint32 maximumPacketSize{std::numeric_limits<quint32>::max()};
+    quint16 maximumReceive{65535};
+    quint16 maximumTopicAlias{0};
+    bool requestResponseInformation{false};
+    bool requestProblemInformation{true};
+};
+
+class QMqttServerConnectionPropertiesData : public QSharedData
+{
+public:
+    QMqttServerConnectionProperties::ServerPropertyDetails details{0};
+    QString reasonString;
+    QString responseInformation;
+    QString serverReference;
+    quint16 serverKeepAlive{0};
+    quint8 maximumQoS{2};
+    bool valid{false}; // Only set to true after CONNACK
+    bool retainAvailable{true};
+    bool wildcardSupported{true};
+    bool subscriptionIdentifierSupported{true};
+    bool sharedSubscriptionSupported{true};
 };
 
 QT_END_NAMESPACE
-#endif // QMQTTCLIENT_P_H
+
+#endif // QMQTTCONNECTIONPROPERTIES_P_H

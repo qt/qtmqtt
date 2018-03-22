@@ -10,6 +10,7 @@ QMAKE_DOCS = $$PWD/doc/qtmqtt.qdocconf
 PUBLIC_HEADERS += \
     qmqttglobal.h \
     qmqttclient.h \
+    qmqttconnectionproperties.h \
     qmqttmessage.h \
     qmqttsubscription.h \
     qmqtttopicfilter.h \
@@ -19,12 +20,14 @@ PUBLIC_HEADERS += \
 PRIVATE_HEADERS += \
     qmqttclient_p.h \
     qmqttconnection_p.h \
+    qmqttconnectionproperties_p.h \
     qmqttcontrolpacket_p.h \
     qmqttsubscription_p.h
 
 SOURCES += \
     qmqttclient.cpp \
     qmqttconnection.cpp \
+    qmqttconnectionproperties.cpp \
     qmqttcontrolpacket.cpp \
     qmqttmessage.cpp \
     qmqttsubscription.cpp \
