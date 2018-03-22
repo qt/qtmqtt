@@ -77,6 +77,16 @@ void QMqttControlPacket::append(quint16 value)
     m_payload.append(msb_c[1]);
 }
 
+void QMqttControlPacket::append(quint32 value)
+{
+    const quint32 msb = qToBigEndian<quint32>(value);
+    const char * msb_c = reinterpret_cast<const char*>(&msb);
+    m_payload.append(msb_c[0]);
+    m_payload.append(msb_c[1]);
+    m_payload.append(msb_c[2]);
+    m_payload.append(msb_c[3]);
+}
+
 void QMqttControlPacket::append(const QByteArray &data)
 {
     append(static_cast<quint16>(data.size()));
@@ -94,6 +104,14 @@ QByteArray QMqttControlPacket::serialize() const
     QByteArray data;
     // Add Header
     data.append(char(m_header));
+    data.append(serializePayload());
+
+    return data;
+}
+
+QByteArray QMqttControlPacket::serializePayload() const
+{
+    QByteArray data;
     // Add length
     quint32 msgSize = m_payload.size();
     if (msgSize > 268435455) // 0xFFFFFF7F
@@ -107,7 +125,6 @@ QByteArray QMqttControlPacket::serialize() const
     } while (msgSize > 0);
     // Add payload
     data.append(m_payload);
-
     return data;
 }
 

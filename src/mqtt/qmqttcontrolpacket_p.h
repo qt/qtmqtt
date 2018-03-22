@@ -79,10 +79,12 @@ public:
 
     void append(char value);
     void append(quint16 value);
+    void append(quint32 value);
     void append(const QByteArray &data);
     void appendRaw(const QByteArray &data);
 
     QByteArray serialize() const;
+    QByteArray serializePayload() const;
     inline QByteArray payload() const { return m_payload; }
 private:
     quint8 m_header{UNKNOWN};
