@@ -29,6 +29,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QProcess>
 #include <QtCore/QString>
+#include <QtMqtt/QMqttClient>
 #include <QtNetwork/QTcpSocket>
 #include <QtTest/QTest>
 
@@ -97,4 +98,15 @@ QString invokeOrInitializeBroker(QProcess *gBrokerProcess)
 
     qWarning("Could not launch MQTT test broker.");
     return QString();
+}
+
+Q_DECLARE_METATYPE(QMqttClient::ProtocolVersion)
+#define VersionClient(MQTTVERSION, CLIENTNAME) QMqttClient CLIENTNAME; CLIENTNAME.setProtocolVersion(MQTTVERSION)
+
+#define DefaultVersionTestData(FUNCTION) \
+void FUNCTION() \
+{ \
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion"); \
+    QTest::newRow("V3.1.1") << QMqttClient::MQTT_3_1_1; \
+    QTest::newRow("V5.0.0") << QMqttClient::MQTT_5_0; \
 }

@@ -50,15 +50,19 @@ private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
 
+    void basic_test_data();
     void basic_test();
     void retained_message_test_data();
     void retained_message_test();
+    void will_message_test_data();
     void will_message_test();
     void zero_length_clientid_test_data();
     void zero_length_clientid_test();
+    void offline_message_queueing_test_data();
     void offline_message_queueing_test();
     // overlapping_subscriptions_test // Skipped at the module emits multiple messages for each sub
     // keepalive_test // The module handles sending ping requests
+    void subscribe_failure_test_data();
     void subscribe_failure_test();
 private:
     QProcess m_brokerProcess;
@@ -83,9 +87,13 @@ void Tst_MqttConformance::cleanupTestCase()
 {
 }
 
+DefaultVersionTestData(Tst_MqttConformance::basic_test_data)
+
 void Tst_MqttConformance::basic_test()
 {
-    QMqttClient client;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
@@ -95,6 +103,13 @@ void Tst_MqttConformance::basic_test()
 
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect from broker");
+
+    // The MQTT 5 broker might provide topic alias by default. Hence, disable it.
+    if (mqttVersion == QMqttClient::MQTT_5_0) {
+        QMqttConnectionProperties p;
+        p.setMaximumTopicAlias(0);
+        client.setConnectionProperties(p);
+    }
 
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker");
@@ -106,7 +121,6 @@ void Tst_MqttConformance::basic_test()
 
     int msgCount = 0;
     connect(sub, &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage msg) {
-        qDebug() << "Message received:" << msg.payload();
         msgCount++;
     });
 
@@ -132,22 +146,28 @@ void Tst_MqttConformance::basic_test()
 
 void Tst_MqttConformance::retained_message_test_data()
 {
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
     QTest::addColumn<QStringList>("messages");
     QTest::addColumn<int>("expectedMsgCount");
 
-    const QStringList topics1{"qos 0", "qos 1", "qos 2"};
-    const QStringList topics2{"", "", ""};
+    QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
 
-    QTest::newRow("receiveRetain") << topics1 << 3;
-    QTest::newRow("clearRetain") << topics2 << 0;
+    for (int i = 0; i < 2; ++i) {
+        const QStringList topics1{"qos 0", "qos 1", "qos 2"};
+        const QStringList topics2{"", "", ""};
+
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":receiveRetain")) << versions[i] << topics1 << 3;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":clearRetain")) << versions[i] << topics2 << 0;
+    }
 }
 
 void Tst_MqttConformance::retained_message_test()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
     QFETCH(QStringList, messages);
     QFETCH(int, expectedMsgCount);
 
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
@@ -187,9 +207,13 @@ void Tst_MqttConformance::retained_message_test()
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect");
 }
 
+DefaultVersionTestData(Tst_MqttConformance::will_message_test_data)
+
 void Tst_MqttConformance::will_message_test()
 {
-    QMqttClient client;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
@@ -205,7 +229,7 @@ void Tst_MqttConformance::will_message_test()
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker");
 
 
-    QMqttClient recipient;
+    VersionClient(mqttVersion, recipient);
     recipient.setHostname(m_testBroker);
     recipient.setPort(m_port);
     recipient.connectToHost();
@@ -227,17 +251,23 @@ void Tst_MqttConformance::will_message_test()
 
 void Tst_MqttConformance::zero_length_clientid_test_data()
 {
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
     QTest::addColumn<bool>("session");
 
-    QTest::newRow("noncleanSession") << false;
-    QTest::newRow("cleanSession") << true;
+    QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
+
+    for (int i = 0; i < 2; ++i) {
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":noncleanSession")) << versions[i] << false;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":cleanSession")) << versions[i] << true;
+    }
 }
 
 void Tst_MqttConformance::zero_length_clientid_test()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
     QFETCH(bool, session);
 
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
@@ -263,9 +293,12 @@ void Tst_MqttConformance::zero_length_clientid_test()
     }
 }
 
+DefaultVersionTestData(Tst_MqttConformance::offline_message_queueing_test_data)
+
 void Tst_MqttConformance::offline_message_queueing_test()
 {
-    QMqttClient client;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
@@ -280,7 +313,7 @@ void Tst_MqttConformance::offline_message_queueing_test()
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect.");
 
-    QMqttClient publisher;
+    VersionClient(mqttVersion, publisher);
     publisher.setHostname(m_testBroker);
     publisher.setPort(m_port);
     publisher.connectToHost();
@@ -300,15 +333,22 @@ void Tst_MqttConformance::offline_message_queueing_test()
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
 
+    // ### TODO: MQTT5 Investigate / Fixme
+    if (client.protocolVersion() == QMqttClient::MQTT_5_0)
+        QEXPECT_FAIL("", "Offline messages seem not supported with MQTT5", Continue);
     QTRY_VERIFY2(receiveCounter.size() == 3, "Did not receive all offline messages.");
 
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect.");
 }
 
+DefaultVersionTestData(Tst_MqttConformance::subscribe_failure_test_data)
+
 void Tst_MqttConformance::subscribe_failure_test()
 {
-    QMqttClient client;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
+    VersionClient(mqttVersion, client);
 
     const QByteArray forbiddenTopic{"nosubscribe"};
     // We do not have a test broker with forbidden topics.

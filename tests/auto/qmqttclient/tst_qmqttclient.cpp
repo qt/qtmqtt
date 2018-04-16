@@ -46,17 +46,25 @@ public:
 private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
+    void getSetCheck_data();
     void getSetCheck();
     void sendReceive_data();
     void sendReceive();
+    void retainMessage_data();
     void retainMessage();
+    void willMessage_data();
     void willMessage();
     void compliantTopic_data();
     void compliantTopic();
+    void subscribeLongTopic_data();
     void subscribeLongTopic();
+    void dataIncludingZero_data();
     void dataIncludingZero();
+    void publishLongTopic_data();
     void publishLongTopic();
+    void reconnect_QTBUG65726_data();
     void reconnect_QTBUG65726();
+    void openIODevice_QTBUG66955_data();
     void openIODevice_QTBUG66955();
 private:
     QProcess m_brokerProcess;
@@ -79,9 +87,12 @@ void Tst_QMqttClient::cleanupTestCase()
 {
 }
 
+DefaultVersionTestData(Tst_QMqttClient::getSetCheck_data)
+
 void Tst_QMqttClient::getSetCheck()
 {
-    QMqttClient client;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+    VersionClient(mqttVersion, client);
 
     QVERIFY(client.clientId().size() > 0);
     const QString clientId = QLatin1String("testclient123");
@@ -101,13 +112,17 @@ void Tst_QMqttClient::getSetCheck()
     client.setKeepAlive(10);
     QCOMPARE(client.keepAlive(), quint16(10));
 
-    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1_1);
-    client.setProtocolVersion(QMqttClient::ProtocolVersion(0));
-    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1_1);
-    client.setProtocolVersion(QMqttClient::ProtocolVersion(5));
-    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1_1);
-    client.setProtocolVersion(QMqttClient::MQTT_3_1);
-    QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1);
+    // Available protocol versions
+    QMqttClient client2;
+    QCOMPARE(client2.protocolVersion(), QMqttClient::MQTT_3_1_1);
+    client2.setProtocolVersion(QMqttClient::ProtocolVersion(0));
+    QCOMPARE(client2.protocolVersion(), QMqttClient::MQTT_3_1_1);
+    client2.setProtocolVersion(QMqttClient::ProtocolVersion(6));
+    QCOMPARE(client2.protocolVersion(), QMqttClient::MQTT_3_1_1);
+    client2.setProtocolVersion(QMqttClient::MQTT_3_1);
+    QCOMPARE(client2.protocolVersion(), QMqttClient::MQTT_3_1);
+    client2.setProtocolVersion(QMqttClient::MQTT_5_0);
+    QCOMPARE(client2.protocolVersion(), QMqttClient::MQTT_5_0);
 
 #ifdef QT_BUILD_INTERNAL
     if (qEnvironmentVariableIsSet("QT_MQTT_TEST_USERNAME"))
@@ -128,22 +143,29 @@ void Tst_QMqttClient::getSetCheck()
 
 void Tst_QMqttClient::sendReceive_data()
 {
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
     QTest::addColumn<QByteArray>("data");
-    QTest::newRow("empty") << QByteArray();
-    QTest::newRow("simple") << QByteArray("This is a test message");
-    QByteArray d;
-    d.fill('A', 500);
-    QTest::newRow("big") << d;
-    d.fill('B', (128 * 128 * 128) + 4);
-    QTest::newRow("huge") << d;
+
+    QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
+
+    for (int i = 0; i < 2; ++i) {
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":empty")) << versions[i] << QByteArray();
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":simple")) << versions[i] << QByteArray("This is a test message");
+        QByteArray d;
+        d.fill('A', 500);
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":big")) << versions[i] << d;
+        d.fill('B', (128 * 128 * 128) + 4);
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":huge")) << versions[i] << d;
+    }
 }
 
 void Tst_QMqttClient::sendReceive()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
     QFETCH(QByteArray, data);
     const QString testTopic = QLatin1String("Topic");
 
-    QMqttClient publisher;
+    VersionClient(mqttVersion, publisher);
     publisher.setClientId(QLatin1String("publisher"));
     publisher.setHostname(m_testBroker);
     publisher.setPort(m_port);
@@ -151,7 +173,7 @@ void Tst_QMqttClient::sendReceive()
     publisher.connectToHost();
     QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
 
-    QMqttClient subscriber;
+    VersionClient(mqttVersion, subscriber);
     subscriber.setClientId(QLatin1String("subscriber"));
     subscriber.setHostname(m_testBroker);
     subscriber.setPort(m_port);
@@ -170,19 +192,26 @@ void Tst_QMqttClient::sendReceive()
 
     QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);
 
+    if (subscriber.protocolVersion() == QMqttClient::MQTT_5_0 &&
+            (quint32)data.size() > subscriber.serverConnectionProperties().maximumPacketSize())
+        QSKIP("The MQTT 5 test broker does not support huge packages.", SkipOnce);
     publisher.publish(testTopic, data, 1);
 
     QTRY_VERIFY2(received, "Subscriber did not receive message");
     QVERIFY2(verified, "Subscriber received different message");
 }
 
+DefaultVersionTestData(Tst_QMqttClient::retainMessage_data)
+
 void Tst_QMqttClient::retainMessage()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
     const QString testTopic = QLatin1String("Topic2");
     const QByteArray testMessage("retainedMessage");
 
     // Publisher
-    QMqttClient publisher;
+    VersionClient(mqttVersion, publisher);
     publisher.setClientId(QLatin1String("publisher"));
     publisher.setHostname(m_testBroker);
     publisher.setPort(m_port);
@@ -205,7 +234,7 @@ void Tst_QMqttClient::retainMessage()
         publisher.publish(testTopic, testMessage, 1, i == 1 ? true : false);
         QTRY_COMPARE(publishSpy.count(), 1);
 
-        QMqttClient sub;
+        VersionClient(mqttVersion, sub);
         sub.setClientId(QLatin1String("SubA"));
         sub.setHostname(m_testBroker);
         sub.setPort(m_port);
@@ -226,13 +255,17 @@ void Tst_QMqttClient::retainMessage()
     publisher.disconnect();
 }
 
+DefaultVersionTestData(Tst_QMqttClient::willMessage_data)
+
 void Tst_QMqttClient::willMessage()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
     const QString willTopic = QLatin1String("will/topic");
     const QByteArray willMessage("The client died....");
 
     // Client A connects
-    QMqttClient client1;
+    VersionClient(mqttVersion, client1);
     client1.setHostname(m_testBroker);
     client1.setPort(m_port);
     client1.connectToHost();
@@ -254,7 +287,7 @@ void Tst_QMqttClient::willMessage()
     QVERIFY(sock.waitForConnected());
 
     for (int i = 1; i > 0; --i) {
-        QMqttClient willClient;
+        VersionClient(mqttVersion, willClient);
         if (i == 1)
             willClient.setTransport(&sock, QMqttClient::AbstractSocket);
         else {
@@ -284,13 +317,21 @@ void Tst_QMqttClient::willMessage()
 
 void Tst_QMqttClient::compliantTopic_data()
 {
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
     QTest::addColumn<QString>("topic");
-    QTest::newRow("simple") << QString::fromLatin1("topic");
-    QTest::newRow("subPath") << QString::fromLatin1("topic/subtopic");
 
-    QString l;
-    l.fill(QLatin1Char('T'), std::numeric_limits<std::uint16_t>::max());
-    QTest::newRow("maxSize") << l;
+    QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
+
+    for (int i = 0; i < 2; ++i) {
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":simple")) << versions[i] << QString::fromLatin1("topic");
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":subPath")) << versions[i] << QString::fromLatin1("topic/subtopic");
+
+        if (versions[i] != QMqttClient::MQTT_5_0) {
+            QString l;
+            l.fill(QLatin1Char('T'), std::numeric_limits<std::uint16_t>::max());
+            QTest::newRow(qPrintable(QString::number(versions[i]) + ":maxSize")) << versions[i] << l;
+        }
+    }
 }
 
 void Tst_QMqttClient::compliantTopic()
@@ -331,9 +372,13 @@ void Tst_QMqttClient::compliantTopic()
     QVERIFY2(verified, "Subscriber received different message");
 }
 
+DefaultVersionTestData(Tst_QMqttClient::subscribeLongTopic_data)
+
 void Tst_QMqttClient::subscribeLongTopic()
 {
-    QMqttClient subscriber;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
+    VersionClient(mqttVersion, subscriber);
     subscriber.setClientId(QLatin1String("subscriber"));
     subscriber.setHostname(m_testBroker);
     subscriber.setPort(m_port);
@@ -347,14 +392,18 @@ void Tst_QMqttClient::subscribeLongTopic()
     QCOMPARE(sub, nullptr);
 }
 
+DefaultVersionTestData(Tst_QMqttClient::dataIncludingZero_data)
+
 void Tst_QMqttClient::dataIncludingZero()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
     QByteArray data;
     const int dataSize = 200;
     data.fill('A', dataSize);
     data[100] = '\0';
 
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
     client.setHostname(m_testBroker);
     client.setPort(m_port);
 
@@ -382,9 +431,13 @@ void Tst_QMqttClient::dataIncludingZero()
     QVERIFY2(correctSize, "Subscriber received message of different size");
 }
 
+DefaultVersionTestData(Tst_QMqttClient::publishLongTopic_data)
+
 void Tst_QMqttClient::publishLongTopic()
 {
-    QMqttClient publisher;
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
+    VersionClient(mqttVersion, publisher);
     publisher.setClientId(QLatin1String("publisher"));
     publisher.setHostname(m_testBroker);
     publisher.setPort(m_port);
@@ -435,11 +488,15 @@ public:
     bool connectionSuccess{false};
 };
 
+DefaultVersionTestData(Tst_QMqttClient::reconnect_QTBUG65726_data)
+
 void Tst_QMqttClient::reconnect_QTBUG65726()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
     FakeServer server;
 
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
     client.setClientId(QLatin1String("bugclient"));
     client.setHostname(QLatin1String("localhost"));
     client.setPort(5726);
@@ -478,12 +535,16 @@ public:
     QAtomicInt written{0};
 };
 
+DefaultVersionTestData(Tst_QMqttClient::openIODevice_QTBUG66955_data)
+
 void Tst_QMqttClient::openIODevice_QTBUG66955()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
     IOTransport trans;
     trans.open(QIODevice::ReadWrite);
 
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
     client.setTransport(&trans, QMqttClient::IODevice);
     client.connectToHost();
 

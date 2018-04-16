@@ -47,6 +47,7 @@ private Q_SLOTS:
     void getSetCheck();
     void wildCards_data();
     void wildCards();
+    void reconnect_data();
     void reconnect();
 private:
     QProcess m_brokerProcess;
@@ -75,35 +76,41 @@ void Tst_QMqttSubscription::getSetCheck()
 
 void Tst_QMqttSubscription::wildCards_data()
 {
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
     QTest::addColumn<QString>("subscription");
     QTest::addColumn<int>("expectedReceival");
 
-    QTest::newRow("#") << "Qt/#" << 6;
-    QTest::newRow("Qt/a/b/c/d/e/f") << "Qt/a/b/c/d/e/f" << 1;
-    QTest::newRow("Qt/+/b/c/d/e/f") << "Qt/+/b/c/d/e/f" << 1;
-    QTest::newRow("Qt/a/+/c/d/e/f") << "Qt/a/+/c/d/e/f" << 1;
-    QTest::newRow("Qt/a/b/+/d/e/f") << "Qt/a/b/+/d/e/f" << 1;
-    QTest::newRow("Qt/a/b/c/+/e/f") << "Qt/a/b/c/+/e/f" << 1;
-    QTest::newRow("Qt/a/b/c/d/+/f") << "Qt/a/b/c/d/+/f" << 1;
-    QTest::newRow("Qt/a/b/c/d/e/+") << "Qt/a/b/c/d/e/+" << 1;
-    QTest::newRow("Qt/+/b/+/d/e/+") << "Qt/+/b/+/d/e/+" << 1;
-    QTest::newRow("Qt/a/+") << "Qt/a/+" << 1;
-    QTest::newRow("Qt/a/+/c") << "Qt/a/+/c" << 1;
+    QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
+
+    for (int i = 0; i < 2; ++i) {
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":#")) << versions[i] << "Qt/#" << 6;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/d/e/f")) << versions[i] << "Qt/a/b/c/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/+/b/c/d/e/f")) << versions[i] << "Qt/+/b/c/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/+/c/d/e/f")) << versions[i] << "Qt/a/+/c/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/+/d/e/f")) << versions[i] << "Qt/a/b/+/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/+/e/f")) << versions[i] << "Qt/a/b/c/+/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/d/+/f")) << versions[i] << "Qt/a/b/c/d/+/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/d/e/+")) << versions[i] << "Qt/a/b/c/d/e/+" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/+/b/+/d/e/+")) << versions[i] << "Qt/+/b/+/d/e/+" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/+")) << versions[i] << "Qt/a/+" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/+/c")) << versions[i] << "Qt/a/+/c" << 1;
+    }
 }
 
 void Tst_QMqttSubscription::wildCards()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
     QFETCH(QString, subscription);
     QFETCH(int, expectedReceival);
 
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
 
-    QMqttClient publisher;
+    VersionClient(mqttVersion, publisher);
     publisher.setHostname(m_testBroker);
     publisher.setPort(m_port);
     publisher.connectToHost();
@@ -142,11 +149,18 @@ void Tst_QMqttSubscription::wildCards()
     QTRY_VERIFY2(publisher.state() == QMqttClient::Disconnected, "Could not disconnect.");
 }
 
+DefaultVersionTestData(Tst_QMqttSubscription::reconnect_data)
+
 void Tst_QMqttSubscription::reconnect()
 {
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+    // ### TODO: Should work with MQTT5, no?
+    if (mqttVersion == QMqttClient::MQTT_5_0)
+        QSKIP("Test does not work with MQTT5");
+
     // QTBUG-64042
     //    - Connect with clean session
-    QMqttClient client;
+    VersionClient(mqttVersion, client);
 
     client.setHostname(m_testBroker);
     client.setPort(m_port);
