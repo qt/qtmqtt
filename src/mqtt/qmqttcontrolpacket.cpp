@@ -98,6 +98,22 @@ void QMqttControlPacket::appendRaw(const QByteArray &data)
     m_payload.append(data);
 }
 
+void QMqttControlPacket::appendRawVariableInteger(quint32 value)
+{
+    QByteArray data;
+    // Add length
+    if (value > 268435455)
+        qWarning("Variable Integer overflow");
+    do {
+        quint8 b = value % 128;
+        value /= 128;
+        if (value > 0)
+            b |= 0x80;
+        data.append(char(b));
+    } while (value > 0);
+    appendRaw(data);
+}
+
 QByteArray QMqttControlPacket::serialize() const
 {
     // Create ByteArray
@@ -114,7 +130,7 @@ QByteArray QMqttControlPacket::serializePayload() const
     QByteArray data;
     // Add length
     quint32 msgSize = m_payload.size();
-    if (msgSize > 268435455) // 0xFFFFFF7F
+    if (msgSize > 268435455)
         qWarning("Publishing a message bigger than maximum size!");
     do {
         quint8 b = msgSize % 128;

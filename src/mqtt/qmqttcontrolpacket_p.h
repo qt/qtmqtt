@@ -82,6 +82,7 @@ public:
     void append(quint32 value);
     void append(const QByteArray &data);
     void appendRaw(const QByteArray &data);
+    void appendRawVariableInteger(quint32 value);
 
     QByteArray serialize() const;
     QByteArray serializePayload() const;
