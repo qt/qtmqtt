@@ -31,6 +31,7 @@
 #define QMQTTMESSAGE_H
 
 #include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/qmqttpublishproperties.h>
 #include <QtMqtt/qmqtttopicname.h>
 
 #include <QtCore/QObject>
@@ -66,6 +67,7 @@ public:
     bool duplicate() const;
     bool retain() const;
 
+    QMqttPublishProperties publishProperties() const;
 private:
     friend class QMqttConnection;
     QMqttMessage(const QMqttTopicName &topic, const QByteArray &payload,

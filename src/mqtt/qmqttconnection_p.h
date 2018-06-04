@@ -77,7 +77,8 @@ public:
     bool ensureTransportOpen(const QString &sslPeerName = QString());
 
     bool sendControlConnect();
-    qint32 sendControlPublish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos = 0, bool retain = false);
+    qint32 sendControlPublish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos = 0, bool retain = false,
+                              const QMqttPublishProperties &properties = QMqttPublishProperties());
     bool sendControlPublishAcknowledge(quint16 id);
     bool sendControlPublishRelease(quint16 id);
     bool sendControlPublishReceive(quint16 id);
@@ -118,7 +119,9 @@ private:
     void readBuffer(char *data, qint64 size);
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void readConnackProperties();
+    void readPublishProperties(QMqttPublishProperties &properties);
     QByteArray writeConnectProperties();
+    QByteArray writePublishProperties(const QMqttPublishProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(qint64 size);
     QByteArray m_readBuffer;

@@ -32,6 +32,7 @@
 
 #include <QtMqtt/qmqttglobal.h>
 #include <QtMqtt/qmqttconnectionproperties.h>
+#include <QtMqtt/qmqttpublishproperties.h>
 #include <QtMqtt/qmqttsubscription.h>
 #include <QtMqtt/qmqtttopicfilter.h>
 
@@ -105,6 +106,11 @@ public:
 
     Q_INVOKABLE qint32 publish(const QMqttTopicName &topic, const QByteArray &message = QByteArray(),
                  quint8 qos = 0, bool retain = false);
+    Q_INVOKABLE qint32 publish(const QMqttTopicName &topic, const QMqttPublishProperties &properties,
+                               const QByteArray &message = QByteArray(),
+                               quint8 qos = 0,
+                               bool retain = false);
+
     bool requestPing();
 
     QString hostname() const;

@@ -12,6 +12,7 @@ PUBLIC_HEADERS += \
     qmqttclient.h \
     qmqttconnectionproperties.h \
     qmqttmessage.h \
+    qmqttpublishproperties.h \
     qmqttsubscription.h \
     qmqtttopicfilter.h \
     qmqtttopicname.h \
@@ -22,6 +23,7 @@ PRIVATE_HEADERS += \
     qmqttconnection_p.h \
     qmqttconnectionproperties_p.h \
     qmqttcontrolpacket_p.h \
+    qmqttmessage_p.h \
     qmqttsubscription_p.h
 
 SOURCES += \
@@ -30,6 +32,7 @@ SOURCES += \
     qmqttconnectionproperties.cpp \
     qmqttcontrolpacket.cpp \
     qmqttmessage.cpp \
+    qmqttpublishproperties.cpp \
     qmqttsubscription.cpp \
     qmqtttopicfilter.cpp \
     qmqtttopicname.cpp \

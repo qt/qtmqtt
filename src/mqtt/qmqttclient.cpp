@@ -347,6 +347,12 @@ void QMqttClient::unsubscribe(const QMqttTopicFilter &topic)
  */
 qint32 QMqttClient::publish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos, bool retain)
 {
+    return publish(topic, QMqttPublishProperties(), message, qos, retain);
+}
+
+qint32 QMqttClient::publish(const QMqttTopicName &topic, const QMqttPublishProperties &properties,
+                            const QByteArray &message, quint8 qos, bool retain)
+{
     Q_D(QMqttClient);
     if (qos > 2)
         return -1;
@@ -354,7 +360,7 @@ qint32 QMqttClient::publish(const QMqttTopicName &topic, const QByteArray &messa
     if (d->m_state != QMqttClient::Connected)
         return -1;
 
-    return d->m_connection.sendControlPublish(topic, message, qos, retain);
+    return d->m_connection.sendControlPublish(topic, message, qos, retain, properties);
 }
 
 /*!

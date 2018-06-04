@@ -28,6 +28,7 @@
 ******************************************************************************/
 
 #include "qmqttmessage.h"
+#include "qmqttmessage_p.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -85,25 +86,6 @@ QT_BEGIN_NAMESPACE
     Consequently, a retained message has been created previously and is not a
     live update. A broker can store only one retained message per topic.
 */
-
-class QMqttMessagePrivate : public QSharedData
-{
-public:
-    bool operator==(const QMqttMessagePrivate &other) {
-        return m_topic == other.m_topic &&
-                m_payload == other.m_payload &&
-                m_id == other.m_id &&
-                m_qos == other.m_qos &&
-                m_duplicate == other.m_duplicate &&
-                m_retain == other.m_retain;
-    }
-    QMqttTopicName m_topic;
-    QByteArray m_payload;
-    quint16 m_id{0};
-    quint8 m_qos{0};
-    bool m_duplicate{false};
-    bool m_retain{false};
-};
 
 /*!
     Creates a new MQTT message.
@@ -178,6 +160,11 @@ bool QMqttMessage::duplicate() const
 bool QMqttMessage::retain() const
 {
     return d->m_retain;
+}
+
+QMqttPublishProperties QMqttMessage::publishProperties() const
+{
+    return d->m_publishProperties;
 }
 
 /*!

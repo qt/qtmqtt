@@ -30,6 +30,7 @@
 #include "qmqttconnection_p.h"
 #include "qmqttconnectionproperties_p.h"
 #include "qmqttcontrolpacket_p.h"
+#include "qmqttmessage_p.h"
 #include "qmqttsubscription_p.h"
 #include "qmqttclient_p.h"
 
@@ -267,7 +268,11 @@ bool QMqttConnection::sendControlConnect()
     return true;
 }
 
-qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos, bool retain)
+qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic,
+                                           const QByteArray &message,
+                                           quint8 qos,
+                                           bool retain,
+                                           const QMqttPublishProperties &properties)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << topic << " Size:" << message.size() << " bytes."
                               << "QoS:" << qos << " Retain:" << retain;
@@ -293,10 +298,8 @@ qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic, const QB
         m_pendingMessages.insert(identifier, packet);
     }
 
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        // ### TODO: Add publish properties
-        packet->append(char(0)); // No properties
-    }
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+        packet->appendRaw(writePublishProperties(properties));
 
     packet->appendRaw(message);
 
@@ -763,6 +766,93 @@ void QMqttConnection::readConnackProperties()
     m_clientPrivate->m_serverConnectionProperties = serverProperties;
 }
 
+void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
+{
+    qint32 propertySize = 0;
+    qint32 propertyLength = readVariableByteInteger(&propertySize);
+    m_missingData -= propertySize;
+    m_missingData -= propertyLength;
+
+    QMqttUserProperties userProperties;
+
+    while (propertyLength > 0) {
+        char propertyId = 0;
+        readBuffer(&propertyId, 1);
+        propertyLength--;
+        switch (propertyId) {
+        case 0x01: { // 3.3.2.3.2 Payload Format Indicator
+            char format;
+            readBuffer(&format, 1);
+            propertyLength--;
+            if (format == 1)
+                properties.setPayloadIndicator(QMqttPublishProperties::UTF8Encoded);
+            break;
+        }
+        case 0x02: { // 3.3.2.3.3 Message Expiry Interval
+            const quint32 interval = qFromBigEndian<quint32>(reinterpret_cast<const quint32 *>(readBuffer(4).constData()));
+            propertyLength -= 4;
+            properties.setMessageExpiryInterval(interval);
+            break;
+        }
+        case 0x23: { // 3.3.2.3.4 Topic alias
+            const quint16 alias = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -= 2;
+            properties.setTopicAlias(alias);
+            break;
+        }
+        case 0x08: { // 3.3.2.3.5 Response Topic
+            const quint16 responseLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString responseTopic = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(responseLength).constData()));
+            propertyLength -= responseLength;
+            properties.setResponseTopic(responseTopic);
+            break;
+        }
+        case 0x09: { // 3.3.2.3.6 Correlation Data
+            const quint16 length = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QByteArray data = readBuffer(length);
+            propertyLength -= length;
+            properties.setCorrelationData(data);
+            break;
+        }
+        case 0x26: { // 3.3.2.3.7 User property
+            const quint16 propertyNameLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString propertyName = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyNameLength).constData()));
+            propertyLength -= propertyNameLength;
+
+            const quint16 propertyValueLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString propertyValue = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyValueLength).constData()));
+            propertyLength -= propertyValueLength;
+            userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            break;
+        }
+        case 0x0b: { // 3.3.2.3.8 Subscription Identifier
+            qint32 idSize = 0;
+            quint32 id = readVariableByteInteger(&idSize);
+            propertyLength -= idSize;
+            properties.setSubscriptionIdentifier(id);
+            break;
+        }
+        case 0x03: { // 3.3.2.3.9 Content Type
+            const quint16 length = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString content = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(length).constData()));
+            propertyLength -= length;
+            properties.setContentType(content);
+            break;
+        }
+        default:
+            qWarning("Unknown publish property received");
+            break;
+        }
+    }
+    if (!userProperties.isEmpty())
+        properties.setUserProperties(userProperties);
+}
+
 QByteArray QMqttConnection::writeConnectProperties()
 {
     QMqttControlPacket properties;
@@ -819,7 +909,7 @@ QByteArray QMqttConnection::writeConnectProperties()
     if (!userProperties.isEmpty()) {
         qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify user properties";
         for (auto it = userProperties.constBegin();
-             it != userProperties.end(); ++it) {
+             it != userProperties.constEnd(); ++it) {
             properties.append(char(0x26));
             properties.append(it->name().toUtf8());
             properties.append(it->value().toUtf8());
@@ -844,6 +934,104 @@ QByteArray QMqttConnection::writeConnectProperties()
     }
 
     return properties.serializePayload();
+}
+
+QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties &properties)
+{
+    QMqttControlPacket packet;
+
+    // 3.3.2.3.2 Payload Indicator
+    if (properties.availableProperties() & QMqttPublishProperties::PayloadFormatIndicator &&
+            properties.payloadIndicator() != QMqttPublishProperties::Unspecified) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Payload Indicator:"
+                                         << properties.payloadIndicator();
+        packet.append(char(0x01));
+        switch (properties.payloadIndicator()) {
+        case QMqttPublishProperties::UTF8Encoded:
+            packet.append(char(0x01));
+            break;
+        default:
+            qWarning("Unknown payload indicator");
+            break;
+        }
+    }
+
+    // 3.3.2.3.3 Message Expiry
+    if (properties.availableProperties() & QMqttPublishProperties::MessageExpiryInterval &&
+            properties.messageExpiryInterval() > 0) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Message Expiry :"
+                                         << properties.messageExpiryInterval();
+        packet.append(char(0x02));
+        packet.append(properties.messageExpiryInterval());
+    }
+
+    // 3.3.2.3.4 Topic alias
+    if (properties.availableProperties() & QMqttPublishProperties::TopicAlias &&
+            properties.topicAlias() > 0) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Topic Alias :"
+                                         << properties.topicAlias();
+        if (m_clientPrivate->m_serverConnectionProperties.availableProperties() & QMqttServerConnectionProperties::MaximumTopicAlias
+                && properties.topicAlias() > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
+            qWarning() << "Invalid topic alias specified: " << properties.topicAlias()
+                       << " Maximum by server is:" << m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias();
+
+        } else {
+            packet.append(char(0x23));
+            packet.append(properties.topicAlias());
+        }
+    }
+
+    // 3.3.2.3.5 Response Topic
+    if (properties.availableProperties() & QMqttPublishProperties::ResponseTopic &&
+            !properties.responseTopic().isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Response Topic :"
+                                         << properties.responseTopic();
+        packet.append(char(0x08));
+        packet.append(properties.responseTopic().toUtf8());
+    }
+
+    // 3.3.2.3.6 Correlation Data
+    if (properties.availableProperties() & QMqttPublishProperties::CorrelationData &&
+            !properties.correlationData().isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Correlation Data :"
+                                         << properties.correlationData();
+        packet.append(char(0x09));
+        packet.append(properties.correlationData());
+    }
+
+    // 3.3.2.3.7 User Property
+    if (properties.availableProperties() & QMqttPublishProperties::UserProperty) {
+        auto userProperties = properties.userProperties();
+        if (!userProperties.isEmpty()) {
+            qCDebug(lcMqttConnectionVerbose) << "Publish Properties: specify user properties";
+            for (auto it = userProperties.constBegin();
+                 it != userProperties.constEnd(); ++it) {
+                packet.append(char(0x26));
+                packet.append(it->name().toUtf8());
+                packet.append(it->value().toUtf8());
+            }
+        }
+    }
+
+    // 3.3.2.3.8 Subscription Identifier
+    if (properties.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier &&
+            properties.subscriptionIdentifier() > 0) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Subscription ID:"
+                                         << properties.subscriptionIdentifier();
+        packet.append(char(0x0b));
+        packet.appendRawVariableInteger(properties.subscriptionIdentifier());
+    }
+
+    // 3.3.2.3.9 Content Type
+    if (properties.availableProperties() & QMqttPublishProperties::ContentType &&
+            !properties.contentType().isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Content Type :"
+                                         << properties.contentType();
+        packet.append(char(0x03));
+        packet.append(properties.contentType().toUtf8());
+    }
+
+    return packet.serializePayload();
 }
 
 void QMqttConnection::finalize_connack()
@@ -959,16 +1147,9 @@ void QMqttConnection::finalize_publish()
         id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
     }
 
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        quint8 propertyLength;
-        readBuffer(reinterpret_cast<char *>(&propertyLength), 1);
-        m_missingData -= 1;
-        // ### TODO: Handle publish properties
-        if (propertyLength > 0) {
-            readBuffer(propertyLength);
-            m_missingData -= propertyLength;
-        }
-    }
+    QMqttPublishProperties publishProperties;
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+        readPublishProperties(publishProperties);
 
     // message
     qint64 payloadLength = m_missingData - (topicLength + 2) - (m_currentPublish.qos > 0 ? 2 : 0);
@@ -981,6 +1162,8 @@ void QMqttConnection::finalize_publish()
 
     QMqttMessage qmsg(topic, message, id, m_currentPublish.qos,
                       m_currentPublish.dup, m_currentPublish.retain);
+    qmsg.d->m_publishProperties = publishProperties;
+
 
     for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
         if (sub.key().match(topic))
