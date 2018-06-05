@@ -7,5 +7,6 @@ win32|if(linux:!cross_compile): SUBDIRS += cmake \
                                       qmqttclient \
                                       qmqttpublishproperties \
                                       qmqttsubscription \
+                                      qmqttsubscriptionproperties \
                                       qmqtttopicname \
                                       qmqtttopicfilter
