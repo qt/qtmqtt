@@ -345,7 +345,9 @@ bool QMqttConnection::sendControlPublishComp(quint16 id)
     return writePacketToTransport(packet);
 }
 
-QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos)
+QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter &topic,
+                                                         quint8 qos,
+                                                         const QMqttSubscriptionProperties &properties)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
@@ -362,10 +364,9 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
 
     packet.append(identifier);
 
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        // ### TODO: Add properties
-        packet.append(char(0)); // No properties
-    }
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+        packet.appendRaw(writeSubscriptionProperties(properties));
+
     // Overflow protection
     if (!topic.isValid()) {
         qWarning("Subscribed topic filter is not valid.");
@@ -853,6 +854,43 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
         properties.setUserProperties(userProperties);
 }
 
+void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
+{
+    qint32 propertyLength = readVariableByteInteger();
+
+    while (propertyLength > 0) {
+        char propertyId = 0;
+        readBuffer(&propertyId, 1);
+        propertyLength--;
+        switch (propertyId) {
+        case 0x1f: { // 3.9.2.1.2 Reason String
+            const quint16 length = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString content = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(length).constData()));
+            propertyLength -= length;
+            sub->d_func()->m_reasonString = content;
+            break;
+        }
+        case 0x26: { // 3.9.2.1.3
+            const quint16 propertyNameLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString propertyName = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyNameLength).constData()));
+            propertyLength -= propertyNameLength;
+
+            const quint16 propertyValueLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            propertyLength -=2;
+            const QString propertyValue = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyValueLength).constData()));
+            propertyLength -= propertyValueLength;
+            sub->d_func()->m_userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            break;
+        }
+        default:
+            qWarning("Unknown subscription property received");
+            break;
+        }
+    }
+}
+
 QByteArray QMqttConnection::writeConnectProperties()
 {
     QMqttControlPacket properties;
@@ -1034,6 +1072,31 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
     return packet.serializePayload();
 }
 
+QByteArray QMqttConnection::writeSubscriptionProperties(const QMqttSubscriptionProperties &properties)
+{
+    QMqttControlPacket packet;
+
+    // 3.8.2.1.2 Subscription Identifier
+    if (properties.subscriptionIdentifier() > 0) {
+        qCDebug(lcMqttConnectionVerbose) << "Subscription Properties: Subscription Identifier";
+        packet.append(char(0x0b));
+        packet.appendRawVariableInteger(properties.subscriptionIdentifier());
+    }
+
+    // 3.8.2.1.3 User Property
+    auto userProperties = properties.userProperties();
+    if (!userProperties.isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Subscription Properties: specify user properties";
+        for (auto it : userProperties) {
+            packet.append(char(0x26));
+            packet.append(it.name().toUtf8());
+            packet.append(it.value().toUtf8());
+        }
+    }
+
+    return packet.serializePayload();
+}
+
 void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
@@ -1093,16 +1156,16 @@ void QMqttConnection::finalize_suback()
         return;
     }
 
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        // ### TODO: SubAck Properties
-        const quint32 propertySize = readVariableByteInteger();
-        readBuffer(propertySize);
-        m_missingData = 0;
-    }
+    auto sub = m_pendingSubscriptionAck.take(id);
+
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+        readSubscriptionProperties(sub);
+
     quint8 result;
     // ### TODO: In MQTT5 this might be a list of reason codes, not just granted QoS, see 3.9.3
     readBuffer((char*)&result, 1);
-    auto sub = m_pendingSubscriptionAck.take(id);
+    //m_missingData = 0;
+
     qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << result;
     if (result <= 2) {
         // The broker might have a different support level for QoS than what

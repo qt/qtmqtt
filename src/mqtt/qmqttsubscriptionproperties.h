@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtMqtt module.
@@ -27,39 +27,40 @@
 **
 ******************************************************************************/
 
-#ifndef QMQTTSUBSCRIPTION_P_H
-#define QMQTTSUBSCRIPTION_P_H
+#ifndef QMQTTSUBSCRIPTIONPROPERTIES_H
+#define QMQTTSUBSCRIPTIONPROPERTIES_H
 
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists purely as an
-// implementation detail.  This header file may change from version to
-// version without notice, or even be removed.
-//
-// We mean it.
-//
+#include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/qmqtttype.h>
 
-#include "qmqttsubscription.h"
-#include <QtCore/private/qobject_p.h>
+#include <QtCore/QHash>
+#include <QtCore/QObject>
+#include <QtCore/QSharedDataPointer>
+#include <QtCore/QString>
 
 QT_BEGIN_NAMESPACE
 
-class QMqttSubscriptionPrivate : public QObjectPrivate
+class QMqttSubscriptionPropertiesData;
+
+class Q_MQTT_EXPORT QMqttSubscriptionProperties
 {
-    Q_DECLARE_PUBLIC(QMqttSubscription)
+    Q_GADGET
+
 public:
-    QMqttSubscriptionPrivate();
-    ~QMqttSubscriptionPrivate() override = default;
-    QMqttClient *m_client{nullptr};
-    QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
-    QMqttTopicFilter m_topic;
-    quint8 m_qos{0};
-    QString m_reasonString;
-    QMqttUserProperties m_userProperties;
+    QMqttSubscriptionProperties();
+    QMqttSubscriptionProperties(const QMqttSubscriptionProperties &);
+    QMqttSubscriptionProperties &operator=(const QMqttSubscriptionProperties &);
+    ~QMqttSubscriptionProperties();
+
+    QMqttUserProperties userProperties() const;
+    void setUserProperties(const QMqttUserProperties &user);
+
+    quint32 subscriptionIdentifier() const;
+    void setSubscriptionIdentifier(quint32 id);
+private:
+    QSharedDataPointer<QMqttSubscriptionPropertiesData> data;
 };
 
 QT_END_NAMESPACE
 
-#endif // QMQTTSUBSCRIPTION_P_H
+#endif // QMQTTSUBSCRIPTIONPROPERTIES_H

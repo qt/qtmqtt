@@ -83,7 +83,7 @@ public:
     bool sendControlPublishRelease(quint16 id);
     bool sendControlPublishReceive(quint16 id);
     bool sendControlPublishComp(quint16 id);
-    QMqttSubscription *sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos = 0);
+    QMqttSubscription *sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos, const QMqttSubscriptionProperties &properties);
     bool sendControlUnsubscribe(const QMqttTopicFilter &topic);
     bool sendControlPingRequest();
     bool sendControlDisconnect();
@@ -120,8 +120,10 @@ private:
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void readConnackProperties();
     void readPublishProperties(QMqttPublishProperties &properties);
+    void readSubscriptionProperties(QMqttSubscription *sub);
     QByteArray writeConnectProperties();
     QByteArray writePublishProperties(const QMqttPublishProperties &properties);
+    QByteArray writeSubscriptionProperties(const QMqttSubscriptionProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(qint64 size);
     QByteArray m_readBuffer;

@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtMqtt module.
@@ -27,39 +27,57 @@
 **
 ******************************************************************************/
 
-#ifndef QMQTTSUBSCRIPTION_P_H
-#define QMQTTSUBSCRIPTION_P_H
-
-//
-//  W A R N I N G
-//  -------------
-//
-// This file is not part of the Qt API.  It exists purely as an
-// implementation detail.  This header file may change from version to
-// version without notice, or even be removed.
-//
-// We mean it.
-//
-
-#include "qmqttsubscription.h"
-#include <QtCore/private/qobject_p.h>
+#include "qmqttsubscriptionproperties.h"
 
 QT_BEGIN_NAMESPACE
 
-class QMqttSubscriptionPrivate : public QObjectPrivate
+class QMqttSubscriptionPropertiesData : public QSharedData
 {
-    Q_DECLARE_PUBLIC(QMqttSubscription)
 public:
-    QMqttSubscriptionPrivate();
-    ~QMqttSubscriptionPrivate() override = default;
-    QMqttClient *m_client{nullptr};
-    QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
-    QMqttTopicFilter m_topic;
-    quint8 m_qos{0};
-    QString m_reasonString;
-    QMqttUserProperties m_userProperties;
+    quint32 subscriptionIdentifier{0};
+    QMqttUserProperties userProperties;
 };
 
-QT_END_NAMESPACE
+QMqttSubscriptionProperties::QMqttSubscriptionProperties() : data(new QMqttSubscriptionPropertiesData)
+{
 
-#endif // QMQTTSUBSCRIPTION_P_H
+}
+
+QMqttSubscriptionProperties::QMqttSubscriptionProperties(const QMqttSubscriptionProperties &rhs) : data(rhs.data)
+{
+
+}
+
+QMqttSubscriptionProperties &QMqttSubscriptionProperties::operator=(const QMqttSubscriptionProperties &rhs)
+{
+    if (this != &rhs)
+        data.operator=(rhs.data);
+    return *this;
+}
+
+QMqttSubscriptionProperties::~QMqttSubscriptionProperties()
+{
+
+}
+
+QMqttUserProperties QMqttSubscriptionProperties::userProperties() const
+{
+    return data->userProperties;
+}
+
+void QMqttSubscriptionProperties::setUserProperties(const QMqttUserProperties &user)
+{
+    data->userProperties = user;
+}
+
+quint32 QMqttSubscriptionProperties::subscriptionIdentifier() const
+{
+    return data->subscriptionIdentifier;
+}
+
+void QMqttSubscriptionProperties::setSubscriptionIdentifier(quint32 id)
+{
+    data->subscriptionIdentifier = id;
+}
+
+QT_END_NAMESPACE

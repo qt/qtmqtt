@@ -120,6 +120,18 @@ quint8 QMqttSubscription::qos() const
     return d->m_qos;
 }
 
+QString QMqttSubscription::reason() const
+{
+    Q_D(const QMqttSubscription);
+    return d->m_reasonString;
+}
+
+QMqttUserProperties QMqttSubscription::userProperties() const
+{
+    Q_D(const QMqttSubscription);
+    return d->m_userProperties;
+}
+
 void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 {
     Q_D(QMqttSubscription);

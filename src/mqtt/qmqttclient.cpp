@@ -315,12 +315,17 @@ QIODevice *QMqttClient::transport() const
  */
 QMqttSubscription *QMqttClient::subscribe(const QMqttTopicFilter &topic, quint8 qos)
 {
+    return subscribe(topic, QMqttSubscriptionProperties(), qos);
+}
+
+QMqttSubscription *QMqttClient::subscribe(const QMqttTopicFilter &topic, const QMqttSubscriptionProperties &properties, quint8 qos)
+{
     Q_D(QMqttClient);
 
     if (d->m_state != QMqttClient::Connected)
         return nullptr;
 
-    return d->m_connection.sendControlSubscribe(topic, qos);
+    return d->m_connection.sendControlSubscribe(topic, qos, properties);
 }
 
 /*!

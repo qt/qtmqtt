@@ -48,6 +48,7 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
     Q_PROPERTY(SubscriptionState state READ state NOTIFY stateChanged)
     Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
     Q_PROPERTY(QMqttTopicFilter topic READ topic)
+    Q_PROPERTY(QString reason READ reason)
 public:
     ~QMqttSubscription() override;
     enum SubscriptionState {
@@ -61,6 +62,8 @@ public:
     SubscriptionState state() const;
     QMqttTopicFilter topic() const;
     quint8 qos() const;
+    QString reason() const;
+    QMqttUserProperties userProperties() const;
 
 Q_SIGNALS:
     void stateChanged(SubscriptionState state);

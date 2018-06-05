@@ -34,6 +34,7 @@
 #include <QtMqtt/qmqttconnectionproperties.h>
 #include <QtMqtt/qmqttpublishproperties.h>
 #include <QtMqtt/qmqttsubscription.h>
+#include <QtMqtt/qmqttsubscriptionproperties.h>
 #include <QtMqtt/qmqtttopicfilter.h>
 
 #include <QtCore/QIODevice>
@@ -102,6 +103,8 @@ public:
     QIODevice *transport() const;
 
     QMqttSubscription *subscribe(const QMqttTopicFilter &topic, quint8 qos = 0);
+    QMqttSubscription *subscribe(const QMqttTopicFilter &topic,
+                                 const QMqttSubscriptionProperties &properties, quint8 qos = 0);
     void unsubscribe(const QMqttTopicFilter &topic);
 
     Q_INVOKABLE qint32 publish(const QMqttTopicName &topic, const QByteArray &message = QByteArray(),

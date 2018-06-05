@@ -14,6 +14,7 @@ PUBLIC_HEADERS += \
     qmqttmessage.h \
     qmqttpublishproperties.h \
     qmqttsubscription.h \
+    qmqttsubscriptionproperties.h \
     qmqtttopicfilter.h \
     qmqtttopicname.h \
     qmqtttype.h
@@ -34,6 +35,7 @@ SOURCES += \
     qmqttmessage.cpp \
     qmqttpublishproperties.cpp \
     qmqttsubscription.cpp \
+    qmqttsubscriptionproperties.cpp \
     qmqtttopicfilter.cpp \
     qmqtttopicname.cpp \
     qmqtttype.cpp
