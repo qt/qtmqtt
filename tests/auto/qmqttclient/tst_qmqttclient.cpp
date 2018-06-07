@@ -221,8 +221,7 @@ void Tst_QMqttClient::retainMessage()
         auto subscription = sub.subscribe(testTopic);
         QTRY_COMPARE(subscription->state(), QMqttSubscription::Subscribed);
 
-        QTest::qWait(5000);
-        QVERIFY(msgCount == i);
+        QTRY_VERIFY(msgCount == i);
     }
     publisher.disconnect();
 }
