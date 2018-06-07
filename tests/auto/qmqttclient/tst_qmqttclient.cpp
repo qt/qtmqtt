@@ -109,7 +109,15 @@ void Tst_QMqttClient::getSetCheck()
     client.setProtocolVersion(QMqttClient::MQTT_3_1);
     QCOMPARE(client.protocolVersion(), QMqttClient::MQTT_3_1);
 
+#ifdef QT_BUILD_INTERNAL
+    if (qEnvironmentVariableIsSet("QT_MQTT_TEST_USERNAME"))
+        QEXPECT_FAIL("", "Default username has been overwritten.", Continue);
+#endif
     QCOMPARE(client.username(), QString());
+#ifdef QT_BUILD_INTERNAL
+    if (qEnvironmentVariableIsSet("QT_MQTT_TEST_PASSWORD"))
+        QEXPECT_FAIL("", "Default username has been overwritten.", Continue);
+#endif
     QCOMPARE(client.password(), QString());
     QCOMPARE(client.cleanSession(), true);
     QCOMPARE(client.willTopic(), QString());

@@ -690,6 +690,15 @@ QMqttClientPrivate::QMqttClientPrivate(QMqttClient *c)
     m_clientId.remove(QLatin1Char('}'));
     m_clientId.remove(QLatin1Char('-'));
     m_clientId.resize(23);
+#ifdef QT_BUILD_INTERNAL
+    // Some test servers require a username token
+    if (qEnvironmentVariableIsSet("QT_MQTT_TEST_USERNAME"))
+        m_username = qEnvironmentVariable("QT_MQTT_TEST_USERNAME");
+    if (qEnvironmentVariableIsSet("QT_MQTT_TEST_PASSWORD"))
+        m_password = qEnvironmentVariable("QT_MQTT_TEST_PASSWORD");
+    if (qEnvironmentVariableIsSet("QT_MQTT_TEST_CLIENTID"))
+        m_clientId = qEnvironmentVariable("QT_MQTT_TEST_CLIENTID");
+#endif
 }
 
 QMqttClientPrivate::~QMqttClientPrivate()
