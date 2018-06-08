@@ -13,7 +13,8 @@ PUBLIC_HEADERS += \
     qmqttmessage.h \
     qmqttsubscription.h \
     qmqtttopicfilter.h \
-    qmqtttopicname.h
+    qmqtttopicname.h \
+    qmqtttype.h
 
 PRIVATE_HEADERS += \
     qmqttclient_p.h \
@@ -28,7 +29,8 @@ SOURCES += \
     qmqttmessage.cpp \
     qmqttsubscription.cpp \
     qmqtttopicfilter.cpp \
-    qmqtttopicname.cpp
+    qmqtttopicname.cpp \
+    qmqtttype.cpp
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS
 
