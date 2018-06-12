@@ -148,7 +148,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
         auto socket = dynamic_cast<QSslSocket*>(m_transport);
         Q_ASSERT(socket);
         if (socket->state() == QAbstractSocket::ConnectedState)
-            return true;
+            return sendControlConnect();
 
         m_internalState = BrokerConnecting;
         socket->connectToHostEncrypted(m_clientPrivate->m_hostname, m_clientPrivate->m_port, sslPeerName);
