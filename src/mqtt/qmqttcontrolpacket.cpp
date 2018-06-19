@@ -73,18 +73,14 @@ void QMqttControlPacket::append(quint16 value)
 {
     const quint16 msb = qToBigEndian<quint16>(value);
     const char * msb_c = reinterpret_cast<const char*>(&msb);
-    m_payload.append(msb_c[0]);
-    m_payload.append(msb_c[1]);
+    m_payload.append(msb_c, 2);
 }
 
 void QMqttControlPacket::append(quint32 value)
 {
     const quint32 msb = qToBigEndian<quint32>(value);
     const char * msb_c = reinterpret_cast<const char*>(&msb);
-    m_payload.append(msb_c[0]);
-    m_payload.append(msb_c[1]);
-    m_payload.append(msb_c[2]);
-    m_payload.append(msb_c[3]);
+    m_payload.append(msb_c, 4);
 }
 
 void QMqttControlPacket::append(const QByteArray &data)
