@@ -66,7 +66,18 @@ QString invokeOrInitializeBroker(QProcess *gBrokerProcess)
 #endif
     }
 
-    const QStringList arguments = QStringList() << brokerLocation;
+    QStringList arguments = {brokerLocation};
+
+    // MQTT5 tests use the same configuration as mosquitto
+    const QString configuration = QLatin1String("localhost_testing.conf");
+    const QDir brokerDir = QFileInfo(brokerLocation).absoluteDir();
+    if (brokerDir.exists(configuration)) {
+        arguments << QLatin1String("-c") << QDir::toNativeSeparators(brokerDir.absoluteFilePath(configuration));
+        // Configuration files use relative paths, hence the working directory of the broker
+        // process needs to be set correctly
+        gBrokerProcess->setWorkingDirectory(brokerDir.absolutePath());
+    }
+
     qDebug() << "Launching broker:" << python << arguments;
     gBrokerProcess->start(python, arguments);
     if (!gBrokerProcess->waitForStarted())
