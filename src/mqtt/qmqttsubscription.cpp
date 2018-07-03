@@ -29,7 +29,7 @@
 
 #include "qmqttsubscription.h"
 #include "qmqttsubscription_p.h"
-#include <QtMqtt/QMqttClient>
+#include "qmqttclient.h"
 
 QT_BEGIN_NAMESPACE
 

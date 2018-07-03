@@ -31,8 +31,8 @@
 #define QTMQTTCLIENT_H
 
 #include <QtMqtt/qmqttglobal.h>
-#include <QtMqtt/QMqttSubscription>
-#include <QtMqtt/QMqttTopicFilter>
+#include <QtMqtt/qmqttsubscription.h>
+#include <QtMqtt/qmqtttopicfilter.h>
 
 #include <QtCore/QIODevice>
 #include <QtCore/QObject>
