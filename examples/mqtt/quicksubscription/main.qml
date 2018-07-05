@@ -58,7 +58,7 @@ Window {
     visible: true
     width: 640
     height: 480
-    title: qsTr("Hello World")
+    title: qsTr("Qt Quick MQTT Subscription Example")
     id: root
 
     property var tempSubscription: 0
@@ -93,7 +93,6 @@ Window {
         TextField {
             id: hostnameField
             Layout.fillWidth: true
-//            text: "broker.hivemq.com"
             text: "test.mosquitto.org"
             placeholderText: "<Enter host running MQTT broker>"
             enabled: client.state === MqttClient.Disconnected
@@ -143,8 +142,10 @@ Window {
                 id: subButton
                 text: "Subscribe"
                 onClicked: {
-                    if (subField.text.length === 0)
+                    if (subField.text.length === 0) {
+                        console.log("No topic specified to subscribe to.")
                         return
+                    }
                     tempSubscription = client.subscribe(subField.text)
                     tempSubscription.messageReceived.connect(addMessage)
                 }
