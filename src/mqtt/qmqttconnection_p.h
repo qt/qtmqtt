@@ -126,6 +126,7 @@ private:
     QByteArray writeSubscriptionProperties(const QMqttSubscriptionProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(qint64 size);
+    template<typename T> T readBufferTyped();
     QByteArray m_readBuffer;
     qint64 m_missingData{0};
     struct PublishData {

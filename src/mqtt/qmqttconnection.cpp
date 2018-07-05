@@ -46,6 +46,31 @@ QT_BEGIN_NAMESPACE
 Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
 Q_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
+template<>
+quint32 QMqttConnection::readBufferTyped()
+{
+    return qFromBigEndian<quint32>(reinterpret_cast<const quint32 *>(readBuffer(4).constData()));
+}
+
+template<>
+quint16 QMqttConnection::readBufferTyped()
+{
+    return qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+}
+
+template<>
+quint8 QMqttConnection::readBufferTyped()
+{
+    return *readBuffer(1).constData();
+}
+
+template<>
+QString QMqttConnection::readBufferTyped()
+{
+    const quint16 size = readBufferTyped<quint16>();
+    return QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(size).constData()), size);
+}
+
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
     m_pingTimer.setSingleShot(false);
@@ -621,23 +646,21 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         case 0x21: { // 3.2.2.3.3 Receive Maximum
-            const quint16 receiveMaximum = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            const quint16 receiveMaximum = readBufferTyped<quint16>();
             propertyLength -=2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumReceive;
             serverProperties.setMaximumReceive(receiveMaximum);
             break;
         }
         case 0x24: { // 3.2.2.3.4 Maximum QoS Level
-            quint8 maxQoS;
-            readBuffer(reinterpret_cast<char *>(&maxQoS), 1);
+            const quint8 maxQoS = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumQoS;
             serverProperties.serverData->maximumQoS = maxQoS;
             break;
         }
         case 0x25: { // 3.2.2.3.5 Retain available
-            quint8 retainAvailable;
-            readBuffer(reinterpret_cast<char *>(&retainAvailable), 1);
+            const quint8 retainAvailable = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
             serverProperties.serverData->retainAvailable = retainAvailable == 1 ? true : false;
@@ -653,40 +676,32 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         case 0x12: { // 3.2.2.3.7 Assigned clientId
-            const quint16 idLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString assignedClientId = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(idLength).constData()));
-            propertyLength -= idLength;
+            const QString assignedClientId = readBufferTyped<QString>();
+            propertyLength -= assignedClientId.length() + 2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
             m_clientPrivate->m_client->setClientId(assignedClientId);
             break;
         }
         case 0x22: { // 3.2.2.3.8 Topic Alias Maximum
-            const quint16 topicAliasMaximum = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            const quint16 topicAliasMaximum = readBufferTyped<quint16>();
             propertyLength -=2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumTopicAlias;
             serverProperties.setMaximumTopicAlias(topicAliasMaximum);
             break;
         }
         case 0x1F: { // 3.2.2.3.9 Reason String
-            const quint16 reasonLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString reasonString = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(reasonLength).constData()));
-            propertyLength -= reasonLength;
+            const QString reasonString = readBufferTyped<QString>();
+            propertyLength -= reasonString.length() + 2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ReasonString;
             serverProperties.serverData->reasonString = reasonString;
             break;
         }
         case 0x26: { // 3.2.2.3.10 User property
-            const quint16 propertyNameLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString propertyName = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyNameLength).constData()));
-            propertyLength -= propertyNameLength;
+            const QString propertyName = readBufferTyped<QString>();
+            propertyLength -= propertyName.length() + 2;
 
-            const quint16 propertyValueLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString propertyValue = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyValueLength).constData()));
-            propertyLength -= propertyValueLength;
+            const QString propertyValue = readBufferTyped<QString>();
+            propertyLength -= propertyValue.length() + 2;
 
             serverProperties.serverData->details |= QMqttServerConnectionProperties::UserProperty;
             serverProperties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
@@ -717,41 +732,35 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         case 0x13: { // 3.2.2.3.14 Server Keep Alive
-            const quint16 serverKeepAlive = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            const quint16 serverKeepAlive = readBufferTyped<quint16>();
             propertyLength -=2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerKeepAlive;
             m_clientPrivate->m_client->setKeepAlive(serverKeepAlive);
             break;
         }
         case 0x1A: { // 3.2.2.3.15 Response information
-            const quint16 responseInfoLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString responseInfo = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(responseInfoLength).constData()));
-            propertyLength -= responseInfoLength;
+            const QString responseInfo = readBufferTyped<QString>();
+            propertyLength -= responseInfo.length();
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ResponseInformation;
             serverProperties.serverData->responseInformation = responseInfo;
             break;
         }
         case 0x1C: { // 3.2.2.3.16 Server reference
-            const quint16 serverReferenceLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString serverReference = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(serverReferenceLength).constData()));
-            propertyLength -= serverReferenceLength;
+            const QString serverReference = readBufferTyped<QString>();
+            propertyLength -= serverReference.length() + 2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerReference;
             serverProperties.serverData->serverReference = serverReference;
             break;
         }
         case 0x15: { // 3.2.2.3.17 Authentication method
-            const quint16 methodLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString method = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(methodLength).constData()));
-            propertyLength -= methodLength;
+            const QString method = readBufferTyped<QString>();
+            propertyLength -= method.length() + 2;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationMethod;
             serverProperties.data->authenticationMethod = method;
             break;
         }
         case 0x16: { // 3.2.2.3.18 Authentication data
-            const quint16 dataLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            const quint16 dataLength = readBufferTyped<quint16>();
             propertyLength -=2;
             const QByteArray data = readBuffer(dataLength);
             propertyLength -= dataLength;
@@ -790,27 +799,25 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         case 0x02: { // 3.3.2.3.3 Message Expiry Interval
-            const quint32 interval = qFromBigEndian<quint32>(reinterpret_cast<const quint32 *>(readBuffer(4).constData()));
+            const quint32 interval = readBufferTyped<quint32>();
             propertyLength -= 4;
             properties.setMessageExpiryInterval(interval);
             break;
         }
         case 0x23: { // 3.3.2.3.4 Topic alias
-            const quint16 alias = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            const quint16 alias = readBufferTyped<quint16>();
             propertyLength -= 2;
             properties.setTopicAlias(alias);
             break;
         }
         case 0x08: { // 3.3.2.3.5 Response Topic
-            const quint16 responseLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString responseTopic = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(responseLength).constData()));
-            propertyLength -= responseLength;
+            const QString responseTopic = readBufferTyped<QString>();
+            propertyLength -= responseTopic.length() + 2;
             properties.setResponseTopic(responseTopic);
             break;
         }
         case 0x09: { // 3.3.2.3.6 Correlation Data
-            const quint16 length = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+            const quint16 length = readBufferTyped<quint16>();
             propertyLength -=2;
             const QByteArray data = readBuffer(length);
             propertyLength -= length;
@@ -818,15 +825,11 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         case 0x26: { // 3.3.2.3.7 User property
-            const quint16 propertyNameLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString propertyName = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyNameLength).constData()));
-            propertyLength -= propertyNameLength;
+            const QString propertyName = readBufferTyped<QString>();
+            propertyLength -= propertyName.length() + 2;
 
-            const quint16 propertyValueLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString propertyValue = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyValueLength).constData()));
-            propertyLength -= propertyValueLength;
+            const QString propertyValue = readBufferTyped<QString>();
+            propertyLength -= propertyValue.length() + 2;
             userProperties.append(QMqttStringPair(propertyName, propertyValue));
             break;
         }
@@ -838,10 +841,8 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         case 0x03: { // 3.3.2.3.9 Content Type
-            const quint16 length = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString content = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(length).constData()));
-            propertyLength -= length;
+            const QString content = readBufferTyped<QString>();
+            propertyLength -= content.length() + 2;
             properties.setContentType(content);
             break;
         }
@@ -864,23 +865,18 @@ void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
         propertyLength--;
         switch (propertyId) {
         case 0x1f: { // 3.9.2.1.2 Reason String
-            const quint16 length = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString content = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(length).constData()));
-            propertyLength -= length;
+            const QString content = readBufferTyped<QString>();
+            propertyLength -= content.length() + 2;
             sub->d_func()->m_reasonString = content;
             break;
         }
         case 0x26: { // 3.9.2.1.3
-            const quint16 propertyNameLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString propertyName = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyNameLength).constData()));
-            propertyLength -= propertyNameLength;
+            const QString propertyName = readBufferTyped<QString>();
+            propertyLength -= propertyName.length() + 2;
 
-            const quint16 propertyValueLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-            propertyLength -=2;
-            const QString propertyValue = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(propertyValueLength).constData()));
-            propertyLength -= propertyValueLength;
+            const QString propertyValue = readBufferTyped<QString>();
+            propertyLength -= propertyValue.length() + 2;
+
             sub->d_func()->m_userProperties.append(QMqttStringPair(propertyName, propertyValue));
             break;
         }
@@ -1202,13 +1198,12 @@ void QMqttConnection::finalize_unsuback()
 void QMqttConnection::finalize_publish()
 {
     // String topic
-    const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-    const QMqttTopicName topic = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(topicLength).constData()));
+    const QMqttTopicName topic = readBufferTyped<QString>();
+    const quint16 topicLength = topic.name().length();
 
     quint16 id = 0;
-    if (m_currentPublish.qos > 0) {
-        id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-    }
+    if (m_currentPublish.qos > 0)
+        id = readBufferTyped<quint16>();
 
     QMqttPublishProperties publishProperties;
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
@@ -1249,8 +1244,8 @@ void QMqttConnection::finalize_pubAckRecComp()
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
         // Reason Code (1byte)
-        quint8 reasonCode;
-        readBuffer(reinterpret_cast<char *>(&reasonCode), 1);
+        const quint8 reasonCode = readBufferTyped<quint8>();
+        Q_UNUSED(reasonCode); // ### TODO: Do something with it, currently silences compiler
         m_missingData--;
         // Property Length (Variable Int)
         qint32 byteCount = 0;
@@ -1449,8 +1444,7 @@ void QMqttConnection::processData()
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
-        quint8 remaining;
-        readBuffer(reinterpret_cast<char *>(&remaining), 1);
+        const quint8 remaining = readBufferTyped<quint8>();
         if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0 && remaining != 0x02) {
             qWarning("Received 2 byte message with invalid remaining length");
             closeConnection(QMqttClient::ProtocolViolation);
