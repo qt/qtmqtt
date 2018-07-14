@@ -30,9 +30,8 @@
 #ifndef QMQTTMESSAGE_H
 #define QMQTTMESSAGE_H
 
-#include "qmqttglobal.h"
-
-#include <QtMqtt/QMqttTopicName>
+#include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/qmqtttopicname.h>
 
 #include <QtCore/QObject>
 #include <QtCore/QSharedDataPointer>

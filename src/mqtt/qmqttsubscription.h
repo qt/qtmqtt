@@ -30,10 +30,9 @@
 #ifndef QMQTTSUBSCRIPTION_H
 #define QMQTTSUBSCRIPTION_H
 
-#include "qmqttmessage.h"
-
 #include <QtMqtt/qmqttglobal.h>
-#include <QtMqtt/QMqttTopicFilter>
+#include <QtMqtt/qmqttmessage.h>
+#include <QtMqtt/qmqtttopicfilter.h>
 
 #include <QtCore/QObject>
 

@@ -42,10 +42,10 @@
 //
 
 #include "qmqttclient.h"
+#include "qmqttconnection_p.h"
 
 #include <QtNetwork/QAbstractSocket>
 
-#include <private/qmqttconnection_p.h>
 #include <private/qobject_p.h>
 
 QT_BEGIN_NAMESPACE
