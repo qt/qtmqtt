@@ -591,7 +591,7 @@ qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
     if (byteCount)
         *byteCount = 0;
     do {
-        readBuffer((char*)&b, 1);
+        b = readBufferTyped<quint8>();
         msgLength += (b & 127) * multiplier;
         multiplier *= 128;
         iteration++;
@@ -634,15 +634,12 @@ void QMqttConnection::readConnackProperties()
     serverProperties.serverData->valid = true;
 
     while (propertyLength > 0) {
-        char propertyId = 0;
-        readBuffer(&propertyId, 1);
+        quint8 propertyId = readBufferTyped<quint8>();
         propertyLength--;
         switch (propertyId) {
         case 0x11: { // 3.2.2.3.2 Session Expiry Interval
-            char data[4];
-            readBuffer(data, 4);
+            const quint32 expiryInterval = readBufferTyped<quint32>();
             propertyLength -= 4;
-            quint32 expiryInterval = qFromBigEndian<quint32>(data);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SessionExpiryInterval;
             serverProperties.setSessionExpiryInterval(expiryInterval);
             break;
@@ -669,10 +666,8 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         case 0x27: { // 3.2.2.3.6 Maximum packet size
-            char data[4];
-            readBuffer(data, 4);
+            const quint32 maxPacketSize = readBufferTyped<quint32>();
             propertyLength -= 4;
-            quint32 maxPacketSize = qFromBigEndian<quint32>(data);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumPacketSize;
             serverProperties.setMaximumPacketSize(maxPacketSize);
             break;
@@ -710,24 +705,21 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         case 0x28: { // 3.2.2.3.11 Wildcard subscriptions available
-            char available;
-            readBuffer(&available, 1);
+            const quint8 available = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
             serverProperties.serverData->wildcardSupported = available == 1 ? true : false;
             break;
         }
         case 0x29: { // 3.2.2.3.12 Subscription identifiers available
-            char available;
-            readBuffer(&available, 1);
+            const quint8 available = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
             serverProperties.serverData->subscriptionIdentifierSupported = available == 1 ? true : false;
             break;
         }
         case 0x2A: { // 3.2.2.3.13 Shared subscriptions available
-            char available;
-            readBuffer(&available, 1);
+            const quint8 available = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
             serverProperties.serverData->sharedSubscriptionSupported = available == 1 ? true : false;
@@ -788,13 +780,11 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
     QMqttUserProperties userProperties;
 
     while (propertyLength > 0) {
-        char propertyId = 0;
-        readBuffer(&propertyId, 1);
+        const quint8 propertyId = readBufferTyped<quint8>();
         propertyLength--;
         switch (propertyId) {
         case 0x01: { // 3.3.2.3.2 Payload Format Indicator
-            char format;
-            readBuffer(&format, 1);
+            const quint8 format = readBufferTyped<quint8>();
             propertyLength--;
             if (format == 1)
                 properties.setPayloadIndicator(QMqttPublishProperties::UTF8Encoded);
@@ -863,8 +853,7 @@ void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 
     m_missingData -= propertyLength;
     while (propertyLength > 0) {
-        char propertyId = 0;
-        readBuffer(&propertyId, 1);
+        const quint8 propertyId = readBufferTyped<quint8>();
         propertyLength--;
         switch (propertyId) {
         case 0x1f: { // 3.9.2.1.2 Reason String
@@ -1100,8 +1089,7 @@ void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
 
-    quint8 ackFlags;
-    readBuffer((char*)&ackFlags, 1);
+    const quint8 ackFlags = readBufferTyped<quint8>();
     m_missingData--;
 
     if (ackFlags > 1) { // MQTT-3.2.2.1
@@ -1124,8 +1112,7 @@ void QMqttConnection::finalize_connack()
         cleanSubscriptions();
     }
 
-    quint8 connectResultValue;
-    readBuffer((char*)&connectResultValue, 1);
+    quint8 connectResultValue = readBufferTyped<quint8>();
     m_missingData--;
     if (connectResultValue != 0) {
         qWarning("Connection has been rejected");
@@ -1448,8 +1435,7 @@ void QMqttConnection::processData()
     }
     case QMqttControlPacket::SUBACK: {
         qCDebug(lcMqttConnectionVerbose) << "Received SUBACK";
-        quint8 remaining;
-        readBuffer((char*)&remaining, 1);
+        const quint8 remaining = readBufferTyped<quint8>();
         m_missingData = remaining;
         break;
     }
@@ -1477,8 +1463,7 @@ void QMqttConnection::processData()
 
     case QMqttControlPacket::PUBREL: {
         qCDebug(lcMqttConnectionVerbose) << "Received PUBREL";
-        char remaining;
-        readBuffer(&remaining, 1);
+        const quint8 remaining = readBufferTyped<quint8>();
         if (remaining != 0x02) {
             qWarning("Received 2 byte message with invalid remaining length");
             closeConnection(QMqttClient::ProtocolViolation);
