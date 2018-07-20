@@ -92,25 +92,25 @@ void tst_QMqttConnectionProperties::getSet()
     p.setAuthenticationData(authData);
     QCOMPARE(p.authenticationData(), authData);
 
-    QCOMPARE(p.sessionExpiryInterval(), 0);
+    QCOMPARE(p.sessionExpiryInterval(), 0u);
     p.setSessionExpiryInterval(1000);
-    QCOMPARE(p.sessionExpiryInterval(), 1000);
+    QCOMPARE(p.sessionExpiryInterval(), 1000u);
 
     QCOMPARE(p.maximumPacketSize(), std::numeric_limits<quint32>::max());
     p.setMaximumPacketSize(0);
-    QVERIFY(p.maximumPacketSize() != 0);
+    QVERIFY(p.maximumPacketSize() != 0u);
     p.setMaximumPacketSize(500);
-    QCOMPARE(p.maximumPacketSize(), 500);
+    QCOMPARE(p.maximumPacketSize(), 500u);
 
     QCOMPARE(p.maximumReceive(), 65535);
     p.setMaximumReceive(0);
-    QVERIFY(p.maximumReceive() != 0);
+    QVERIFY(p.maximumReceive() != 0u);
     p.setMaximumReceive(30);
-    QCOMPARE(p.maximumReceive(), 30);
+    QCOMPARE(p.maximumReceive(), 30u);
 
-    QCOMPARE(p.maximumTopicAlias(), 0);
+    QCOMPARE(p.maximumTopicAlias(), 0u);
     p.setMaximumTopicAlias(5);
-    QCOMPARE(p.maximumTopicAlias(), 5);
+    QCOMPARE(p.maximumTopicAlias(), 5u);
 
     QCOMPARE(p.requestResponseInformation(), false);
     p.setRequestResponseInformation(true);
