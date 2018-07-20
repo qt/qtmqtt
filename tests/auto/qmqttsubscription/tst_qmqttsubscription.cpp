@@ -83,17 +83,17 @@ void Tst_QMqttSubscription::wildCards_data()
     QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
 
     for (int i = 0; i < 2; ++i) {
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":#")) << versions[i] << "Qt/#" << 6;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/d/e/f")) << versions[i] << "Qt/a/b/c/d/e/f" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/+/b/c/d/e/f")) << versions[i] << "Qt/+/b/c/d/e/f" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/+/c/d/e/f")) << versions[i] << "Qt/a/+/c/d/e/f" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/+/d/e/f")) << versions[i] << "Qt/a/b/+/d/e/f" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/+/e/f")) << versions[i] << "Qt/a/b/c/+/e/f" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/d/+/f")) << versions[i] << "Qt/a/b/c/d/+/f" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/b/c/d/e/+")) << versions[i] << "Qt/a/b/c/d/e/+" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/+/b/+/d/e/+")) << versions[i] << "Qt/+/b/+/d/e/+" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/+")) << versions[i] << "Qt/a/+" << 1;
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/a/+/c")) << versions[i] << "Qt/a/+/c" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/#")) << versions[i] << "Qt/subscription/#" << 6;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/b/c/d/e/f")) << versions[i] << "Qt/subscription/a/b/c/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/+/b/c/d/e/f")) << versions[i] << "Qt/subscription/+/b/c/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/+/c/d/e/f")) << versions[i] << "Qt/subscription/a/+/c/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/b/+/d/e/f")) << versions[i] << "Qt/subscription/a/b/+/d/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/b/c/+/e/f")) << versions[i] << "Qt/subscription/a/b/c/+/e/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/b/c/d/+/f")) << versions[i] << "Qt/subscription/a/b/c/d/+/f" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/b/c/d/e/+")) << versions[i] << "Qt/subscription/a/b/c/d/e/+" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/+/b/+/d/e/+")) << versions[i] << "Qt/subscription/+/b/+/d/e/+" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/+")) << versions[i] << "Qt/subscription/a/+" << 1;
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":Qt/subscription/a/+/c")) << versions[i] << "Qt/subscription/a/+/c" << 1;
     }
 }
 
@@ -122,12 +122,12 @@ void Tst_QMqttSubscription::wildCards()
     QSignalSpy receivalSpy(sub, SIGNAL(messageReceived(QMqttMessage)));
 
     QStringList topics;
-    topics << "Qt/a"
-           << "Qt/a/b"
-           << "Qt/a/b/c"
-           << "Qt/a/b/c/d"
-           << "Qt/a/b/c/d/e"
-           << "Qt/a/b/c/d/e/f";
+    topics << "Qt/subscription/a"
+           << "Qt/subscription/a/b"
+           << "Qt/subscription/a/b/c"
+           << "Qt/subscription/a/b/c/d"
+           << "Qt/subscription/a/b/c/d/e"
+           << "Qt/subscription/a/b/c/d/e/f";
 
     for (auto t : topics) {
         QSignalSpy spy(&publisher, SIGNAL(messageSent(qint32)));
@@ -169,7 +169,7 @@ void Tst_QMqttSubscription::reconnect()
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
 
     //    - Subscribe to topic A
-    const QString subscription("topics/resub");
+    const QString subscription("Qt/subscription/topics/resub");
     auto sub = client.subscribe(subscription, 1);
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic.");
 

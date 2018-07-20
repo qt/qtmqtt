@@ -163,7 +163,7 @@ void Tst_QMqttClient::sendReceive()
 {
     QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
     QFETCH(QByteArray, data);
-    const QString testTopic = QLatin1String("Topic");
+    const QString testTopic = QLatin1String("Qt/QMqttClient/Topic");
 
     VersionClient(mqttVersion, publisher);
     publisher.setClientId(QLatin1String("publisher"));
@@ -207,7 +207,7 @@ void Tst_QMqttClient::retainMessage()
 {
     QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
 
-    const QString testTopic = QLatin1String("Topic2");
+    const QString testTopic = QLatin1String("Qt/QMqttClient/Topic2");
     const QByteArray testMessage("retainedMessage");
 
     // Publisher
@@ -261,7 +261,7 @@ void Tst_QMqttClient::willMessage()
 {
     QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
 
-    const QString willTopic = QLatin1String("will/topic");
+    const QString willTopic = QLatin1String("Qt/QMqttClient/will/topic");
     const QByteArray willMessage("The client died....");
 
     // Client A connects
@@ -323,8 +323,8 @@ void Tst_QMqttClient::compliantTopic_data()
     QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
 
     for (int i = 0; i < 2; ++i) {
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":simple")) << versions[i] << QString::fromLatin1("topic");
-        QTest::newRow(qPrintable(QString::number(versions[i]) + ":subPath")) << versions[i] << QString::fromLatin1("topic/subtopic");
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":simple")) << versions[i] << QString::fromLatin1("Qt/QMqttClient/topic");
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":subPath")) << versions[i] << QString::fromLatin1("Qt/QMqttClient/topic/subtopic");
 
         if (versions[i] != QMqttClient::MQTT_5_0) {
             QString l;
@@ -413,7 +413,7 @@ void Tst_QMqttClient::dataIncludingZero()
     bool received = false;
     bool verified = false;
     bool correctSize = false;
-    const QString testTopic(QLatin1String("some/topic"));
+    const QString testTopic(QLatin1String("Qt/QMqttClient/some/topic"));
     auto sub = client.subscribe(testTopic, 1);
     QVERIFY(sub);
     connect(sub, &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {

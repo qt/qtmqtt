@@ -201,7 +201,7 @@ void tst_QMqttConnectionProperties::maximumPacketSize()
         qDebug() << "Server has no max packet size specified";
     }
 
-    const QString topic = QLatin1String("some/Topic/maxSize");
+    const QString topic = QLatin1String("Qt/ConnectionProperties/some/Topic/maxSize");
 
     auto sub = client.subscribe(topic, 1);
     QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);

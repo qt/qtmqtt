@@ -163,7 +163,7 @@ void tst_QMqttPublishProperties::propertyConsistency()
     userProperty.append(QMqttStringPair(userKey2, userValue2));
     const QString content = QLatin1String("ContentType");
 
-    const QString testTopic = QLatin1String("publish/consistent");
+    const QString testTopic = QLatin1String("Qt/PublishProperties/publish/consistent");
 
     auto sub = client2.subscribe(testTopic, 1);
     QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);

@@ -90,7 +90,7 @@ void Tst_QMqttClient::stressTest()
 
     quint64 messageCount = 0;
     QMqttSubscription *subscription;
-    const QString testTopic = QLatin1String("test/topic");
+    const QString testTopic = QLatin1String("Qt/benchmark/test/topic");
 
     connect(&subscriber, &QMqttClient::connected, [&](){
         subscription = subscriber.subscribe(testTopic);
@@ -148,7 +148,7 @@ void Tst_QMqttClient::stressTest2()
     publisher.connectToHost();
     QTRY_COMPARE(spy.count(), 1);
 
-    const QString topic = QLatin1String("SomeTopic/Sub");
+    const QString topic = QLatin1String("Qt/benchmark/SomeTopic/Sub");
     const QByteArray message("messageContent");
 
     for (qint32 i = 0; i < msgCount; ++i) {

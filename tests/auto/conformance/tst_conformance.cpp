@@ -175,8 +175,8 @@ void Tst_MqttConformance::retained_message_test()
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker");
 
-    const QStringList topics{"Qt/tests/retain1", "Qt/tests/retain2", "Qt/tests2/retain1"};
-    const QString subTop{"Qt/#"}; // ### TODO: The test suite uses {"Qt/+/+"}; but we do not support ++ yet.
+    const QStringList topics{"Qt/conformance/tests/retain1", "Qt/conformance/tests/retain2", "Qt/conformance/tests2/retain1"};
+    const QString subTop{"Qt/conformance/#"}; // ### TODO: The test suite uses {"Qt/+/+"}; but we do not support ++ yet.
 
     client.publish(topics[0], messages[0].toLocal8Bit(), 0, true);
     client.publish(topics[1], messages[1].toLocal8Bit(), 1, true);
@@ -218,7 +218,7 @@ void Tst_MqttConformance::will_message_test()
     client.setHostname(m_testBroker);
     client.setPort(m_port);
 
-    const QString wTopic{"Qt/willtest"};
+    const QString wTopic{"Qt/conformance/willtest"};
     const QByteArray wMessage{"client got lost"};
 
     client.setWillMessage(wMessage);
@@ -306,7 +306,7 @@ void Tst_MqttConformance::offline_message_queueing_test()
     client.connectToHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
 
-    const QString subTopic{"Qt/offline/#"};
+    const QString subTopic{"Qt/conformance/offline/#"};
     auto sub = client.subscribe(subTopic, 2);
     Q_UNUSED(sub);
 
@@ -320,9 +320,9 @@ void Tst_MqttConformance::offline_message_queueing_test()
     QTRY_VERIFY2(publisher.state() == QMqttClient::Connected, "Could not connect to broker.");
 
     QSignalSpy pubCounter(&publisher, SIGNAL(messageSent(qint32)));
-    publisher.publish(QLatin1String("Qt/offline/foo/bar"), "msg1", 1);
-    publisher.publish(QLatin1String("Qt/offline/foo/bar2"), "msg2", 1);
-    publisher.publish(QLatin1String("Qt/offline/foo2/bar"), "msg3", 1);
+    publisher.publish(QLatin1String("Qt/conformance/offline/foo/bar"), "msg1", 1);
+    publisher.publish(QLatin1String("Qt/conformance/offline/foo/bar2"), "msg2", 1);
+    publisher.publish(QLatin1String("Qt/conformance/offline/foo2/bar"), "msg3", 1);
     QTRY_VERIFY2(pubCounter.size() == 3, "Could not publish all messages.");
 
     publisher.disconnectFromHost();
@@ -350,7 +350,7 @@ void Tst_MqttConformance::subscribe_failure_test()
 
     VersionClient(mqttVersion, client);
 
-    const QByteArray forbiddenTopic{"nosubscribe"};
+    const QByteArray forbiddenTopic{"Qt/conformance/nosubscribe"};
     // We do not have a test broker with forbidden topics.
     QSKIP("Missing infrastructure to set forbidden topics");
 
