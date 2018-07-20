@@ -859,6 +859,7 @@ void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 {
     qint32 propertyLength = readVariableByteInteger();
 
+    m_missingData -= propertyLength;
     while (propertyLength > 0) {
         char propertyId = 0;
         readBuffer(&propertyId, 1);
@@ -1099,9 +1100,12 @@ void QMqttConnection::finalize_connack()
 
     quint8 ackFlags;
     readBuffer((char*)&ackFlags, 1);
+    m_missingData--;
 
     if (ackFlags > 1) { // MQTT-3.2.2.1
         qWarning("Unexpected CONNACK Flags set");
+        readBuffer(m_missingData);
+        m_missingData = 0;
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
@@ -1120,6 +1124,7 @@ void QMqttConnection::finalize_connack()
 
     quint8 connectResultValue;
     readBuffer((char*)&connectResultValue, 1);
+    m_missingData--;
     if (connectResultValue != 0) {
         qWarning("Connection has been rejected");
         // MQTT-3.2.2-5
@@ -1144,9 +1149,8 @@ void QMqttConnection::finalize_connack()
 
 void QMqttConnection::finalize_suback()
 {
-    quint16 id;
-    readBuffer((char*)&id, 2);
-    id = qFromBigEndian<quint16>(id);
+    const quint16 id = readBufferTyped<quint16>();
+    m_missingData -= 2;
     if (!m_pendingSubscriptionAck.contains(id)) {
         qWarning("Received SUBACK for unknown subscription request");
         return;
@@ -1160,7 +1164,7 @@ void QMqttConnection::finalize_suback()
     quint8 result;
     // ### TODO: In MQTT5 this might be a list of reason codes, not just granted QoS, see 3.9.3
     readBuffer((char*)&result, 1);
-    //m_missingData = 0;
+    m_missingData--;
 
     qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << result;
     if (result <= 2) {
@@ -1182,9 +1186,8 @@ void QMqttConnection::finalize_suback()
 
 void QMqttConnection::finalize_unsuback()
 {
-    quint16 id;
-    readBuffer((char*)&id, 2);
-    id = qFromBigEndian<quint16>(id);
+    const quint16 id = readBufferTyped<quint16>();
+    m_missingData -= 2;
     qCDebug(lcMqttConnectionVerbose) << "Finalize UNSUBACK: " << id;
     if (!m_pendingUnsubscriptions.contains(id)) {
         qWarning("Received UNSUBACK for unknown request");
@@ -1200,18 +1203,22 @@ void QMqttConnection::finalize_publish()
     // String topic
     const QMqttTopicName topic = readBufferTyped<QString>();
     const quint16 topicLength = topic.name().length();
+    m_missingData -= topicLength + 2;
 
     quint16 id = 0;
-    if (m_currentPublish.qos > 0)
+    if (m_currentPublish.qos > 0) {
         id = readBufferTyped<quint16>();
+        m_missingData -= 2;
+    }
 
     QMqttPublishProperties publishProperties;
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readPublishProperties(publishProperties);
 
     // message
-    qint64 payloadLength = m_missingData - (topicLength + 2) - (m_currentPublish.qos > 0 ? 2 : 0);
+    const qint64 payloadLength = m_missingData;
     const QByteArray message = readBuffer(payloadLength);
+    m_missingData -= payloadLength;
 
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBLISH: topic:" << topic
                                      << " payloadLength:" << payloadLength;;
@@ -1237,23 +1244,23 @@ void QMqttConnection::finalize_publish()
 void QMqttConnection::finalize_pubAckRecComp()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/COMP";
-    quint16 id;
-    readBuffer((char*)&id, 2);
-    id = qFromBigEndian<quint16>(id);
+    const quint16 id = readBufferTyped<quint16>();
     m_missingData -= 2;
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
         // Reason Code (1byte)
         const quint8 reasonCode = readBufferTyped<quint8>();
-        Q_UNUSED(reasonCode); // ### TODO: Do something with it, currently silences compiler
         m_missingData--;
+        Q_UNUSED(reasonCode); // ### TODO: Do something with it, currently silences compiler
         // Property Length (Variable Int)
         qint32 byteCount = 0;
         const qint32 propertyLength = readVariableByteInteger(&byteCount);
         m_missingData -= byteCount;
         // ### TODO: Publish ACK/REC/COMP property handling
-        if (propertyLength > 0)
+        if (propertyLength > 0) {
             readBuffer(propertyLength);
+            m_missingData -= propertyLength;
+        }
     }
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBCOMP) {
         qCDebug(lcMqttConnectionVerbose) << " PUBCOMP:" << id;
@@ -1281,9 +1288,8 @@ void QMqttConnection::finalize_pubAckRecComp()
 
 void QMqttConnection::finalize_pubrel()
 {
-    quint16 id;
-    readBuffer((char*)&id, 2);
-    id = qFromBigEndian<quint16>(id);
+    const quint16 id = readBufferTyped<quint16>();
+    m_missingData -= 2;
 
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBREL:" << id;
 
@@ -1295,8 +1301,9 @@ void QMqttConnection::finalize_pubrel()
 void QMqttConnection::finalize_pingresp()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize PINGRESP";
-    quint8 v;
-    readBuffer((char*)&v, 1);
+    const quint8 v = readBufferTyped<quint8>();
+    m_missingData--;
+
     if (v != 0) {
         qWarning("Received a PINGRESP with payload!");
         closeConnection(QMqttClient::ProtocolViolation);
@@ -1340,7 +1347,8 @@ void QMqttConnection::processData()
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
-        m_missingData = 0;
+
+        Q_ASSERT(m_missingData == 0);
     }
 
     // MQTT-2.2 A fixed header of a control packet must be at least 2 bytes. If the payload is
@@ -1366,6 +1374,7 @@ void QMqttConnection::processData()
     }
 
     readBuffer((char*)&m_currentPacket, 1);
+    m_missingData--;
 
     switch (m_currentPacket & 0xF0) {
     case QMqttControlPacket::CONNACK: {
