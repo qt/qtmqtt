@@ -1161,26 +1161,70 @@ void QMqttConnection::finalize_suback()
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readSubscriptionProperties(sub);
 
-    quint8 result;
-    // ### TODO: In MQTT5 this might be a list of reason codes, not just granted QoS, see 3.9.3
-    readBuffer((char*)&result, 1);
-    m_missingData--;
+    while (m_missingData > 0) {
+        quint8 reason = readBufferTyped<quint8>();
+        m_missingData--;
 
-    qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << result;
-    if (result <= 2) {
-        // The broker might have a different support level for QoS than what
-        // the client requested
-        if (result != sub->qos()) {
-            sub->setQos(result);
-            emit sub->qosChanged(result);
+        qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
+        if (reason <= 2) {
+            // The broker might have a different support level for QoS than what
+            // the client requested
+            if (reason != sub->qos()) {
+                sub->setQos(reason);
+                emit sub->qosChanged(reason);
+            }
+            sub->setState(QMqttSubscription::Subscribed);
+        } else if (reason == 0x80) {
+            qWarning() << "Subscription for id " << id << " failed.";
+            sub->setState(QMqttSubscription::Error);
+        } else {
+            bool mqtt5reason = false;
+            if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+                mqtt5reason = true;
+                switch (reason) {
+                case 0x83:
+                    qWarning() << "Implementation specific error for id:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0x87:
+                    qWarning() << "Not authorized for id:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0x8F:
+                    qWarning() << "Topic filter invalid:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0x91:
+                    qWarning() << "Packet identifier in use:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0x97:
+                    qWarning() << "Quota exceeded:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0x9E:
+                    qWarning() << "Shared subscriptions not supported:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0xA1:
+                    qWarning() << "Subscription Identifiers not supported:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                case 0xA2:
+                    qWarning() << "Wildcard subscriptions not supported:" << id;
+                    sub->setState(QMqttSubscription::Error);
+                    break;
+                default:
+                    mqtt5reason = false;
+                    break;
+                }
+            }
+
+            if (!mqtt5reason) {
+                qWarning("Received invalid SUBACK result value");
+                sub->setState(QMqttSubscription::Error);
+            }
         }
-        sub->setState(QMqttSubscription::Subscribed);
-    } else if (result == 0x80) {
-        qWarning() << "Subscription for id " << id << " failed.";
-        sub->setState(QMqttSubscription::Error);
-    } else {
-        qWarning("Received invalid SUBACK result value");
-        sub->setState(QMqttSubscription::Error);
     }
 }
 
