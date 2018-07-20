@@ -128,6 +128,7 @@ private:
     QByteArray readBuffer(qint64 size);
     template<typename T> T readBufferTyped();
     QByteArray m_readBuffer;
+    int m_readPosition{0};
     qint64 m_missingData{0};
     struct PublishData {
         quint8 qos;

@@ -564,6 +564,7 @@ void QMqttConnection::transportConnectionEstablished()
 void QMqttConnection::transportConnectionClosed()
 {
     m_readBuffer.clear();
+    m_readPosition = 0;
     m_pingTimer.stop();
     m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
 }
@@ -577,8 +578,8 @@ void QMqttConnection::transportReadReady()
 
 void QMqttConnection::readBuffer(char *data, qint64 size)
 {
-    memcpy(data, m_readBuffer.constData(), size);
-    m_readBuffer = m_readBuffer.mid(size);
+    memcpy(data, m_readBuffer.constData() + m_readPosition, size);
+    m_readPosition += size;
 }
 
 qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
@@ -608,6 +609,7 @@ qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
 void QMqttConnection::closeConnection(QMqttClient::ClientError error)
 {
     m_readBuffer.clear();
+    m_readPosition = 0;
     m_pingTimer.stop();
     m_activeSubscriptions.clear();
     m_internalState = BrokerDisconnected;
@@ -618,8 +620,8 @@ void QMqttConnection::closeConnection(QMqttClient::ClientError error)
 
 QByteArray QMqttConnection::readBuffer(qint64 size)
 {
-    QByteArray res = m_readBuffer.left(size);
-    m_readBuffer = m_readBuffer.mid(size);
+    QByteArray res(m_readBuffer.constData() + m_readPosition, size);
+    m_readPosition += size;
     return res;
 }
 
@@ -769,7 +771,7 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         default:
-            qWarning("Unknown property id in CONNACK.");
+            qWarning() << "Unknown property id in CONNACK:" << int(propertyId);
             break;
         }
     }
@@ -1129,6 +1131,7 @@ void QMqttConnection::finalize_connack()
         qWarning("Connection has been rejected");
         // MQTT-3.2.2-5
         m_readBuffer.clear();
+        m_readPosition = 0;
         m_transport->close();
         m_internalState = BrokerDisconnected;
         // Table 3.1, values 1-5
@@ -1359,7 +1362,7 @@ void QMqttConnection::finalize_pingresp()
 void QMqttConnection::processData()
 {
     if (m_missingData > 0) {
-        if (m_readBuffer.size() < m_missingData)
+        if ((m_readBuffer.size() - m_readPosition) < m_missingData)
             return;
 
         switch (m_currentPacket & 0xF0) {
@@ -1393,6 +1396,9 @@ void QMqttConnection::processData()
         }
 
         Q_ASSERT(m_missingData == 0);
+
+        m_readBuffer = m_readBuffer.mid(m_readPosition);
+        m_readPosition = 0;
     }
 
     // MQTT-2.2 A fixed header of a control packet must be at least 2 bytes. If the payload is
