@@ -281,8 +281,7 @@ void Tst_MqttConformance::zero_length_clientid_test()
         if (client.protocolVersion() == QMqttClient::MQTT_5_0) {
             // For MQTT 5 the broker creates an ID and returns it in CONNACK
             QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
-            // ### TODO: Enable this check:
-            //QVERIFY(!client.clientId().isEmpty())
+            QVERIFY(!client.clientId().isEmpty());
         } else {
             QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Sessions with empty client should not be allowed.");
         }
