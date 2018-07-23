@@ -76,9 +76,9 @@ void tst_QMqttPublishProperties::getSet()
     QCOMPARE(p.availableProperties(), 0);
 
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::PayloadFormatIndicator));
-    QCOMPARE(p.payloadIndicator(), QMqttPublishProperties::Unspecified);
-    p.setPayloadIndicator(QMqttPublishProperties::UTF8Encoded);
-    QCOMPARE(p.payloadIndicator(), QMqttPublishProperties::UTF8Encoded);
+    QCOMPARE(p.payloadFormatIndicator(), QMqtt::PayloadFormatIndicator::Unspecified);
+    p.setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator::UTF8Encoded);
+    QCOMPARE(p.payloadFormatIndicator(), QMqtt::PayloadFormatIndicator::UTF8Encoded);
     QVERIFY(p.availableProperties() & QMqttPublishProperties::PayloadFormatIndicator);
 
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::MessageExpiryInterval));
@@ -169,7 +169,7 @@ void tst_QMqttPublishProperties::propertyConsistency()
     QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);
 
     QMqttPublishProperties pubProp;
-    pubProp.setPayloadIndicator(QMqttPublishProperties::UTF8Encoded);
+    pubProp.setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator::UTF8Encoded);
     pubProp.setMessageExpiryInterval(60);
     //pubProp.setTopicAlias(1);
     pubProp.setResponseTopic(responseTopic);
@@ -188,7 +188,7 @@ void tst_QMqttPublishProperties::propertyConsistency()
 
     QCOMPARE(msg.payload(), QByteArray("Some Content"));
     QMqttPublishProperties receivalProp = msg.publishProperties();
-    QCOMPARE(pubProp.payloadIndicator(), receivalProp.payloadIndicator());
+    QCOMPARE(pubProp.payloadFormatIndicator(), receivalProp.payloadFormatIndicator());
     QVERIFY(pubProp.messageExpiryInterval() >= receivalProp.messageExpiryInterval()); // The broker MIGHT reduce
     QCOMPARE(pubProp.responseTopic(), receivalProp.responseTopic());
     QCOMPARE(pubProp.correlationData(), receivalProp.correlationData());

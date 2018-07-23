@@ -41,7 +41,7 @@ public:
     quint32 messageExpiry{0};
     quint32 subscriptionIdentifier{0}; // Variable Integer
     quint16 topicAlias{0};
-    QMqttPublishProperties::PayloadIndicatorOption payloadIndicator{QMqttPublishProperties::Unspecified};
+    QMqtt::PayloadFormatIndicator payloadIndicator{QMqtt::PayloadFormatIndicator::Unspecified};
     QMqttPublishProperties::PublishPropertyDetails details{0};
     QMqttUserProperties userProperties;
 };
@@ -73,17 +73,13 @@ QMqttPublishProperties::PublishPropertyDetails QMqttPublishProperties::available
     return data->details;
 }
 
-quint8 QMqttPublishProperties::payloadIndicator() const
+QMqtt::PayloadFormatIndicator QMqttPublishProperties::payloadFormatIndicator() const
 {
     return data->payloadIndicator;
 }
 
-void QMqttPublishProperties::setPayloadIndicator(PayloadIndicatorOption indicator)
+void QMqttPublishProperties::setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator indicator)
 {
-    if (indicator > 1) {
-        qWarning("Invalid payload indicator specified");
-        return;
-    }
     data->details |= QMqttPublishProperties::PayloadFormatIndicator;
     data->payloadIndicator = indicator;
 }

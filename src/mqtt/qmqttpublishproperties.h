@@ -43,11 +43,6 @@ class Q_MQTT_EXPORT QMqttPublishProperties
 {
     Q_GADGET
 public:
-    enum PayloadIndicatorOption : quint8 {
-        Unspecified = 0,
-        UTF8Encoded = 1
-    };
-
     enum PublishPropertyDetail : quint32 {
         PayloadFormatIndicator = 0x00000001,
         MessageExpiryInterval  = 0x00000002,
@@ -68,8 +63,8 @@ public:
 
     PublishPropertyDetails availableProperties() const;
 
-    quint8 payloadIndicator() const;
-    void setPayloadIndicator(PayloadIndicatorOption indicator);
+    QMqtt::PayloadFormatIndicator payloadFormatIndicator() const;
+    void setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator indicator);
 
     quint32 messageExpiryInterval() const;
     void setMessageExpiryInterval(quint32 interval);

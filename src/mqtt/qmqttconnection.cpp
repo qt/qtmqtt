@@ -787,7 +787,7 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             const quint8 format = readBufferTyped<quint8>();
             propertyLength--;
             if (format == 1)
-                properties.setPayloadIndicator(QMqttPublishProperties::UTF8Encoded);
+                properties.setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator::UTF8Encoded);
             break;
         }
         case 0x02: { // 3.3.2.3.3 Message Expiry Interval
@@ -966,12 +966,12 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
 
     // 3.3.2.3.2 Payload Indicator
     if (properties.availableProperties() & QMqttPublishProperties::PayloadFormatIndicator &&
-            properties.payloadIndicator() != QMqttPublishProperties::Unspecified) {
+            properties.payloadFormatIndicator() != QMqtt::PayloadFormatIndicator::Unspecified) {
         qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Payload Indicator:"
-                                         << properties.payloadIndicator();
+                                         << (properties.payloadFormatIndicator() == QMqtt::PayloadFormatIndicator::UTF8Encoded ? 1 : 0);
         packet.append(char(0x01));
-        switch (properties.payloadIndicator()) {
-        case QMqttPublishProperties::UTF8Encoded:
+        switch (properties.payloadFormatIndicator()) {
+        case QMqtt::PayloadFormatIndicator::UTF8Encoded:
             packet.append(char(0x01));
             break;
         default:

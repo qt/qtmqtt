@@ -44,6 +44,13 @@ QT_BEGIN_NAMESPACE
 #  define Q_MQTT_EXPORT
 #endif
 
+namespace QMqtt
+{
+enum class PayloadFormatIndicator : quint8 {
+    Unspecified = 0,
+    UTF8Encoded = 1
+};
+}
 QT_END_NAMESPACE
 
 #endif //QTQMQTTGLOBAL_H
