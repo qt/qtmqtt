@@ -527,6 +527,18 @@ QMqttConnectionProperties QMqttClient::connectionProperties() const
     return d->m_connectionProperties;
 }
 
+void QMqttClient::setLastWillProperties(const QMqttLastWillProperties &prop)
+{
+    Q_D(QMqttClient);
+    d->m_lastWillProperties = prop;
+}
+
+QMqttLastWillProperties QMqttClient::lastWillProperties() const
+{
+    Q_D(const QMqttClient);
+    return d->m_lastWillProperties;
+}
+
 QMqttServerConnectionProperties QMqttClient::serverConnectionProperties() const
 {
     Q_D(const QMqttClient);

@@ -74,6 +74,7 @@ public:
     QString m_password;
     bool m_cleanSession{true};
     QMqttConnectionProperties m_connectionProperties;
+    QMqttLastWillProperties m_lastWillProperties;
     QMqttServerConnectionProperties m_serverConnectionProperties;
 };
 

@@ -143,6 +143,9 @@ public:
     void setConnectionProperties(const QMqttConnectionProperties &prop);
     QMqttConnectionProperties connectionProperties() const;
 
+    void setLastWillProperties(const QMqttLastWillProperties &prop);
+    QMqttLastWillProperties lastWillProperties() const;
+
     QMqttServerConnectionProperties serverConnectionProperties() const;
 Q_SIGNALS:
     void connected();

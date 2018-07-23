@@ -122,6 +122,7 @@ private:
     void readPublishProperties(QMqttPublishProperties &properties);
     void readSubscriptionProperties(QMqttSubscription *sub);
     QByteArray writeConnectProperties();
+    QByteArray writeLastWillProperties() const;
     QByteArray writePublishProperties(const QMqttPublishProperties &properties);
     QByteArray writeSubscriptionProperties(const QMqttSubscriptionProperties &properties);
     void closeConnection(QMqttClient::ClientError error);

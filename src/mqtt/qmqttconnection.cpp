@@ -269,10 +269,8 @@ bool QMqttConnection::sendControlConnect()
     }
 
     if (!m_clientPrivate->m_willMessage.isEmpty()) {
-        if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-            // ### TODO: Add Will properties
-            packet.append(char(0));
-        }
+        if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+            packet.appendRaw(writeLastWillProperties());
 
         packet.append(m_clientPrivate->m_willTopic.toUtf8());
         packet.append(m_clientPrivate->m_willMessage);
@@ -954,6 +952,73 @@ QByteArray QMqttConnection::writeConnectProperties()
             qCDebug(lcMqttConnectionVerbose) << "    " << authenticationData;
             properties.append(char(0x16));
             properties.append(authenticationData);
+        }
+    }
+
+    return properties.serializePayload();
+}
+
+QByteArray QMqttConnection::writeLastWillProperties() const
+{
+    QMqttControlPacket properties;
+    const QMqttLastWillProperties &lastWillProperties = m_clientPrivate->m_lastWillProperties;
+    // Will Delay interval 3.1.3.2.2
+    if (lastWillProperties.willDelayInterval() > 0) {
+        const quint32 delay = lastWillProperties.willDelayInterval();
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: specify will delay interval:"
+                                         << delay;
+        properties.append(char(0x18));
+        properties.append(delay);
+    }
+
+    // Payload Format Indicator 3.1.3.2.3
+    if (lastWillProperties.payloadFormatIndicator() != QMqtt::PayloadFormatIndicator::Unspecified) {
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: payload format indicator specified";
+        properties.append(char(0x01));
+        properties.append(char(0x01)); // UTF8
+    }
+
+    // Message Expiry Interval 3.1.3.2.4
+    if (lastWillProperties.messageExpiryInterval() > 0) {
+        const quint32 interval = lastWillProperties.messageExpiryInterval();
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: Message Expiry interval:"
+                                         << interval;
+        properties.append(char(0x02));
+        properties.append(interval);
+    }
+
+    // Content Type 3.1.3.2.5
+    if (!lastWillProperties.contentType().isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: Content Type:"
+                                         << lastWillProperties.contentType();
+        properties.append(char(0x03));
+        properties.append(lastWillProperties.contentType().toUtf8());
+    }
+
+    // Response Topic 3.1.3.2.6
+    if (!lastWillProperties.responseTopic().isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: Response Topic:"
+                                         << lastWillProperties.responseTopic();
+        properties.append(char(0x08));
+        properties.append(lastWillProperties.responseTopic().toUtf8());
+    }
+
+    // Correlation Data 3.1.3.2.7
+    if (!lastWillProperties.correlationData().isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: Correlation Data:"
+                                         << lastWillProperties.correlationData();
+        properties.append(char(0x09));
+        properties.append(lastWillProperties.correlationData());
+    }
+
+    // User Properties 3.1.3.2.8
+    if (!lastWillProperties.userProperties().isEmpty()) {
+        auto userProperties = lastWillProperties.userProperties();
+        qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: specify user properties";
+        for (auto it : userProperties) {
+            properties.append(char(0x26));
+            properties.append(it.name().toUtf8());
+            properties.append(it.value().toUtf8());
         }
     }
 

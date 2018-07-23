@@ -35,6 +35,95 @@
 
 QT_BEGIN_NAMESPACE
 
+QMqttLastWillProperties::QMqttLastWillProperties() : data(new QMqttLastWillPropertiesData)
+{
+}
+
+QMqttLastWillProperties::QMqttLastWillProperties(const QMqttLastWillProperties &rhs) : data(rhs.data)
+{
+}
+
+QMqttLastWillProperties &QMqttLastWillProperties::operator=(const QMqttLastWillProperties &rhs)
+{
+    if (this != &rhs)
+        data.operator=(rhs.data);
+    return *this;
+}
+
+QMqttLastWillProperties::~QMqttLastWillProperties()
+{
+}
+
+quint32 QMqttLastWillProperties::willDelayInterval() const
+{
+    return data->willDelayInterval;
+}
+
+QMqtt::PayloadFormatIndicator QMqttLastWillProperties::payloadFormatIndicator() const
+{
+    return data->formatIndicator;
+}
+
+quint32 QMqttLastWillProperties::messageExpiryInterval() const
+{
+    return data->messageExpiryInterval;
+}
+
+QString QMqttLastWillProperties::contentType() const
+{
+    return data->contentType;
+}
+
+QString QMqttLastWillProperties::responseTopic() const
+{
+    return data->responseTopic;
+}
+
+QByteArray QMqttLastWillProperties::correlationData() const
+{
+    return data->correlationData;
+}
+
+QMqttUserProperties QMqttLastWillProperties::userProperties() const
+{
+    return data->userProperties;
+}
+
+void QMqttLastWillProperties::setWillDelayInterval(quint32 delay)
+{
+    data->willDelayInterval = delay;
+}
+
+void QMqttLastWillProperties::setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator p)
+{
+    data->formatIndicator = p;
+}
+
+void QMqttLastWillProperties::setMessageExpiryInterval(quint32 expiry)
+{
+    data->messageExpiryInterval = expiry;
+}
+
+void QMqttLastWillProperties::setContentType(const QString &content)
+{
+    data->contentType = content;
+}
+
+void QMqttLastWillProperties::setResponseTopic(const QString &response)
+{
+    data->responseTopic = response;
+}
+
+void QMqttLastWillProperties::setCorrelationData(const QByteArray &correlation)
+{
+    data->correlationData = correlation;
+}
+
+void QMqttLastWillProperties::setUserProperties(const QMqttUserProperties &properties)
+{
+    data->userProperties = properties;
+}
+
 QMqttConnectionProperties::QMqttConnectionProperties() : data(new QMqttConnectionPropertiesData)
 {
 

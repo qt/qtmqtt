@@ -45,6 +45,18 @@
 
 QT_BEGIN_NAMESPACE
 
+class QMqttLastWillPropertiesData : public QSharedData
+{
+public:
+    QString contentType;
+    QString responseTopic;
+    QByteArray correlationData;
+    QMqttUserProperties userProperties;
+    quint32 willDelayInterval{0};
+    quint32 messageExpiryInterval{0};
+    QMqtt::PayloadFormatIndicator formatIndicator{QMqtt::PayloadFormatIndicator::Unspecified};
+};
+
 class QMqttConnectionPropertiesData : public QSharedData
 {
 public:

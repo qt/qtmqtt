@@ -5,6 +5,7 @@ win32|if(linux:!cross_compile): SUBDIRS += cmake \
                                       qmqttconnectionproperties \
                                       qmqttcontrolpacket \
                                       qmqttclient \
+                                      qmqttlastwillproperties \
                                       qmqttpublishproperties \
                                       qmqttsubscription \
                                       qmqttsubscriptionproperties \

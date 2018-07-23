@@ -39,7 +39,37 @@
 QT_BEGIN_NAMESPACE
 
 class QMqttConnectionPropertiesData;
+class QMqttLastWillPropertiesData;
 class QMqttServerConnectionPropertiesData;
+
+class Q_MQTT_EXPORT QMqttLastWillProperties
+{
+    Q_GADGET
+public:
+    QMqttLastWillProperties();
+    QMqttLastWillProperties(const QMqttLastWillProperties &);
+    QMqttLastWillProperties &operator=(const QMqttLastWillProperties &);
+    ~QMqttLastWillProperties();
+
+    quint32 willDelayInterval() const;
+    QMqtt::PayloadFormatIndicator payloadFormatIndicator() const;
+    quint32 messageExpiryInterval() const;
+    QString contentType() const;
+    QString responseTopic() const;
+    QByteArray correlationData() const;
+    QMqttUserProperties userProperties() const;
+
+    void setWillDelayInterval(quint32 delay);
+    void setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator p);
+    void setMessageExpiryInterval(quint32 expiry);
+    void setContentType(const QString &content);
+    void setResponseTopic(const QString &response);
+    void setCorrelationData(const QByteArray &correlation);
+    void setUserProperties(const QMqttUserProperties &properties);
+
+protected:
+    QSharedDataPointer<QMqttLastWillPropertiesData> data;
+};
 
 class Q_MQTT_EXPORT QMqttConnectionProperties
 {
