@@ -909,8 +909,6 @@ QByteArray QMqttConnection::writeConnectProperties()
 
     // 3.1.2.11.5
     if (m_clientPrivate->m_connectionProperties.maximumTopicAlias() != 0) {
-        // ### TODO: Verify this works, previous test server versions did set it to 2 if no value
-        // specified
         qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify maximumTopicAlias";
         properties.append(char(0x22));
         properties.append(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
