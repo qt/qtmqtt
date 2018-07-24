@@ -374,7 +374,14 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
-    if (m_activeSubscriptions.contains(topic))
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        if (!topic.shareName().isEmpty()) {
+            const QMqttTopicFilter filter(topic.filter().section(QLatin1Char('/'), 2));
+            if (m_activeSubscriptions.contains(filter) && m_activeSubscriptions.value(filter)->shareName() == topic.shareName())
+                return m_activeSubscriptions[filter];
+        } else if (m_activeSubscriptions.contains(topic) && !m_activeSubscriptions.value(topic)->isShared())
+            return m_activeSubscriptions[topic];
+    } else if (m_activeSubscriptions.contains(topic))
         return m_activeSubscriptions[topic];
 
     // has to have 0010 as bits 3-0, maybe update SUBSCRIBE instead?
@@ -410,6 +417,11 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     result->setClient(m_clientPrivate->m_client);
     result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && !topic.shareName().isEmpty()) {
+        result->setShareName(topic.shareName());
+        result->setShared(true);
+        result->setTopic(topic.filter().section(QLatin1Char('/'), 2));
+    }
 
     if (!writePacketToTransport(packet)) {
         delete result;

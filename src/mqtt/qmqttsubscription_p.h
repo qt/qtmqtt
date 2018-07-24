@@ -56,8 +56,10 @@ public:
     QMqttTopicFilter m_topic;
     QString m_reasonString;
     QMqttUserProperties m_userProperties;
+    QString m_shareName;
     QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
     quint8 m_qos{0};
+    bool m_shared{false};
 };
 
 QT_END_NAMESPACE

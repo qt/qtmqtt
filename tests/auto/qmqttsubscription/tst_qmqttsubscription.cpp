@@ -49,7 +49,11 @@ private Q_SLOTS:
     void wildCards();
     void reconnect_data();
     void reconnect();
+    void sharedConnection();
+    void sharedNonShared_data();
+    void sharedNonShared();
 private:
+    void createAndSubscribe(QMqttClient *c, QMqttSubscription **sub, const QString &topic);
     QProcess m_brokerProcess;
     QString m_testBroker;
     quint16 m_port{1883};
@@ -226,6 +230,151 @@ void Tst_QMqttSubscription::reconnect()
 
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect.");
+}
+
+void Tst_QMqttSubscription::createAndSubscribe(QMqttClient *c, QMqttSubscription **sub, const QString &topic)
+{
+    c->setProtocolVersion(QMqttClient::MQTT_5_0);
+    c->setHostname(m_testBroker);
+    c->setPort(m_port);
+
+    c->connectToHost();
+    QTRY_VERIFY2(c->state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    *sub = c->subscribe(topic, 1);
+    QTRY_VERIFY2((*sub)->state() == QMqttSubscription::Subscribed, "Could not subscribe.");
+}
+
+void Tst_QMqttSubscription::sharedConnection()
+{
+    // Create / Connect publisher
+    QMqttClient sender;
+    sender.setProtocolVersion(QMqttClient::MQTT_5_0);
+    sender.setHostname(m_testBroker);
+    sender.setPort(m_port);
+    sender.connectToHost();
+    QTRY_VERIFY2(sender.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    // Create GroupA
+    const int groupSizeA = 2;
+    const QString groupTopicA{QLatin1String("$share/groupA/shared/sub")};
+    QMqttClient listenersA[groupSizeA];
+    QMqttSubscription *subsA[groupSizeA];
+    int messageCounterA[groupSizeA] = {0};
+    int messageSumA = 0;
+    // listenerAx: $share/groupA/Qt/Subscription/shared_check/#
+    for (int i = 0; i < groupSizeA; ++i) {
+        createAndSubscribe(&listenersA[i], &subsA[i], groupTopicA);
+        QCOMPARE(subsA[i]->isShared(), true);
+        QCOMPARE(subsA[i]->shareName(), QLatin1String("groupA"));
+        connect(subsA[i], &QMqttSubscription::messageReceived, [i, &messageCounterA, &messageSumA]() {
+            messageCounterA[i]++;
+            messageSumA++;
+            //qDebug() << "A Got message:" << i << ":" << messageCounterA[i];
+        });
+    }
+
+    // Create GroupB
+    const int groupSizeB = 5;
+    const QString groupTopicB{QLatin1String("$share/groupB/shared/#")};
+    QMqttClient listenersB[groupSizeB];
+    QMqttSubscription *subsB[groupSizeB];
+    int messageCounterB[groupSizeB] = {0};
+    int messageSumB = 0;
+    // listenerBx: $share/groupB/Qt/Subscription/shared_check/#
+    for (int i = 0; i < groupSizeB; ++i) {
+        createAndSubscribe(&listenersB[i], &subsB[i], groupTopicB);
+        QCOMPARE(subsB[i]->isShared(), true);
+        QCOMPARE(subsB[i]->shareName(), QLatin1String("groupB"));
+        connect(subsB[i], &QMqttSubscription::messageReceived, [i, &messageCounterB, &messageSumB]() {
+            messageCounterB[i]++;
+            messageSumB++;
+            //qDebug() << "B Got message:" << i << ":" << messageCounterB[i];
+        });
+    }
+
+    const int publishedMessages = 10;
+    for (int i = 0; i < publishedMessages; ++i) {
+        QSignalSpy publishSpy(&sender, SIGNAL(messageSent(qint32)));
+        sender.publish(QLatin1String("shared/sub"), QByteArray("Foobidoo"), 1);
+        QTRY_VERIFY2(publishSpy.size() == 1, "Could not publish message.");
+    }
+
+    QTRY_VERIFY2(messageSumA == publishedMessages, "Group A did not receive enough messages.");
+    QTRY_VERIFY2(messageSumB == publishedMessages, "Group A did not receive enough messages.");
+
+    QString formatString;
+    for (int i = 0; i < groupSizeA; ++i) {
+        formatString.append(QString::number(messageCounterA[i]));
+        formatString.append(QLatin1Char(' '));
+    }
+    qDebug() << "Statistics GroupA : " << formatString;
+    formatString.clear();
+    for (int i = 0; i < groupSizeB; ++i) {
+        formatString.append(QString::number(messageCounterB[i]));
+        formatString.append(QLatin1Char(' '));
+    }
+    qDebug() << "Statistics GroupB : " << formatString;
+}
+
+void Tst_QMqttSubscription::sharedNonShared_data()
+{
+    const QString topic(QLatin1String("Qt/Subscription/SharedNonShared"));
+    const QString groupTopic = QString::fromLatin1("$share/somegroup/") + topic;
+
+    QTest::addColumn<QString>("topic1");
+    QTest::addColumn<bool>("shared1");
+    QTest::addColumn<QString>("topic2");
+    QTest::addColumn<bool>("shared2");
+    QTest::addColumn<bool>("expected");
+
+    QTest::newRow("non - non") << topic << false << topic << false << true;
+    QTest::newRow("non - yes") << topic << false << groupTopic << true << false;
+    QTest::newRow("yes - non") << groupTopic << true << topic << false << false;
+    QTest::newRow("yes - yes") << groupTopic << true << groupTopic << true << true;
+}
+
+void Tst_QMqttSubscription::sharedNonShared()
+{
+    QFETCH(QString, topic1);
+    QFETCH(bool, shared1);
+    QFETCH(QString, topic2);
+    QFETCH(bool, shared2);
+    QFETCH(bool, expected);
+
+    // Create / Connect publisher
+    QMqttClient client;
+    client.setProtocolVersion(QMqttClient::MQTT_5_0);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    QMqttSubscription *sub1 = client.subscribe(topic1, 1);
+    QCOMPARE(sub1->isShared(), shared1);
+    QVERIFY(sub1->shareName().isEmpty() == !shared1);
+
+    QMqttSubscription *sub2 = client.subscribe(topic2, 1);
+    QCOMPARE(sub2->isShared(), shared2);
+    QVERIFY(sub2->shareName().isEmpty() == !shared2);
+
+    // Verify that a subscription is reused / not reused
+    QCOMPARE(sub1 == sub2, expected);
+
+    // Depending on the broker, it may decide to not send a message twice due to overlapping
+    // subscriptions on the same client (eg. paho).
+    // Using two different clients would make the receival work, but is not part of this test.
+
+//    QSignalSpy receivalSpy1(sub1, SIGNAL(messageReceived(QMqttMessage)));
+//    QSignalSpy receivalSpy2(sub2, SIGNAL(messageReceived(QMqttMessage)));
+//    QSignalSpy publishSpy(&client, SIGNAL(messageSent(qint32)));
+
+//    client.publish(QLatin1String("Qt/Subscription/SharedNonShared"), QByteArray(), 1);
+//    QTRY_VERIFY(publishSpy.count() == 1);
+
+//    // Verify both subscriptions receive the message
+//    QTRY_VERIFY(receivalSpy1.count() == 1);
+//    QTRY_VERIFY(receivalSpy2.count() == 1);
 }
 
 QTEST_MAIN(Tst_QMqttSubscription)

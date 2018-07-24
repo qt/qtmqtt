@@ -75,6 +75,14 @@ void Tst_QMqttTopicFilter::checkValidity()
     QVERIFY(!QMqttTopicFilter("++").isValid());
 
     QVERIFY(!QMqttTopicFilter(QString(3, QChar(QChar::Null))).isValid());
+
+    QVERIFY(QMqttTopicFilter("$share/group/topic").isValid());
+    QVERIFY(QMqttTopicFilter("$share/group/topic/subtopic").isValid());
+    QVERIFY(QMqttTopicFilter("$share/group/topic/+/someother").isValid());
+    QVERIFY(QMqttTopicFilter("$share/group/topic/#").isValid());
+    QVERIFY(!QMqttTopicFilter("$share/groupnotopic").isValid());
+    QVERIFY(!QMqttTopicFilter("$share/").isValid());
+    QVERIFY(!QMqttTopicFilter("$share//foo").isValid());
 }
 
 void Tst_QMqttTopicFilter::matches()

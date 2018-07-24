@@ -132,6 +132,18 @@ QMqttUserProperties QMqttSubscription::userProperties() const
     return d->m_userProperties;
 }
 
+bool QMqttSubscription::isShared() const
+{
+    Q_D(const QMqttSubscription);
+    return d->m_shared;
+}
+
+QString QMqttSubscription::shareName() const
+{
+    Q_D(const QMqttSubscription);
+    return d->m_shareName;
+}
+
 void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
 {
     Q_D(QMqttSubscription);
@@ -171,6 +183,18 @@ void QMqttSubscription::setQos(quint8 qos)
 {
     Q_D(QMqttSubscription);
     d->m_qos = qos;
+}
+
+void QMqttSubscription::setShared(bool s)
+{
+    Q_D(QMqttSubscription);
+    d->m_shared = s;
+}
+
+void QMqttSubscription::setShareName(const QString &name)
+{
+    Q_D(QMqttSubscription);
+    d->m_shareName = name;
 }
 
 QMqttSubscriptionPrivate::QMqttSubscriptionPrivate()

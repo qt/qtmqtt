@@ -153,6 +153,17 @@ void QMqttTopicFilter::setFilter(const QString &filter)
     d->filter = filter;
 }
 
+QString QMqttTopicFilter::shareName() const
+{
+    QString result;
+    if (d->filter.startsWith(QLatin1String("$share/"))) {
+        // Has to have at least two /
+        // $share/<sharename>/topicfilter
+        result = d->filter.section(QLatin1Char('/'), 1, 1);
+    }
+    return result;
+}
+
 /*!
     Returns \c true if the topic filter is valid according to the MQTT standard
     section 4.7, or \c false otherwise.
@@ -184,6 +195,13 @@ bool QMqttTopicFilter::isValid() const
         singleLevelPosition = d->filter.indexOf(QLatin1Char('#'), singleLevelPosition + 1);
     }
 
+    // Shared Subscription syntax
+    // $share/shareName/TopicFilter -- must have at least 2 '/'
+    if (d->filter.startsWith(QLatin1String("$share/"))) {
+        const int index = d->filter.indexOf(QLatin1Char('/'), 7);
+        if (index == -1 || index == 7)
+            return false;
+    }
     return true;
 }
 
