@@ -120,7 +120,7 @@ void Tst_MqttConformance::basic_test()
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe");
 
     int msgCount = 0;
-    connect(sub, &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage msg) {
+    connect(sub, &QMqttSubscription::messageReceived, this, [&msgCount](QMqttMessage) {
         msgCount++;
     });
 

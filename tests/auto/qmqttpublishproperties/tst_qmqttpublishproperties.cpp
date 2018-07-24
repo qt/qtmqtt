@@ -84,7 +84,7 @@ void tst_QMqttPublishProperties::getSet()
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::MessageExpiryInterval));
     p.setMessageExpiryInterval(200);
     QVERIFY(p.availableProperties() & QMqttPublishProperties::MessageExpiryInterval);
-    QCOMPARE(p.messageExpiryInterval(), 200);
+    QCOMPARE(p.messageExpiryInterval(), 200u);
 
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::TopicAlias));
     p.setTopicAlias(1);
@@ -119,10 +119,10 @@ void tst_QMqttPublishProperties::getSet()
 
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier));
     p.setSubscriptionIdentifier(1);
-    QCOMPARE(p.subscriptionIdentifier(), 1);
+    QCOMPARE(p.subscriptionIdentifier(), 1u);
     p.setSubscriptionIdentifier(0);
     QVERIFY(p.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier);
-    QCOMPARE(p.subscriptionIdentifier(), 1);
+    QCOMPARE(p.subscriptionIdentifier(), 1u);
 
     const QString contentType = QLatin1String("MultimediaContent123");
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::ContentType));
