@@ -126,7 +126,7 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 
     // We are asked to create a transport layer
     if (m_clientPrivate->m_hostname.isEmpty() || m_clientPrivate->m_port == 0) {
-        qWarning("Trying to create a transport layer, but no hostname is specified");
+        qCDebug(lcMqttConnection) << "No hostname specified, not able to create a transport layer.";
         return false;
     }
     auto socket =
@@ -158,7 +158,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             return sendControlConnect();
 
         if (!m_transport->open(QIODevice::ReadWrite)) {
-            qWarning("Could not open Transport IO device");
+            qCDebug(lcMqttConnection) << "Could not open Transport IO device.";
             m_internalState = BrokerDisconnected;
             return false;
         }
@@ -185,12 +185,12 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
         socket->connectToHostEncrypted(m_clientPrivate->m_hostname, m_clientPrivate->m_port, sslPeerName);
 
         if (!socket->waitForConnected()) {
-            qWarning("Could not establish socket connection for transport");
+            qCDebug(lcMqttConnection) << "Could not establish socket connection for transport.";
             return false;
         }
 
         if (!socket->waitForEncrypted()) {
-            qWarning("Could not initiate encryption.");
+            qCDebug(lcMqttConnection) << "Could not initiate encryption.";
             return false;
         }
     }
@@ -234,7 +234,7 @@ bool QMqttConnection::sendControlConnect()
     if (!m_clientPrivate->m_willMessage.isEmpty()) {
         flags |= 1 << 2;
         if (m_clientPrivate->m_willQoS > 2) {
-            qWarning("Will QoS does not have a valid value");
+            qCDebug(lcMqttConnection) << "Invalid Will QoS specified.";
             return false;
         }
         if (m_clientPrivate->m_willQoS == 1)
@@ -283,7 +283,7 @@ bool QMqttConnection::sendControlConnect()
         packet.append(m_clientPrivate->m_password.toUtf8());
 
     if (!writePacketToTransport(packet)) {
-        qWarning("Could not write CONNECT frame to transport");
+        qCDebug(lcMqttConnection) << "Could not write CONNECT frame to transport.";
         return false;
     }
 
@@ -392,7 +392,7 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
 
     // Overflow protection
     if (!topic.isValid()) {
-        qWarning("Subscribed topic filter is not valid.");
+        qCDebug(lcMqttConnection) << "Invalid subscription topic filter.";
         return nullptr;
     }
 
@@ -471,7 +471,7 @@ bool QMqttConnection::sendControlPingRequest()
 
     const QMqttControlPacket packet(QMqttControlPacket::PINGREQ);
     if (!writePacketToTransport(packet)) {
-        qWarning("Could not write DISCONNECT frame to transport");
+        qCDebug(lcMqttConnection) << "Failed to write PINGREQ to transport.";
         return false;
     }
     return true;
@@ -487,7 +487,7 @@ bool QMqttConnection::sendControlDisconnect()
 
     const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
     if (!writePacketToTransport(packet)) {
-        qWarning("Could not write DISCONNECT frame to transport");
+        qCDebug(lcMqttConnection) << "Failed to write DISCONNECT to transport.";
         return false;
     }
     m_internalState = BrokerDisconnected;
@@ -520,7 +520,7 @@ quint16 QMqttConnection::unusedPacketIdentifier() const
             packetIdentifierCounter++;
 
         if (lastIdentifier == packetIdentifierCounter) {
-            qWarning("Can't generate unique packet identifier.");
+            qCDebug(lcMqttConnection) << "Could not generate unique packet identifier.";
             break;
         }
     } while (m_pendingSubscriptionAck.contains(packetIdentifierCounter)
@@ -553,7 +553,7 @@ void QMqttConnection::transportConnectionEstablished()
     }
 
     if (!sendControlConnect()) {
-        qWarning("Could not send CONNECT to broker");
+        qCDebug(lcMqttConnection) << "Failed to write CONNECT to transport.";
         // ### Who disconnects now? Connection or client?
         m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
     }
@@ -594,7 +594,7 @@ qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
         multiplier *= 128;
         iteration++;
         if (iteration > 4) {
-            qWarning("Publish message is too big to handle");
+            qCDebug(lcMqttConnection) << "Overflow trying to read variable integer.";
             closeConnection(QMqttClient::ProtocolViolation);
             return -1;
         }
@@ -761,7 +761,7 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         default:
-            qWarning() << "Unknown property id in CONNACK:" << int(propertyId);
+            qCDebug(lcMqttConnection) << "Unknown property id in CONNACK:" << int(propertyId);
             break;
         }
     }
@@ -839,7 +839,7 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         default:
-            qWarning("Unknown publish property received");
+            qCDebug(lcMqttConnection) << "Unknown publish property received.";
             break;
         }
     }
@@ -873,7 +873,7 @@ void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
             break;
         }
         default:
-            qWarning("Unknown subscription property received");
+            qCDebug(lcMqttConnection) << "Unknown subscription property received.";
             break;
         }
     }
@@ -1041,7 +1041,7 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
             packet.append(char(0x01));
             break;
         default:
-            qWarning("Unknown payload indicator");
+            qCDebug(lcMqttConnection) << "Unknown payload indicator.";
             break;
         }
     }
@@ -1062,8 +1062,9 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
                                          << properties.topicAlias();
         if (m_clientPrivate->m_serverConnectionProperties.availableProperties() & QMqttServerConnectionProperties::MaximumTopicAlias
                 && properties.topicAlias() > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
-            qWarning() << "Invalid topic alias specified: " << properties.topicAlias()
-                       << " Maximum by server is:" << m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias();
+            qCDebug(lcMqttConnection) <<  "Invalid topic alias specified: " << properties.topicAlias()
+                                      << " Maximum by server is:"
+                                      << m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias();
 
         } else {
             packet.append(char(0x23));
@@ -1156,7 +1157,7 @@ void QMqttConnection::finalize_connack()
     m_missingData--;
 
     if (ackFlags > 1) { // MQTT-3.2.2.1
-        qWarning("Unexpected CONNACK Flags set");
+        qCDebug(lcMqttConnection) << "Unexpected CONNACK Flags specified:" << QString::number(ackFlags);
         readBuffer(quint64(m_missingData));
         m_missingData = 0;
         closeConnection(QMqttClient::ProtocolViolation);
@@ -1168,7 +1169,7 @@ void QMqttConnection::finalize_connack()
     if (sessionPresent) {
         emit m_clientPrivate->m_client->brokerSessionRestored();
         if (m_clientPrivate->m_cleanSession)
-            qWarning("Connected with a clean session, ack contains session present");
+            qCDebug(lcMqttConnection) << "Connected with a clean session, ack contains session present.";
     } else {
         // MQTT-4.1.0.-1 MQTT-4.1.0-2 Session not stored on broker side
         // regardless whether cleanSession is false
@@ -1178,7 +1179,7 @@ void QMqttConnection::finalize_connack()
     quint8 connectResultValue = readBufferTyped<quint8>();
     m_missingData--;
     if (connectResultValue != 0) {
-        qWarning("Connection has been rejected");
+        qCDebug(lcMqttConnection) << "Connection has been rejected.";
         // MQTT-3.2.2-5
         m_readBuffer.clear();
         m_readPosition = 0;
@@ -1205,7 +1206,7 @@ void QMqttConnection::finalize_suback()
     const quint16 id = readBufferTyped<quint16>();
     m_missingData -= 2;
     if (!m_pendingSubscriptionAck.contains(id)) {
-        qWarning("Received SUBACK for unknown subscription request");
+        qCDebug(lcMqttConnection) << "Received SUBACK for unknown subscription request.";
         return;
     }
 
@@ -1228,7 +1229,7 @@ void QMqttConnection::finalize_suback()
             }
             sub->setState(QMqttSubscription::Subscribed);
         } else if (reason == 0x80) {
-            qWarning() << "Subscription for id " << id << " failed.";
+            qCDebug(lcMqttConnection) << "Subscription for id " << id << " failed.";
             sub->setState(QMqttSubscription::Error);
         } else {
             bool mqtt5reason = false;
@@ -1236,35 +1237,35 @@ void QMqttConnection::finalize_suback()
                 mqtt5reason = true;
                 switch (reason) {
                 case 0x83:
-                    qWarning() << "Implementation specific error for id:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Implementation specific error for id:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0x87:
-                    qWarning() << "Not authorized for id:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Not authorized for id:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0x8F:
-                    qWarning() << "Topic filter invalid:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Topic filter invalid:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0x91:
-                    qWarning() << "Packet identifier in use:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Packet identifier in use:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0x97:
-                    qWarning() << "Quota exceeded:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Quota exceeded:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0x9E:
-                    qWarning() << "Shared subscriptions not supported:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Shared subscriptions not supported:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0xA1:
-                    qWarning() << "Subscription Identifiers not supported:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Subscription Identifiers not supported:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 case 0xA2:
-                    qWarning() << "Wildcard subscriptions not supported:" << id;
+                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Wildcard subscriptions not supported:" << id;
                     sub->setState(QMqttSubscription::Error);
                     break;
                 default:
@@ -1274,7 +1275,7 @@ void QMqttConnection::finalize_suback()
             }
 
             if (!mqtt5reason) {
-                qWarning("Received invalid SUBACK result value");
+                qCDebug(lcMqttConnection) << "Received invalid SUBACK result value:" << reason;
                 sub->setState(QMqttSubscription::Error);
             }
         }
@@ -1287,7 +1288,7 @@ void QMqttConnection::finalize_unsuback()
     m_missingData -= 2;
     qCDebug(lcMqttConnectionVerbose) << "Finalize UNSUBACK: " << id;
     if (!m_pendingUnsubscriptions.contains(id)) {
-        qWarning("Received UNSUBACK for unknown request");
+        qCDebug(lcMqttConnection) << "Received UNSUBACK for unknown request.";
         return;
     }
     auto sub = m_pendingUnsubscriptions.take(id);
@@ -1363,14 +1364,14 @@ void QMqttConnection::finalize_pubAckRecComp()
         qCDebug(lcMqttConnectionVerbose) << " PUBCOMP:" << id;
         auto pendingRelease = m_pendingReleaseMessages.take(id);
         if (!pendingRelease)
-            qWarning("Received PUBCOMP for unknown released message");
+            qCDebug(lcMqttConnection) << "Received PUBCOMP for unknown released message.";
         emit m_clientPrivate->m_client->messageSent(id);
         return;
     }
 
     auto pendingMsg = m_pendingMessages.take(id);
     if (!pendingMsg) {
-        qWarning() << QLatin1String("Received PUBACK for unknown message: ") << id;
+        qCDebug(lcMqttConnection) << "Received PUBACK for unknown message: " << id;
         return;
     }
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREC) {
@@ -1402,7 +1403,7 @@ void QMqttConnection::finalize_pingresp()
     m_missingData--;
 
     if (v != 0) {
-        qWarning("Received a PINGRESP with payload!");
+        qCDebug(lcMqttConnection) << "Received a PINGRESP including payload.";
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
@@ -1440,7 +1441,7 @@ void QMqttConnection::processData()
             finalize_pubrel();
             break;
         default:
-            qWarning("Unknown packet to finalize");
+            qCDebug(lcMqttConnection) << "Unknown packet to finalize.";
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
@@ -1480,7 +1481,7 @@ void QMqttConnection::processData()
     case QMqttControlPacket::CONNACK: {
         qCDebug(lcMqttConnectionVerbose) << "Received CONNACK";
         if (m_internalState != BrokerWaitForConnectAck) {
-            qWarning("Received CONNACK at unexpected time!");
+            qCDebug(lcMqttConnection) << "Received CONNACK at unexpected time.";
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
@@ -1488,7 +1489,7 @@ void QMqttConnection::processData()
         qint32 payloadSize = readVariableByteInteger();
         if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
             if (payloadSize != 2) {
-                qWarning("Unexpected FRAME size in CONNACK");
+                qCDebug(lcMqttConnection) << "Unexpected FRAME size in CONNACK.";
                 closeConnection(QMqttClient::ProtocolViolation);
                 return;
             }
@@ -1528,12 +1529,12 @@ void QMqttConnection::processData()
         qCDebug(lcMqttConnectionVerbose) << "Received PUBREL";
         const quint8 remaining = readBufferTyped<quint8>();
         if (remaining != 0x02) {
-            qWarning("Received 2 byte message with invalid remaining length");
+            qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
         if ((m_currentPacket & 0x0F) != 0x02) {
-            qWarning("Malformed fixed header for PUBREL");
+            qCDebug(lcMqttConnection) << "Malformed fixed header for PUBREL.";
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
@@ -1547,13 +1548,13 @@ void QMqttConnection::processData()
     case QMqttControlPacket::PUBCOMP: {
         qCDebug(lcMqttConnectionVerbose) << "Received UNSUBACK/PUBACK/PUBREC/PUBCOMP";
         if ((m_currentPacket & 0x0F) != 0) {
-            qWarning("Malformed fixed header");
+            qCDebug(lcMqttConnection) << "Malformed fixed header for UNSUBACK/PUBACK/PUBREC/PUBCOMP.";
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
         const quint8 remaining = readBufferTyped<quint8>();
         if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0 && remaining != 0x02) {
-            qWarning("Received 2 byte message with invalid remaining length");
+            qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
             closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
@@ -1561,7 +1562,7 @@ void QMqttConnection::processData()
         break;
     }
     default:
-        qWarning("Received unknown command");
+        qCDebug(lcMqttConnection) << "Received unknown command.";
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
@@ -1577,7 +1578,7 @@ bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)
     const QByteArray writeData = p.serialize();
     const qint64 res = m_transport->write(writeData.constData(), writeData.size());
     if (Q_UNLIKELY(res == -1)) {
-        qWarning("Could not write frame to transport");
+        qCDebug(lcMqttConnection) << "Could not write frame to transport.";
         return false;
     }
     return true;

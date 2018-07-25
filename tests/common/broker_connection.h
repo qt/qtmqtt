@@ -96,7 +96,7 @@ QString invokeOrInitializeBroker(QProcess *gBrokerProcess)
         QTest::qWait(5000);
     }
 
-    qWarning("Could not launch MQTT test broker.");
+    qWarning() << "Could not launch MQTT test broker.";
     return QString();
 }
 

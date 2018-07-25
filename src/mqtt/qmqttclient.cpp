@@ -30,10 +30,13 @@
 #include "qmqttclient.h"
 #include "qmqttclient_p.h"
 
+#include <QtCore/QLoggingCategory>
 #include <QtCore/QUuid>
 #include <QtCore/QtEndian>
 
 QT_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
 
 /*!
     \class QMqttClient
@@ -289,7 +292,7 @@ void QMqttClient::setTransport(QIODevice *device, QMqttClient::TransportType tra
     Q_D(QMqttClient);
 
     if (d->m_state != Disconnected) {
-        qWarning("Changing transport layer while connected is not possible");
+        qCDebug(lcMqttClient) << "Changing transport layer while connected is not possible.";
         return;
     }
     d->m_connection.setTransport(device, transport);
@@ -421,12 +424,12 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
     Q_D(QMqttClient);
 
     if (state() == QMqttClient::Connected) {
-        qWarning("Already connected to a broker. Rejecting connection request.");
+        qCDebug(lcMqttClient) << "Already connected to a broker. Rejecting connection request.";
         return;
     }
 
     if (!d->m_connection.ensureTransport(encrypted)) {
-        qWarning("Could not ensure connection");
+        qCDebug(lcMqttClient) << "Could not ensure connection.";
         d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
@@ -437,7 +440,7 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
         d->m_connection.cleanSubscriptions();
 
     if (!d->m_connection.ensureTransportOpen(sslPeerName)) {
-        qWarning("Could not ensure that connection is open");
+        qCDebug(lcMqttClient) << "Could not ensure that connection is open.";
         d->setStateAndError(Disconnected, TransportInvalid);
         return;
     }
@@ -606,7 +609,7 @@ void QMqttClient::setKeepAlive(quint16 keepAlive)
         return;
 
     if (state() != QMqttClient::Disconnected) {
-        qWarning("Trying to modify keepAlive while connected.");
+        qCDebug(lcMqttClient) << "Changing keepAlive while connected is not possible.";
         return;
     }
 

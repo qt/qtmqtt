@@ -195,7 +195,7 @@ void tst_QMqttConnectionProperties::maximumPacketSize()
     QMqttServerConnectionProperties serverProperties = client.serverConnectionProperties();
     if (serverProperties.availableProperties() & QMqttServerConnectionProperties::MaximumPacketSize) {
         if (serverProperties.maximumPacketSize() < props.maximumPacketSize()) {
-            qWarning("Server accepts less data than required for this test.");
+            qDebug() << "Server accepts less data than required for this test.";
         }
     } else {
         qDebug() << "Server has no max packet size specified";

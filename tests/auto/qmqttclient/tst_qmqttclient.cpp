@@ -529,7 +529,7 @@ public:
         if (data[0] == 0x10)
             written = 1;
         else
-            qWarning() << "Received unknown/invalid data";
+            qDebug() << "Received unknown/invalid data";
         return len;
     }
     QAtomicInt written{0};

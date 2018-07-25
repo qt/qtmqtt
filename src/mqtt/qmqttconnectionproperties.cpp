@@ -31,9 +31,13 @@
 
 #include "qmqttconnectionproperties_p.h"
 
+#include <QtCore/QLoggingCategory>
+
 #include <limits>
 
 QT_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(lcMqttConnection)
 
 QMqttLastWillProperties::QMqttLastWillProperties() : data(new QMqttLastWillPropertiesData)
 {
@@ -144,7 +148,7 @@ void QMqttConnectionProperties::setSessionExpiryInterval(quint32 expiry)
 void QMqttConnectionProperties::setMaximumReceive(quint16 qos)
 {
     if (qos == 0) {
-        qWarning("Maximum Receive is not allowed to be 0.");
+        qCDebug(lcMqttConnection) << "Maximum Receive is not allowed to be 0.";
         return;
     }
     data->maximumReceive = qos;
@@ -153,7 +157,7 @@ void QMqttConnectionProperties::setMaximumReceive(quint16 qos)
 void QMqttConnectionProperties::setMaximumPacketSize(quint32 packetSize)
 {
     if (packetSize == 0) {
-        qWarning("Packet size is not allowed to be 0.");
+        qCDebug(lcMqttConnection) << "Packet size is not allowed to be 0.";
         return;
     }
     data->maximumPacketSize = packetSize;

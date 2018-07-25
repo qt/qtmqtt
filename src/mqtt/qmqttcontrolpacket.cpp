@@ -28,9 +28,13 @@
 ******************************************************************************/
 
 #include "qmqttcontrolpacket_p.h"
+
 #include <QtCore/QtEndian>
+#include <QtCore/QLoggingCategory>
 
 QT_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(lcMqttClient)
 
 QMqttControlPacket::QMqttControlPacket()
 {
@@ -99,7 +103,7 @@ void QMqttControlPacket::appendRawVariableInteger(quint32 value)
     QByteArray data;
     // Add length
     if (value > 268435455)
-        qWarning("Variable Integer overflow");
+        qCDebug(lcMqttClient) << "Attempting to write variable integer overflow.";
     do {
         quint8 b = value % 128;
         value /= 128;
@@ -127,7 +131,7 @@ QByteArray QMqttControlPacket::serializePayload() const
     // Add length
     quint32 msgSize = quint32(m_payload.size());
     if (msgSize > 268435455)
-        qWarning("Publishing a message bigger than maximum size!");
+        qCDebug(lcMqttClient) << "Publishing a message bigger than maximum size.";
     do {
         quint8 b = msgSize % 128;
         msgSize /= 128;

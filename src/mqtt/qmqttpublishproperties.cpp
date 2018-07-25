@@ -30,7 +30,11 @@
 #include "qmqttpublishproperties.h"
 #include "qmqtttype.h"
 
+#include <QtCore/QLoggingCategory>
+
 QT_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(lcMqttClient)
 
 class QMqttPublishPropertiesData : public QSharedData
 {
@@ -97,7 +101,7 @@ quint16 QMqttPublishProperties::topicAlias() const
 void QMqttPublishProperties::setTopicAlias(quint16 alias)
 {
     if (alias == 0) {
-        qWarning("A topic alias with value 0 is not allowed.");
+        qCDebug(lcMqttClient) << "A topic alias with value 0 is not allowed.";
         return;
     }
     data->details |= QMqttPublishProperties::TopicAlias;
@@ -145,7 +149,7 @@ quint32 QMqttPublishProperties::subscriptionIdentifier() const
 void QMqttPublishProperties::setSubscriptionIdentifier(quint32 id)
 {
     if (id == 0) {
-        qWarning("A subscription identifier with value 0 is not allowed.");
+        qCDebug(lcMqttClient) << "A subscription identifier with value 0 is not allowed.";
         return;
     }
     data->details |= QMqttPublishProperties::SubscriptionIdentifier;

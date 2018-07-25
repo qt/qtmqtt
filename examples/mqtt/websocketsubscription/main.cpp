@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     } else if (versionString == "3") {
         clientsub.setVersion(3);
     } else {
-        qWarning() << "Unknown MQTT version";
+        qInfo() << "Unknown MQTT version";
         return -2;
     }
 
