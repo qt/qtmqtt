@@ -40,9 +40,9 @@ public:
     QByteArray correlationData;
     quint32 messageExpiry{0};
     quint32 subscriptionIdentifier{0}; // Variable Integer
+    QMqttPublishProperties::PublishPropertyDetails details{QMqttPublishProperties::None};
     quint16 topicAlias{0};
     QMqtt::PayloadFormatIndicator payloadIndicator{QMqtt::PayloadFormatIndicator::Unspecified};
-    QMqttPublishProperties::PublishPropertyDetails details{0};
     QMqttUserProperties userProperties;
 };
 
@@ -51,10 +51,7 @@ QMqttPublishProperties::QMqttPublishProperties() : data(new QMqttPublishProperti
 
 }
 
-QMqttPublishProperties::QMqttPublishProperties(const QMqttPublishProperties &rhs) : data(rhs.data)
-{
-
-}
+QMqttPublishProperties::QMqttPublishProperties(const QMqttPublishProperties &) = default;
 
 QMqttPublishProperties &QMqttPublishProperties::operator=(const QMqttPublishProperties &rhs)
 {
@@ -63,10 +60,7 @@ QMqttPublishProperties &QMqttPublishProperties::operator=(const QMqttPublishProp
     return *this;
 }
 
-QMqttPublishProperties::~QMqttPublishProperties()
-{
-
-}
+QMqttPublishProperties::~QMqttPublishProperties() = default;
 
 QMqttPublishProperties::PublishPropertyDetails QMqttPublishProperties::availableProperties() const
 {

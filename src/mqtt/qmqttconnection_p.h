@@ -67,7 +67,7 @@ public:
         BrokerConnected
     };
 
-    explicit QMqttConnection(QObject *parent = 0);
+    explicit QMqttConnection(QObject *parent = nullptr);
     ~QMqttConnection() override;
 
     void setTransport(QIODevice *device, QMqttClient::TransportType transport);
@@ -107,7 +107,6 @@ public:
     QMqttClientPrivate *m_clientPrivate{nullptr};
 private:
     Q_DISABLE_COPY(QMqttConnection)
-    void someFuncToBeRemoved();
     void finalize_connack();
     void finalize_suback();
     void finalize_unsuback();
@@ -116,7 +115,7 @@ private:
     void finalize_pubrel();
     void finalize_pingresp();
     void processData();
-    void readBuffer(char *data, qint64 size);
+    void readBuffer(char *data, quint64 size);
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void readConnackProperties();
     void readPublishProperties(QMqttPublishProperties &properties);
@@ -126,7 +125,7 @@ private:
     QByteArray writePublishProperties(const QMqttPublishProperties &properties);
     QByteArray writeSubscriptionProperties(const QMqttSubscriptionProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
-    QByteArray readBuffer(qint64 size);
+    QByteArray readBuffer(quint64 size);
     template<typename T> T readBufferTyped();
     QByteArray m_readBuffer;
     int m_readPosition{0};
@@ -136,7 +135,7 @@ private:
         bool dup;
         bool retain;
     };
-    PublishData m_currentPublish;
+    PublishData m_currentPublish{0, false, false};
     QMqttControlPacket::PacketType m_currentPacket{QMqttControlPacket::UNKNOWN};
 
     bool writePacketToTransport(const QMqttControlPacket &p);

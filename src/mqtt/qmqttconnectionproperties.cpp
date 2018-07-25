@@ -39,9 +39,7 @@ QMqttLastWillProperties::QMqttLastWillProperties() : data(new QMqttLastWillPrope
 {
 }
 
-QMqttLastWillProperties::QMqttLastWillProperties(const QMqttLastWillProperties &rhs) : data(rhs.data)
-{
-}
+QMqttLastWillProperties::QMqttLastWillProperties(const QMqttLastWillProperties &) = default;
 
 QMqttLastWillProperties &QMqttLastWillProperties::operator=(const QMqttLastWillProperties &rhs)
 {
@@ -50,9 +48,7 @@ QMqttLastWillProperties &QMqttLastWillProperties::operator=(const QMqttLastWillP
     return *this;
 }
 
-QMqttLastWillProperties::~QMqttLastWillProperties()
-{
-}
+QMqttLastWillProperties::~QMqttLastWillProperties() = default;
 
 quint32 QMqttLastWillProperties::willDelayInterval() const
 {
@@ -129,10 +125,7 @@ QMqttConnectionProperties::QMqttConnectionProperties() : data(new QMqttConnectio
 
 }
 
-QMqttConnectionProperties::QMqttConnectionProperties(const QMqttConnectionProperties &rhs) : data(rhs.data)
-{
-
-}
+QMqttConnectionProperties::QMqttConnectionProperties(const QMqttConnectionProperties &) = default;
 
 QMqttConnectionProperties &QMqttConnectionProperties::operator=(const QMqttConnectionProperties &rhs)
 {
@@ -141,10 +134,7 @@ QMqttConnectionProperties &QMqttConnectionProperties::operator=(const QMqttConne
     return *this;
 }
 
-QMqttConnectionProperties::~QMqttConnectionProperties()
-{
-
-}
+QMqttConnectionProperties::~QMqttConnectionProperties() = default;
 
 void QMqttConnectionProperties::setSessionExpiryInterval(quint32 expiry)
 {
@@ -267,10 +257,7 @@ QMqttServerConnectionProperties &QMqttServerConnectionProperties::operator=(cons
     return *this;
 }
 
-QMqttServerConnectionProperties::~QMqttServerConnectionProperties()
-{
-
-}
+QMqttServerConnectionProperties::~QMqttServerConnectionProperties() = default;
 
 QMqttServerConnectionProperties::ServerPropertyDetails QMqttServerConnectionProperties::availableProperties() const
 {

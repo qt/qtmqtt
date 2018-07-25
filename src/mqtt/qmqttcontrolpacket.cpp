@@ -125,7 +125,7 @@ QByteArray QMqttControlPacket::serializePayload() const
 {
     QByteArray data;
     // Add length
-    quint32 msgSize = m_payload.size();
+    quint32 msgSize = quint32(m_payload.size());
     if (msgSize > 268435455)
         qWarning("Publishing a message bigger than maximum size!");
     do {

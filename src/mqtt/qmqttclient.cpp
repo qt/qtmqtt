@@ -457,11 +457,11 @@ void QMqttClient::disconnectFromHost()
     switch (d->m_connection.internalState()) {
     case QMqttConnection::BrokerConnected:
         d->m_connection.sendControlDisconnect();
+        break;
     case QMqttConnection::BrokerDisconnected:
-        return;
+        break;
     case QMqttConnection::BrokerConnecting:
     case QMqttConnection::BrokerWaitForConnectAck:
-    default:
         d->m_connection.m_transport->close();
         break;
     }

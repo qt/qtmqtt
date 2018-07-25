@@ -53,11 +53,11 @@ public:
     QMqttSubscriptionPrivate();
     ~QMqttSubscriptionPrivate() override = default;
     QMqttClient *m_client{nullptr};
-    QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
     QMqttTopicFilter m_topic;
-    quint8 m_qos{0};
     QString m_reasonString;
     QMqttUserProperties m_userProperties;
+    QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
+    quint8 m_qos{0};
 };
 
 QT_END_NAMESPACE

@@ -64,14 +64,9 @@ QMqttStringPair::QMqttStringPair(const QString &name, const QString &value)
 {
 }
 
-QMqttStringPair::QMqttStringPair(const QMqttStringPair &rhs)
-    : data(rhs.data)
-{
-}
+QMqttStringPair::QMqttStringPair(const QMqttStringPair &) = default;
 
-QMqttStringPair::~QMqttStringPair()
-{
-}
+QMqttStringPair::~QMqttStringPair() = default;
 
 QString QMqttStringPair::name() const
 {

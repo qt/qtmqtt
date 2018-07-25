@@ -44,6 +44,7 @@ class Q_MQTT_EXPORT QMqttPublishProperties
     Q_GADGET
 public:
     enum PublishPropertyDetail : quint32 {
+        None                   = 0x00000000,
         PayloadFormatIndicator = 0x00000001,
         MessageExpiryInterval  = 0x00000002,
         TopicAlias             = 0x00000004,

@@ -74,7 +74,7 @@ public:
 class QMqttServerConnectionPropertiesData : public QSharedData
 {
 public:
-    QMqttServerConnectionProperties::ServerPropertyDetails details{0};
+    QMqttServerConnectionProperties::ServerPropertyDetails details{QMqttServerConnectionProperties::None};
     QString reasonString;
     QString responseInformation;
     QString serverReference;

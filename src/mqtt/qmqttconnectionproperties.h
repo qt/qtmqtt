@@ -110,6 +110,7 @@ class Q_MQTT_EXPORT QMqttServerConnectionProperties
     Q_GADGET
 public:
     enum ServerPropertyDetail : quint32 {
+        None                            = 0x00000000,
         SessionExpiryInterval           = 0x00000001,
         MaximumReceive                  = 0x00000002,
         MaximumQoS                      = 0x00000004,

@@ -43,10 +43,7 @@ QMqttSubscriptionProperties::QMqttSubscriptionProperties() : data(new QMqttSubsc
 
 }
 
-QMqttSubscriptionProperties::QMqttSubscriptionProperties(const QMqttSubscriptionProperties &rhs) : data(rhs.data)
-{
-
-}
+QMqttSubscriptionProperties::QMqttSubscriptionProperties(const QMqttSubscriptionProperties &) = default;
 
 QMqttSubscriptionProperties &QMqttSubscriptionProperties::operator=(const QMqttSubscriptionProperties &rhs)
 {
@@ -55,10 +52,7 @@ QMqttSubscriptionProperties &QMqttSubscriptionProperties::operator=(const QMqttS
     return *this;
 }
 
-QMqttSubscriptionProperties::~QMqttSubscriptionProperties()
-{
-
-}
+QMqttSubscriptionProperties::~QMqttSubscriptionProperties() = default;
 
 QMqttUserProperties QMqttSubscriptionProperties::userProperties() const
 {

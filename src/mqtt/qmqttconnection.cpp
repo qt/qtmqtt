@@ -61,7 +61,9 @@ quint16 QMqttConnection::readBufferTyped()
 template<>
 quint8 QMqttConnection::readBufferTyped()
 {
-    return *readBuffer(1).constData();
+    quint8 result;
+    readBuffer(reinterpret_cast<char *>(&result), 1);
+    return result;
 }
 
 template<>
@@ -161,7 +163,9 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             return false;
         }
         return sendControlConnect();
-    } else if (m_transportType == QMqttClient::AbstractSocket) {
+    }
+
+    if (m_transportType == QMqttClient::AbstractSocket) {
         auto socket = dynamic_cast<QTcpSocket*>(m_transport);
         Q_ASSERT(socket);
         if (socket->state() == QAbstractSocket::ConnectedState)
@@ -219,10 +223,6 @@ bool QMqttConnection::sendControlConnect()
         packet.append("MQTT");
         packet.append(char(5)); // Version 5.0
         break;
-    default:
-        qCWarning(lcMqttConnection) << "Illegal MQTT Version";
-        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::InvalidProtocolVersion);
-        return false;
     }
 
     // 3.1.2.3 Connect Flags
@@ -574,7 +574,7 @@ void QMqttConnection::transportReadReady()
     processData();
 }
 
-void QMqttConnection::readBuffer(char *data, qint64 size)
+void QMqttConnection::readBuffer(char *data, quint64 size)
 {
     memcpy(data, m_readBuffer.constData() + m_readPosition, size);
     m_readPosition += size;
@@ -583,7 +583,7 @@ void QMqttConnection::readBuffer(char *data, qint64 size)
 qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
 {
     quint32 multiplier = 1;
-    quint32 msgLength = 0;
+    qint32 msgLength = 0;
     quint8 b = 0;
     quint8 iteration = 0;
     if (byteCount)
@@ -616,9 +616,9 @@ void QMqttConnection::closeConnection(QMqttClient::ClientError error)
     m_clientPrivate->setStateAndError(QMqttClient::Disconnected, error);
 }
 
-QByteArray QMqttConnection::readBuffer(qint64 size)
+QByteArray QMqttConnection::readBuffer(quint64 size)
 {
-    QByteArray res(m_readBuffer.constData() + m_readPosition, size);
+    QByteArray res(m_readBuffer.constData() + m_readPosition, int(size));
     m_readPosition += size;
     return res;
 }
@@ -660,7 +660,7 @@ void QMqttConnection::readConnackProperties()
             const quint8 retainAvailable = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
-            serverProperties.serverData->retainAvailable = retainAvailable == 1 ? true : false;
+            serverProperties.serverData->retainAvailable = retainAvailable == 1;
             break;
         }
         case 0x27: { // 3.2.2.3.6 Maximum packet size
@@ -706,21 +706,21 @@ void QMqttConnection::readConnackProperties()
             const quint8 available = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
-            serverProperties.serverData->wildcardSupported = available == 1 ? true : false;
+            serverProperties.serverData->wildcardSupported = available == 1;
             break;
         }
         case 0x29: { // 3.2.2.3.12 Subscription identifiers available
             const quint8 available = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
-            serverProperties.serverData->subscriptionIdentifierSupported = available == 1 ? true : false;
+            serverProperties.serverData->subscriptionIdentifierSupported = available == 1;
             break;
         }
         case 0x2A: { // 3.2.2.3.13 Shared subscriptions available
             const quint8 available = readBufferTyped<quint8>();
             propertyLength--;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
-            serverProperties.serverData->sharedSubscriptionSupported = available == 1 ? true : false;
+            serverProperties.serverData->sharedSubscriptionSupported = available == 1;
             break;
         }
         case 0x13: { // 3.2.2.3.14 Server Keep Alive
@@ -825,9 +825,11 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
         }
         case 0x0b: { // 3.3.2.3.8 Subscription Identifier
             qint32 idSize = 0;
-            quint32 id = readVariableByteInteger(&idSize);
+            qint32 id = readVariableByteInteger(&idSize);
+            if (id < 0)
+                return; // readVariableByteInteger closes connection
             propertyLength -= idSize;
-            properties.setSubscriptionIdentifier(id);
+            properties.setSubscriptionIdentifier(quint32(id));
             break;
         }
         case 0x03: { // 3.3.2.3.9 Content Type
@@ -930,11 +932,10 @@ QByteArray QMqttConnection::writeConnectProperties()
     auto userProperties = m_clientPrivate->m_connectionProperties.userProperties();
     if (!userProperties.isEmpty()) {
         qCDebug(lcMqttConnectionVerbose) << "Connection Properties: specify user properties";
-        for (auto it = userProperties.constBegin();
-             it != userProperties.constEnd(); ++it) {
+        for (const auto &prop : userProperties) {
             properties.append(char(0x26));
-            properties.append(it->name().toUtf8());
-            properties.append(it->value().toUtf8());
+            properties.append(prop.name().toUtf8());
+            properties.append(prop.value().toUtf8());
         }
     }
 
@@ -1015,10 +1016,10 @@ QByteArray QMqttConnection::writeLastWillProperties() const
     if (!lastWillProperties.userProperties().isEmpty()) {
         auto userProperties = lastWillProperties.userProperties();
         qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: specify user properties";
-        for (auto it : userProperties) {
+        for (const auto& prop : userProperties) {
             properties.append(char(0x26));
-            properties.append(it.name().toUtf8());
-            properties.append(it.value().toUtf8());
+            properties.append(prop.name().toUtf8());
+            properties.append(prop.value().toUtf8());
         }
     }
 
@@ -1093,11 +1094,10 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
         auto userProperties = properties.userProperties();
         if (!userProperties.isEmpty()) {
             qCDebug(lcMqttConnectionVerbose) << "Publish Properties: specify user properties";
-            for (auto it = userProperties.constBegin();
-                 it != userProperties.constEnd(); ++it) {
+            for (const auto &prop : userProperties) {
                 packet.append(char(0x26));
-                packet.append(it->name().toUtf8());
-                packet.append(it->value().toUtf8());
+                packet.append(prop.name().toUtf8());
+                packet.append(prop.value().toUtf8());
             }
         }
     }
@@ -1138,10 +1138,10 @@ QByteArray QMqttConnection::writeSubscriptionProperties(const QMqttSubscriptionP
     auto userProperties = properties.userProperties();
     if (!userProperties.isEmpty()) {
         qCDebug(lcMqttConnectionVerbose) << "Subscription Properties: specify user properties";
-        for (auto it : userProperties) {
+        for (const auto& prop : userProperties) {
             packet.append(char(0x26));
-            packet.append(it.name().toUtf8());
-            packet.append(it.value().toUtf8());
+            packet.append(prop.name().toUtf8());
+            packet.append(prop.value().toUtf8());
         }
     }
 
@@ -1157,7 +1157,7 @@ void QMqttConnection::finalize_connack()
 
     if (ackFlags > 1) { // MQTT-3.2.2.1
         qWarning("Unexpected CONNACK Flags set");
-        readBuffer(m_missingData);
+        readBuffer(quint64(m_missingData));
         m_missingData = 0;
         closeConnection(QMqttClient::ProtocolViolation);
         return;
@@ -1299,7 +1299,7 @@ void QMqttConnection::finalize_publish()
 {
     // String topic
     const QMqttTopicName topic = readBufferTyped<QString>();
-    const quint16 topicLength = topic.name().length();
+    const int topicLength = topic.name().length();
     m_missingData -= topicLength + 2;
 
     quint16 id = 0;
@@ -1313,7 +1313,7 @@ void QMqttConnection::finalize_publish()
         readPublishProperties(publishProperties);
 
     // message
-    const qint64 payloadLength = m_missingData;
+    const quint64 payloadLength = quint64(m_missingData);
     const QByteArray message = readBuffer(payloadLength);
     m_missingData -= payloadLength;
 
@@ -1355,7 +1355,7 @@ void QMqttConnection::finalize_pubAckRecComp()
         m_missingData -= byteCount;
         // ### TODO: Publish ACK/REC/COMP property handling
         if (propertyLength > 0) {
-            readBuffer(propertyLength);
+            readBuffer(quint64(propertyLength));
             m_missingData -= propertyLength;
         }
     }
@@ -1473,7 +1473,7 @@ void QMqttConnection::processData()
         break;
     }
 
-    readBuffer((char*)&m_currentPacket, 1);
+    readBuffer(reinterpret_cast<char *>(&m_currentPacket), 1);
     m_missingData--;
 
     switch (m_currentPacket & 0xF0) {
@@ -1570,7 +1570,6 @@ void QMqttConnection::processData()
     /* read command size */
     /* calculate missing_data */
     processData(); // implicitly finishes and enqueues
-    return;
 }
 
 bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)
