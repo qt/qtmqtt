@@ -31,6 +31,7 @@
 #define QTMQTTCLIENT_H
 
 #include <QtMqtt/qmqttglobal.h>
+#include <QtMqtt/qmqttauthenticationproperties.h>
 #include <QtMqtt/qmqttconnectionproperties.h>
 #include <QtMqtt/qmqttpublishproperties.h>
 #include <QtMqtt/qmqttsubscription.h>
@@ -148,6 +149,8 @@ public:
     QMqttLastWillProperties lastWillProperties() const;
 
     QMqttServerConnectionProperties serverConnectionProperties() const;
+
+    void authenticate(const QMqttAuthenticationProperties &prop);
 Q_SIGNALS:
     void connected();
     void disconnected();
@@ -172,6 +175,8 @@ Q_SIGNALS:
     void willMessageChanged(QByteArray willMessage);
     void willRetainChanged(bool willRetain);
 
+    void authenticationRequested(const QMqttAuthenticationProperties &p);
+    void authenticationFinished(const QMqttAuthenticationProperties &p);
 public Q_SLOTS:
     void setHostname(const QString &hostname);
     void setPort(quint16 port);

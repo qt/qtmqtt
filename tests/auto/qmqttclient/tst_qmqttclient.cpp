@@ -68,6 +68,7 @@ private Q_SLOTS:
     void openIODevice_QTBUG66955();
     void staticProperties_QTBUG_67176_data();
     void staticProperties_QTBUG_67176();
+    void authentication();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -593,6 +594,35 @@ void Tst_QMqttClient::staticProperties_QTBUG_67176()
 
     client.setCleanSession(!clean);
     QCOMPARE(client.cleanSession(), clean);
+}
+
+void Tst_QMqttClient::authentication()
+{
+    QMqttClient client;
+    client.setProtocolVersion(QMqttClient::MQTT_5_0);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    QMqttConnectionProperties connectionProperties;
+    connectionProperties.setAuthenticationMethod(QLatin1String("SCRAM-SHA-1"));
+    client.setConnectionProperties(connectionProperties);
+
+    connect(&client, &QMqttClient::authenticationRequested, [](const QMqttAuthenticationProperties &prop)
+    {
+        qDebug() << "Authentication requested:" << prop.authenticationMethod();
+    });
+
+    connect(&client, &QMqttClient::authenticationFinished, [](const QMqttAuthenticationProperties &prop)
+    {
+        qDebug() << "Authentication finished:" << prop.authenticationMethod();
+    });
+
+    // ### FIXME : There is no public test broker yet able to handle authentication methods
+    // Theoretically the broker should send an AUTH request, followed by AUTH call including
+    // authentication data. See 4.12 of MQTT v5 specs.
+    QSKIP("No broker available with enhanced authentication.");
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
 }
 
 QTEST_MAIN(Tst_QMqttClient)

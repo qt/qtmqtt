@@ -8,6 +8,7 @@ QT += core-private
 QMAKE_DOCS = $$PWD/doc/qtmqtt.qdocconf
 
 PUBLIC_HEADERS += \
+    qmqttauthenticationproperties.h \
     qmqttglobal.h \
     qmqttclient.h \
     qmqttconnectionproperties.h \
@@ -28,6 +29,7 @@ PRIVATE_HEADERS += \
     qmqttsubscription_p.h
 
 SOURCES += \
+    qmqttauthenticationproperties.cpp \
     qmqttclient.cpp \
     qmqttconnection.cpp \
     qmqttconnectionproperties.cpp \

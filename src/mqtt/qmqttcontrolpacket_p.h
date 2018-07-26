@@ -66,6 +66,7 @@ public:
         PINGREQ     = 0xC0,
         PINGRESP    = 0xD0,
         DISCONNECT  = 0xE0,
+        AUTH        = 0xF0,
     };
 
     QMqttControlPacket();

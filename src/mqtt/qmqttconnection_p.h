@@ -77,6 +77,7 @@ public:
     bool ensureTransportOpen(const QString &sslPeerName = QString());
 
     bool sendControlConnect();
+    bool sendControlAuthenticate(const QMqttAuthenticationProperties &properties);
     qint32 sendControlPublish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos = 0, bool retain = false,
                               const QMqttPublishProperties &properties = QMqttPublishProperties());
     bool sendControlPublishAcknowledge(quint16 id);
@@ -107,6 +108,7 @@ public:
     QMqttClientPrivate *m_clientPrivate{nullptr};
 private:
     Q_DISABLE_COPY(QMqttConnection)
+    void finalize_auth();
     void finalize_connack();
     void finalize_suback();
     void finalize_unsuback();
@@ -118,6 +120,7 @@ private:
     bool processDataHelper();
     void readBuffer(char *data, quint64 size);
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
+    void readAuthProperties(QMqttAuthenticationProperties &properties);
     void readConnackProperties();
     void readPublishProperties(QMqttPublishProperties &properties);
     void readSubscriptionProperties(QMqttSubscription *sub);
@@ -126,6 +129,7 @@ private:
     QByteArray writePublishProperties(const QMqttPublishProperties &properties);
     QByteArray writeSubscriptionProperties(const QMqttSubscriptionProperties &properties);
     QByteArray writeUnsubscriptionProperties(const QMqttUnsubscriptionProperties &properties);
+    QByteArray writeAuthenticationProperties(const QMqttAuthenticationProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(quint64 size);
     template<typename T> T readBufferTyped(qint64 *dataSize = nullptr);

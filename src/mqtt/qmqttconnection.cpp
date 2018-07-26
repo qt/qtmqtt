@@ -81,6 +81,15 @@ QString QMqttConnection::readBufferTyped(qint64 *dataSize)
     return QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(size).constData()), size);
 }
 
+template<>
+QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
+{
+    const quint16 size = readBufferTyped<quint16>(dataSize);
+    if (dataSize)
+        *dataSize -= size;
+    return QByteArray(reinterpret_cast<const char *>(readBuffer(size).constData()), size);
+}
+
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
     m_pingTimer.setSingleShot(false);
@@ -296,6 +305,36 @@ bool QMqttConnection::sendControlConnect()
     }
 
     m_internalState = BrokerWaitForConnectAck;
+    return true;
+}
+
+bool QMqttConnection::sendControlAuthenticate(const QMqttAuthenticationProperties &properties)
+{
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO;
+
+    QMqttControlPacket packet(QMqttControlPacket::AUTH);
+
+    switch (m_clientPrivate->m_state) {
+    case QMqttClient::Disconnected:
+        qCDebug(lcMqttConnection) << "Using AUTH while disconnected.";
+        return false;
+    case QMqttClient::Connecting:
+        qCDebug(lcMqttConnection) << "AUTH while connecting, set continuation flag.";
+        packet.append(char(0x18));
+        break;
+    case QMqttClient::Connected:
+        qCDebug(lcMqttConnection) << "AUTH while connected, initiate re-authentication.";
+        packet.append(char(0x19));
+        break;
+    }
+
+    packet.appendRaw(writeAuthenticationProperties(properties));
+
+    if (!writePacketToTransport(packet)) {
+        qCDebug(lcMqttConnection) << "Could not write AUTH frame to transport.";
+        return false;
+    }
+
     return true;
 }
 
@@ -645,6 +684,47 @@ QByteArray QMqttConnection::readBuffer(quint64 size)
     QByteArray res(m_readBuffer.constData() + m_readPosition, int(size));
     m_readPosition += size;
     return res;
+}
+
+void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properties)
+{
+    qint64 propertyLength = readVariableByteInteger();
+    m_missingData = 0;
+
+    QMqttUserProperties userProperties;
+    while (propertyLength > 0) {
+        quint8 propertyId = readBufferTyped<quint8>();
+        propertyLength--;
+
+        switch (propertyId) {
+        case 0x15: { //3.15.2.2.2 Authentication Method
+            const QString method = readBufferTyped<QString>(&propertyLength);
+            properties.setAuthenticationMethod(method);
+            break;
+        }
+        case 0x16: { // 3.15.2.2.3 Authentication Data
+            const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
+            properties.setAuthenticationData(data);
+            break;
+        }
+        case 0x1F: { // 3.15.2.2.4 Reason String
+            const QString reasonString = readBufferTyped<QString>(&propertyLength);
+            properties.setReason(reasonString);
+            break;
+        }
+        case 0x26: { // 3.15.2.2.5 User property
+            const QString propertyName = readBufferTyped<QString>(&propertyLength);
+            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
+
+            userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            break;
+        }
+        default:
+            qCDebug(lcMqttConnection) << "Unknown property id in AUTH:" << propertyId;
+            break;
+        }
+    }
+    properties.setUserProperties(userProperties);
 }
 
 void QMqttConnection::readConnackProperties()
@@ -1156,6 +1236,73 @@ QByteArray QMqttConnection::writeUnsubscriptionProperties(const QMqttUnsubscript
     return packet.serializePayload();
 }
 
+QByteArray QMqttConnection::writeAuthenticationProperties(const QMqttAuthenticationProperties &properties)
+{
+    QMqttControlPacket packet;
+
+    // 3.15.2.2.2
+    if (!properties.authenticationMethod().isEmpty()) {
+        packet.append(char(0x15));
+        packet.append(properties.authenticationMethod().toUtf8());
+    }
+    // 3.15.2.2.3
+    if (!properties.authenticationData().isEmpty()) {
+        packet.append(char(0x16));
+        packet.append(properties.authenticationData());
+    }
+
+    // 3.15.2.2.4
+    if (!properties.reason().isEmpty()) {
+        packet.append(char(0x1F));
+        packet.append(properties.reason().toUtf8());
+    }
+
+    // 3.15.2.2.5
+    auto userProperties = properties.userProperties();
+    if (!userProperties.isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Unsubscription Properties: specify user properties";
+        for (const auto &prop : userProperties) {
+            packet.append(char(0x26));
+            packet.append(prop.name().toUtf8());
+            packet.append(prop.value().toUtf8());
+        }
+    }
+
+    return packet.serializePayload();
+}
+
+void QMqttConnection::finalize_auth()
+{
+    qCDebug(lcMqttConnectionVerbose) << "Finalize AUTH";
+
+    const quint8 authReason = readBufferTyped<quint8>();
+    m_missingData--;
+    QMqttAuthenticationProperties authProperties;
+    // 3.15.2.1 - The Reason Code and Property Length can be omitted if the Reason Code
+    // is 0x00 (Success) and there are no Properties. In this case the AUTH has a
+    // Remaining Length of 0.
+    if (m_missingData == 0 && authReason != 0) {
+        qCDebug(lcMqttConnection) << "Received non success AUTH without properties.";
+        closeConnection(QMqttClient::ProtocolViolation);
+        return;
+    } else if (m_missingData > 0)
+        readAuthProperties(authProperties);
+
+    switch (authReason) {
+    case 0x00: // Success
+        emit m_clientPrivate->m_client->authenticationFinished(authProperties);
+        break;
+    case 0x18: // Continue Authentication
+    case 0x19: // Re-authenticate
+        emit m_clientPrivate->m_client->authenticationRequested(authProperties);
+        break;
+    default:
+        qCDebug(lcMqttConnection) << "Received illegal AUTH reason code:" << authReason;
+        closeConnection(QMqttClient::ProtocolViolation);
+        break;
+    }
+}
+
 void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
@@ -1413,6 +1560,9 @@ bool QMqttConnection::processDataHelper()
             return false;
 
         switch (m_currentPacket & 0xF0) {
+        case QMqttControlPacket::AUTH:
+            finalize_auth();
+            break;
         case QMqttControlPacket::CONNACK:
             finalize_connack();
             break;

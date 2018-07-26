@@ -553,6 +553,20 @@ QMqttServerConnectionProperties QMqttClient::serverConnectionProperties() const
     return d->m_serverConnectionProperties;
 }
 
+void QMqttClient::authenticate(const QMqttAuthenticationProperties &prop)
+{
+    Q_D(QMqttClient);
+    if (protocolVersion() != QMqttClient::MQTT_5_0) {
+        qCDebug(lcMqttClient) << "Authentication is only supported on protocol level 5.";
+        return;
+    }
+    if (state() == QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Cannot send authentication request while disconnected.";
+        return;
+    }
+    d->m_connection.sendControlAuthenticate(prop);
+}
+
 QMqttClient::ClientError QMqttClient::error() const
 {
     Q_D(const QMqttClient);
