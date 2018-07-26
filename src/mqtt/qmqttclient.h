@@ -106,6 +106,7 @@ public:
     QMqttSubscription *subscribe(const QMqttTopicFilter &topic,
                                  const QMqttSubscriptionProperties &properties, quint8 qos = 0);
     void unsubscribe(const QMqttTopicFilter &topic);
+    void unsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties);
 
     Q_INVOKABLE qint32 publish(const QMqttTopicName &topic, const QByteArray &message = QByteArray(),
                  quint8 qos = 0, bool retain = false);

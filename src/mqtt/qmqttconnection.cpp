@@ -422,7 +422,7 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     return result;
 }
 
-bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic)
+bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic;
 
@@ -447,6 +447,10 @@ bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic)
     const quint16 identifier = unusedPacketIdentifier();
 
     packet.append(identifier);
+
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        packet.appendRaw(writeUnsubscriptionProperties(properties));
+    }
 
     packet.append(topic.filter().toUtf8());
     auto sub = m_activeSubscriptions[topic];
@@ -1139,6 +1143,24 @@ QByteArray QMqttConnection::writeSubscriptionProperties(const QMqttSubscriptionP
     auto userProperties = properties.userProperties();
     if (!userProperties.isEmpty()) {
         qCDebug(lcMqttConnectionVerbose) << "Subscription Properties: specify user properties";
+        for (const auto& prop : userProperties) {
+            packet.append(char(0x26));
+            packet.append(prop.name().toUtf8());
+            packet.append(prop.value().toUtf8());
+        }
+    }
+
+    return packet.serializePayload();
+}
+
+QByteArray QMqttConnection::writeUnsubscriptionProperties(const QMqttUnsubscriptionProperties &properties)
+{
+    QMqttControlPacket packet;
+
+    // 3.10.2.1.2
+    auto userProperties = properties.userProperties();
+    if (!userProperties.isEmpty()) {
+        qCDebug(lcMqttConnectionVerbose) << "Unsubscription Properties: specify user properties";
         for (const auto& prop : userProperties) {
             packet.append(char(0x26));
             packet.append(prop.name().toUtf8());

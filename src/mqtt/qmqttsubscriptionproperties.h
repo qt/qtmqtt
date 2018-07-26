@@ -41,6 +41,7 @@
 QT_BEGIN_NAMESPACE
 
 class QMqttSubscriptionPropertiesData;
+class QMqttUnsubscriptionPropertiesData;
 
 class Q_MQTT_EXPORT QMqttSubscriptionProperties
 {
@@ -59,6 +60,23 @@ public:
     void setSubscriptionIdentifier(quint32 id);
 private:
     QSharedDataPointer<QMqttSubscriptionPropertiesData> data;
+};
+
+class Q_MQTT_EXPORT QMqttUnsubscriptionProperties
+{
+    Q_GADGET
+
+public:
+    QMqttUnsubscriptionProperties();
+    QMqttUnsubscriptionProperties(const QMqttUnsubscriptionProperties &);
+    QMqttUnsubscriptionProperties &operator=(const QMqttUnsubscriptionProperties &rhs);
+    ~QMqttUnsubscriptionProperties();
+
+    QMqttUserProperties userProperties() const;
+    void setUserProperties(const QMqttUserProperties &user);
+
+private:
+    QSharedDataPointer<QMqttUnsubscriptionPropertiesData> data;
 };
 
 QT_END_NAMESPACE

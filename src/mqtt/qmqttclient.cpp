@@ -340,8 +340,13 @@ QMqttSubscription *QMqttClient::subscribe(const QMqttTopicFilter &topic, const Q
  */
 void QMqttClient::unsubscribe(const QMqttTopicFilter &topic)
 {
+    unsubscribe(topic, QMqttUnsubscriptionProperties());
+}
+
+void QMqttClient::unsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties)
+{
     Q_D(QMqttClient);
-    d->m_connection.sendControlUnsubscribe(topic);
+    d->m_connection.sendControlUnsubscribe(topic, properties);
 }
 
 /*!

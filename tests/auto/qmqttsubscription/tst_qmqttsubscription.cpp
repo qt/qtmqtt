@@ -154,9 +154,6 @@ DefaultVersionTestData(Tst_QMqttSubscription::reconnect_data)
 void Tst_QMqttSubscription::reconnect()
 {
     QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
-    // ### TODO: Should work with MQTT5, no?
-    if (mqttVersion == QMqttClient::MQTT_5_0)
-        QSKIP("Test does not work with MQTT5");
 
     // QTBUG-64042
     //    - Connect with clean session

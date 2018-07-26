@@ -38,6 +38,12 @@ public:
     QMqttUserProperties userProperties;
 };
 
+class QMqttUnsubscriptionPropertiesData : public QSharedData
+{
+public:
+    QMqttUserProperties userProperties;
+};
+
 QMqttSubscriptionProperties::QMqttSubscriptionProperties() : data(new QMqttSubscriptionPropertiesData)
 {
 
@@ -73,5 +79,30 @@ void QMqttSubscriptionProperties::setSubscriptionIdentifier(quint32 id)
 {
     data->subscriptionIdentifier = id;
 }
+
+QMqttUnsubscriptionProperties::QMqttUnsubscriptionProperties() : data(new QMqttUnsubscriptionPropertiesData)
+{
+}
+
+QMqttUnsubscriptionProperties &QMqttUnsubscriptionProperties::operator=(const QMqttUnsubscriptionProperties &rhs)
+{
+    if (this != &rhs)
+        data.operator=(rhs.data);
+    return *this;
+}
+
+QMqttUserProperties QMqttUnsubscriptionProperties::userProperties() const
+{
+    return data->userProperties;
+}
+
+void QMqttUnsubscriptionProperties::setUserProperties(const QMqttUserProperties &user)
+{
+    data->userProperties = user;
+}
+
+QMqttUnsubscriptionProperties::~QMqttUnsubscriptionProperties() = default;
+
+QMqttUnsubscriptionProperties::QMqttUnsubscriptionProperties(const QMqttUnsubscriptionProperties &) = default;
 
 QT_END_NAMESPACE

@@ -84,7 +84,7 @@ public:
     bool sendControlPublishReceive(quint16 id);
     bool sendControlPublishComp(quint16 id);
     QMqttSubscription *sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos, const QMqttSubscriptionProperties &properties);
-    bool sendControlUnsubscribe(const QMqttTopicFilter &topic);
+    bool sendControlUnsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties);
     bool sendControlPingRequest();
     bool sendControlDisconnect();
 
@@ -124,6 +124,7 @@ private:
     QByteArray writeLastWillProperties() const;
     QByteArray writePublishProperties(const QMqttPublishProperties &properties);
     QByteArray writeSubscriptionProperties(const QMqttSubscriptionProperties &properties);
+    QByteArray writeUnsubscriptionProperties(const QMqttUnsubscriptionProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(quint64 size);
     template<typename T> T readBufferTyped();
