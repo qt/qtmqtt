@@ -361,7 +361,45 @@ qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic,
         header |= 0x01;
 
     QSharedPointer<QMqttControlPacket> packet(new QMqttControlPacket(header));
-    packet->append(topic.name().toUtf8());
+    // topic alias
+    QMqttPublishProperties publishProperties(properties);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        const quint16 topicAlias = publishProperties.topicAlias();
+        if (topicAlias > 0) { // User specified topic Alias
+            if (topicAlias > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
+                qCDebug(lcMqttConnection) << "TopicAlias publish: overflow.";
+                return -1;
+            }
+            if (m_publishAliases.at(topicAlias - 1) != topic) {
+                qCDebug(lcMqttConnection) << "TopicAlias publish: Assign:" << topicAlias << ":" << topic;
+                m_publishAliases[topicAlias - 1] = topic;
+                packet->append(topic.name().toUtf8());
+            } else {
+                qCDebug(lcMqttConnectionVerbose) << "TopicAlias publish: Reuse:" << topicAlias;
+                packet->append(quint16(0));
+            }
+        } else if (m_publishAliases.size() > 0) { // Automatic module alias assignment
+            int autoAlias = m_publishAliases.indexOf(topic);
+            if (autoAlias != -1) {
+                qCDebug(lcMqttConnectionVerbose) << "TopicAlias publish: Use auto alias:" << autoAlias;
+                packet->append(quint16(0));
+                publishProperties.setTopicAlias(quint16(autoAlias + 1));
+            } else {
+                autoAlias = m_publishAliases.indexOf(QMqttTopicName());
+                if (autoAlias != -1) {
+                    qCDebug(lcMqttConnectionVerbose) << "TopicAlias publish: auto alias assignment:" << autoAlias;
+                    m_publishAliases[autoAlias] = topic;
+                    publishProperties.setTopicAlias(quint16(autoAlias) + 1);
+                } else
+                    qCDebug(lcMqttConnectionVerbose) << "TopicAlias publish: alias storage full, using full topic";
+                packet->append(topic.name().toUtf8());
+            }
+        } else {
+            packet->append(topic.name().toUtf8());
+        }
+    } else { // ! MQTT_5_0
+        packet->append(topic.name().toUtf8());
+    }
     quint16 identifier = 0;
     if (qos > 0) {
         identifier = unusedPacketIdentifier();
@@ -370,7 +408,7 @@ qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic,
     }
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
-        packet->appendRaw(writePublishProperties(properties));
+        packet->appendRaw(writePublishProperties(publishProperties));
 
     packet->appendRaw(message);
 
@@ -548,6 +586,9 @@ bool QMqttConnection::sendControlDisconnect()
     m_pingTimer.stop();
 
     m_activeSubscriptions.clear();
+
+    m_receiveAliases.clear();
+    m_publishAliases.clear();
 
     const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
     if (!writePacketToTransport(packet)) {
@@ -1340,8 +1381,11 @@ void QMqttConnection::finalize_connack()
     }
 
     // MQTT 5.0 has variable part != 2 in the header
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
         readConnackProperties();
+        m_receiveAliases.resize(m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias());
+        m_publishAliases.resize(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
+    }
 
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
@@ -1445,7 +1489,8 @@ void QMqttConnection::finalize_unsuback()
 void QMqttConnection::finalize_publish()
 {
     // String topic
-    const QMqttTopicName topic = readBufferTyped<QString>(&m_missingData);
+    QMqttTopicName topic = readBufferTyped<QString>(&m_missingData);
+    const int topicLength = topic.name().length();
 
     quint16 id = 0;
     if (m_currentPublish.qos > 0)
@@ -1454,6 +1499,24 @@ void QMqttConnection::finalize_publish()
     QMqttPublishProperties publishProperties;
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readPublishProperties(publishProperties);
+
+    const quint16 topicAlias = publishProperties.topicAlias();
+    if (topicAlias > 0) {
+        if (topicAlias > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
+            qCDebug(lcMqttConnection) << "TopicAlias receive: overflow.";
+            closeConnection(QMqttClient::ProtocolViolation);
+        } else if (topicLength == 0) { // New message on existing topic alias
+            if (m_receiveAliases.at(topicAlias - 1).name().isEmpty()) {
+                qCDebug(lcMqttConnection) << "TopicAlias receive: alias for unknown topic.";
+                closeConnection(QMqttClient::ProtocolViolation);
+            }
+            qCDebug(lcMqttConnectionVerbose) << "TopicAlias receive: Using " << topicAlias;
+            topic = m_receiveAliases.at(topicAlias - 1);
+        } else { // Resetting a topic alias
+            qCDebug(lcMqttConnection) << "TopicAlias receive: Resetting:" << topic.name() << " : " << topicAlias;
+            m_receiveAliases[topicAlias - 1] = topic;
+        }
+    }
 
     // message
     const quint64 payloadLength = quint64(m_missingData);
@@ -1724,6 +1787,7 @@ void QMqttConnection::processData()
 bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)
 {
     const QByteArray writeData = p.serialize();
+    qCDebug(lcMqttConnectionVerbose) << Q_FUNC_INFO << " DataSize:" << writeData.size();
     const qint64 res = m_transport->write(writeData.constData(), writeData.size());
     if (Q_UNLIKELY(res == -1)) {
         qCDebug(lcMqttConnection) << "Could not write frame to transport.";

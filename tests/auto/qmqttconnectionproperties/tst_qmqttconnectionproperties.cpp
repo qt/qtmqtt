@@ -28,6 +28,7 @@
 
 #include "broker_connection.h"
 
+#include <QtCore/QLoggingCategory>
 #include <QtCore/QString>
 #include <QtTest/QtTest>
 #include <QtMqtt/QMqttClient>
@@ -49,6 +50,7 @@ private Q_SLOTS:
     void receiveServerProperties();
     void maximumPacketSize();
     void maximumTopicAlias();
+    void maximumTopicAliasReceive();
     void assignedClientId();
     void userProperties();
 private:
@@ -228,8 +230,139 @@ void tst_QMqttConnectionProperties::maximumPacketSize()
 
 void tst_QMqttConnectionProperties::maximumTopicAlias()
 {
-    // ### TODO: implement
-    QSKIP("Needs to be implemented.");
+    const QByteArray msgContent("SomeContent");
+    QMqttClient client;
+    client.setProtocolVersion(QMqttClient::MQTT_5_0);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    const int userMaxTopicAlias = 9;
+    QMqttConnectionProperties userProperties;
+    userProperties.setMaximumTopicAlias(userMaxTopicAlias);
+    client.setConnectionProperties(userProperties);
+
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    int publishTransportSize = 0;
+    auto transport = client.transport();
+    QSignalSpy transportSpy(transport, SIGNAL(bytesWritten(qint64))); //&QIODevice::bytesWritten);
+
+    const auto serverProperties = client.serverConnectionProperties();
+    const quint16 serverMaxAlias = serverProperties.maximumTopicAlias();
+    if (serverMaxAlias == 0)
+        QSKIP("Need to skip this test due to topic aliases not supported on server");
+
+    //qDebug() << "Server Max Alias:" << serverMaxAlias;
+    //QLoggingCategory::setFilterRules("qt.mqtt.connection*=true");
+
+    // Fill up the internal publish vector
+    const QLatin1String topicBase("Qt/connprop/alias/top");
+    for (quint16 i = 0; i < serverMaxAlias; ++i) {
+        QSignalSpy publishSpy(&client, SIGNAL(messageSent(qint32)));
+
+        QMqttTopicName topic(topicBase + QString::number(i));
+        client.publish(topic, msgContent, 1);
+        QTRY_VERIFY(publishSpy.count() == 1);
+
+        QVERIFY(transportSpy.count() == 1);
+        const int dataSize = transportSpy.at(0).at(0).toInt();
+        if (publishTransportSize == 0) {
+            publishTransportSize = dataSize;
+        } else {
+            QCOMPARE(dataSize, publishTransportSize);
+        }
+        transportSpy.clear();
+    }
+
+    // Verify non auto assignable defaults to old behavior
+    QSignalSpy fullSpy(&client, SIGNAL(messageSent(qint32)));
+    transportSpy.clear();
+    client.publish(QLatin1String("Qt/connprop/alias/full/with/long/topic/to/verify/bigger/size"), msgContent, 1);
+    QTRY_VERIFY(fullSpy.count() == 1);
+    QVERIFY(transportSpy.count() == 1);
+    QVERIFY(transportSpy.at(0).at(0).toInt() > publishTransportSize);
+
+    // Verify alias is used at sending second time
+    transportSpy.clear();
+    fullSpy.clear();
+
+    client.publish(topicBase + QLatin1String("0"), msgContent, 1);
+    QTRY_VERIFY(fullSpy.count() == 1);
+    QVERIFY(transportSpy.count() == 1);
+    int usageSize = transportSpy.at(0).at(0).toInt();
+    QVERIFY(usageSize < publishTransportSize);
+
+    // Manually overwrite topic alias 1
+    const QMqttTopicName overwrite(QLatin1String("Qt/connprop/alias/overwrite/with/long/topic/to/verify/reset"));
+    QMqttPublishProperties overProp;
+    overProp.setTopicAlias(2);
+    fullSpy.clear();
+    transportSpy.clear();
+    client.publish(overwrite, overProp, msgContent, 1);
+    QTRY_VERIFY(fullSpy.count() == 1);
+    QVERIFY(transportSpy.count() == 1);
+    const int overwriteSize = transportSpy.at(0).at(0).toInt();
+    QVERIFY(overwriteSize > publishTransportSize);
+    // After resend new alias should be used and msg size reduced
+    fullSpy.clear();
+    transportSpy.clear();
+    client.publish(overwrite, msgContent, 1);
+    QTRY_VERIFY(fullSpy.count() == 1);
+    QVERIFY(transportSpy.count() == 1);
+    usageSize = transportSpy.at(0).at(0).toInt();
+    QVERIFY(usageSize < overwriteSize);
+}
+
+void createTopicAliasClient(QMqttClient &client, const QString &hostname, quint16 port)
+{
+    client.setProtocolVersion(QMqttClient::MQTT_5_0);
+    client.setHostname(hostname);
+    client.setPort(port);
+
+    const int userMaxTopicAlias = 9;
+    QMqttConnectionProperties userProperties;
+    userProperties.setMaximumTopicAlias(userMaxTopicAlias);
+    client.setConnectionProperties(userProperties);
+}
+
+void tst_QMqttConnectionProperties::maximumTopicAliasReceive()
+{
+    const QByteArray msgContent("SomeContent");
+    const QString topic("Qt/connprop/receive/alias");
+
+    QMqttClient client;
+    createTopicAliasClient(client, m_testBroker, m_port);
+
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    QMqttClient subscriber;
+    createTopicAliasClient(subscriber, m_testBroker, m_port);
+
+    subscriber.connectToHost();
+    QTRY_VERIFY2(subscriber.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    auto sub = subscriber.subscribe(topic + "/#", 1);
+
+    int receiveCounter = 0;
+    connect(sub, &QMqttSubscription::messageReceived, [&receiveCounter](QMqttMessage msg) {
+        qDebug() << "Received message with alias:" << msg.publishProperties().topicAlias();
+        receiveCounter++;
+    });
+
+    QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe");
+
+    QSignalSpy publishSpy(&client, &QMqttClient::messageSent);
+    //QLoggingCategory::setFilterRules("qt.mqtt.connection*=true");
+    client.publish(topic, msgContent, 1);
+    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish");
+    QTRY_VERIFY2(receiveCounter == 1, "Did not receive initial message");
+
+    publishSpy.clear();
+    client.publish(topic, msgContent, 1);
+    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish");
+    QTRY_VERIFY2(receiveCounter == 2, "Did not receive second aliases message");
 }
 
 void tst_QMqttConnectionProperties::assignedClientId()
