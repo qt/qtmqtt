@@ -1384,14 +1384,16 @@ void QMqttConnection::finalize_pubAckRecComp()
         const quint8 reasonCode = readBufferTyped<quint8>();
         m_missingData--;
         Q_UNUSED(reasonCode); // ### TODO: Do something with it, currently silences compiler
-        // Property Length (Variable Int)
-        qint32 byteCount = 0;
-        const qint32 propertyLength = readVariableByteInteger(&byteCount);
-        m_missingData -= byteCount;
-        // ### TODO: Publish ACK/REC/COMP property handling
-        if (propertyLength > 0) {
-            readBuffer(quint64(propertyLength));
-            m_missingData -= propertyLength;
+        if (m_missingData > 0) {
+            // Property Length (Variable Int)
+            qint32 byteCount = 0;
+            const qint32 propertyLength = readVariableByteInteger(&byteCount);
+            m_missingData -= byteCount;
+            // ### TODO: Publish ACK/REC/COMP property handling
+            if (propertyLength > 0) {
+                readBuffer(quint64(propertyLength));
+                m_missingData -= propertyLength;
+            }
         }
     }
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBCOMP) {
