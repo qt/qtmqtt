@@ -1446,11 +1446,11 @@ void QMqttConnection::finalize_pingresp()
     emit m_clientPrivate->m_client->pingResponseReceived();
 }
 
-void QMqttConnection::processData()
+bool QMqttConnection::processDataHelper()
 {
     if (m_missingData > 0) {
         if ((m_readBuffer.size() - m_readPosition) < m_missingData)
-            return;
+            return false;
 
         switch (m_currentPacket & 0xF0) {
         case QMqttControlPacket::CONNACK:
@@ -1479,7 +1479,7 @@ void QMqttConnection::processData()
         default:
             qCDebug(lcMqttConnection) << "Unknown packet to finalize.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
 
         Q_ASSERT(m_missingData == 0);
@@ -1493,18 +1493,18 @@ void QMqttConnection::processData()
     switch (m_readBuffer.size()) {
     case 0:
     case 1:
-        return;
+        return false;
     case 2:
         if ((m_readBuffer.at(1) & 128) != 0)
-            return;
+            return false;
         break;
     case 3:
         if ((m_readBuffer.at(1) & 128) != 0 && (m_readBuffer.at(2) & 128) != 0)
-            return;
+            return false;
         break;
     case 4:
         if ((m_readBuffer.at(1) & 128) != 0 && (m_readBuffer.at(2) & 128) != 0 && (m_readBuffer.at(3) & 128) != 0)
-            return;
+            return false;
         break;
     default:
         break;
@@ -1519,7 +1519,7 @@ void QMqttConnection::processData()
         if (m_internalState != BrokerWaitForConnectAck) {
             qCDebug(lcMqttConnection) << "Received CONNACK at unexpected time.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
 
         qint32 payloadSize = readVariableByteInteger();
@@ -1527,7 +1527,7 @@ void QMqttConnection::processData()
             if (payloadSize != 2) {
                 qCDebug(lcMqttConnection) << "Unexpected FRAME size in CONNACK.";
                 closeConnection(QMqttClient::ProtocolViolation);
-                return;
+                return false;
             }
         }
         m_missingData = payloadSize;
@@ -1547,12 +1547,12 @@ void QMqttConnection::processData()
         if ((m_currentPublish.qos == 0 && m_currentPublish.dup != 0)
             || m_currentPublish.qos > 2) {
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
 
         m_missingData = readVariableByteInteger();
         if (m_missingData == -1)
-            return; // Connection closed inside readVariableByteInteger
+            return false; // Connection closed inside readVariableByteInteger
         break;
     }
     case QMqttControlPacket::PINGRESP:
@@ -1567,12 +1567,12 @@ void QMqttConnection::processData()
         if (remaining != 0x02) {
             qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
         if ((m_currentPacket & 0x0F) != 0x02) {
             qCDebug(lcMqttConnection) << "Malformed fixed header for PUBREL.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
         m_missingData = 2;
         break;
@@ -1586,13 +1586,13 @@ void QMqttConnection::processData()
         if ((m_currentPacket & 0x0F) != 0) {
             qCDebug(lcMqttConnection) << "Malformed fixed header for UNSUBACK/PUBACK/PUBREC/PUBCOMP.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
         const quint8 remaining = readBufferTyped<quint8>();
         if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0 && remaining != 0x02) {
             qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return;
+            return false;
         }
         m_missingData = remaining;
         break;
@@ -1600,13 +1600,19 @@ void QMqttConnection::processData()
     default:
         qCDebug(lcMqttConnection) << "Received unknown command.";
         closeConnection(QMqttClient::ProtocolViolation);
-        return;
+        return false;
     }
 
     /* set current command CONNACK - PINGRESP */
     /* read command size */
     /* calculate missing_data */
-    processData(); // implicitly finishes and enqueues
+    return true; // reiterate. implicitly finishes and enqueues
+}
+
+void QMqttConnection::processData()
+{
+    while (processDataHelper())
+        ;
 }
 
 bool QMqttConnection::writePacketToTransport(const QMqttControlPacket &p)

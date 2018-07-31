@@ -115,6 +115,7 @@ private:
     void finalize_pubrel();
     void finalize_pingresp();
     void processData();
+    bool processDataHelper();
     void readBuffer(char *data, quint64 size);
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void readConnackProperties();
