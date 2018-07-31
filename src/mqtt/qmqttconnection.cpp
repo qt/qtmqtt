@@ -1032,7 +1032,7 @@ QByteArray QMqttConnection::writeLastWillProperties() const
     if (!lastWillProperties.userProperties().isEmpty()) {
         auto userProperties = lastWillProperties.userProperties();
         qCDebug(lcMqttConnectionVerbose) << "Last Will Properties: specify user properties";
-        for (const auto& prop : userProperties) {
+        for (const auto &prop : userProperties) {
             properties.append(char(0x26));
             properties.append(prop.name().toUtf8());
             properties.append(prop.value().toUtf8());
@@ -1155,7 +1155,7 @@ QByteArray QMqttConnection::writeSubscriptionProperties(const QMqttSubscriptionP
     auto userProperties = properties.userProperties();
     if (!userProperties.isEmpty()) {
         qCDebug(lcMqttConnectionVerbose) << "Subscription Properties: specify user properties";
-        for (const auto& prop : userProperties) {
+        for (const auto &prop : userProperties) {
             packet.append(char(0x26));
             packet.append(prop.name().toUtf8());
             packet.append(prop.value().toUtf8());
@@ -1173,7 +1173,7 @@ QByteArray QMqttConnection::writeUnsubscriptionProperties(const QMqttUnsubscript
     auto userProperties = properties.userProperties();
     if (!userProperties.isEmpty()) {
         qCDebug(lcMqttConnectionVerbose) << "Unsubscription Properties: specify user properties";
-        for (const auto& prop : userProperties) {
+        for (const auto &prop : userProperties) {
             packet.append(char(0x26));
             packet.append(prop.name().toUtf8());
             packet.append(prop.value().toUtf8());
