@@ -122,6 +122,7 @@ private:
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void readAuthProperties(QMqttAuthenticationProperties &properties);
     void readConnackProperties();
+    void readMessageStatusProperties(QMqttMessageStatusProperties &properties);
     void readPublishProperties(QMqttPublishProperties &properties);
     void readSubscriptionProperties(QMqttSubscription *sub);
     QByteArray writeConnectProperties();

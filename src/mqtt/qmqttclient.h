@@ -155,6 +155,7 @@ Q_SIGNALS:
     void connected();
     void disconnected();
     void messageReceived(const QByteArray &message, const QMqttTopicName &topic = QMqttTopicName());
+    void messageStatusChanged(qint32 id, QMqtt::MessageStatus s, const QMqttMessageStatusProperties &properties);
     void messageSent(qint32 id);
     void pingResponseReceived();
     void brokerSessionRestored();

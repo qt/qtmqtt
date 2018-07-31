@@ -28,6 +28,7 @@
 ******************************************************************************/
 
 #include "qmqttpublishproperties.h"
+#include "qmqttpublishproperties_p.h"
 #include "qmqtttype.h"
 
 #include <QtCore/QLoggingCategory>
@@ -84,23 +85,8 @@ Q_DECLARE_LOGGING_CATEGORY(lcMqttClient)
            A description of the content of the message.
 */
 
-class QMqttPublishPropertiesData : public QSharedData
-{
-public:
-    QString responseTopic;
-    QString contentType;
-    QByteArray correlationData;
-    quint32 messageExpiry{0};
-    QList<quint32> subscriptionIdentifier;
-    QMqttPublishProperties::PublishPropertyDetails details{QMqttPublishProperties::None};
-    quint16 topicAlias{0};
-    QMqtt::PayloadFormatIndicator payloadIndicator{QMqtt::PayloadFormatIndicator::Unspecified};
-    QMqttUserProperties userProperties;
-};
-
 QMqttPublishProperties::QMqttPublishProperties() : data(new QMqttPublishPropertiesData)
 {
-
 }
 
 /*!
@@ -282,5 +268,35 @@ void QMqttPublishProperties::setContentType(const QString &type)
     data->details |= QMqttPublishProperties::ContentType;
     data->contentType = type;
 }
+
+QMqttMessageStatusProperties::QMqttMessageStatusProperties() : data(new QMqttMessageStatusPropertiesData)
+{
+
+}
+
+QMqttMessageStatusProperties &QMqttMessageStatusProperties::operator=(const QMqttMessageStatusProperties &rhs)
+{
+    if (this != &rhs)
+        data.operator=(rhs.data);
+    return *this;
+}
+
+QMqtt::ReasonCode QMqttMessageStatusProperties::reasonCode() const
+{
+    return data->reasonCode;
+}
+
+QString QMqttMessageStatusProperties::reason() const
+{
+    return data->reasonString;
+}
+
+QMqttUserProperties QMqttMessageStatusProperties::userProperties() const
+{
+    return data->userProperties;
+}
+
+QMqttMessageStatusProperties::~QMqttMessageStatusProperties() = default;
+QMqttMessageStatusProperties::QMqttMessageStatusProperties(const QMqttMessageStatusProperties &) = default;
 
 QT_END_NAMESPACE

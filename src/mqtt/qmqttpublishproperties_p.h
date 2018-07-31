@@ -1,6 +1,6 @@
 /******************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2018 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the QtMqtt module.
@@ -27,52 +27,49 @@
 **
 ******************************************************************************/
 
-#ifndef QTQMQTTGLOBAL_H
-#define QTQMQTTGLOBAL_H
+#ifndef QMQTTPUBLISHPROPERTIES_P_H
+#define QMQTTPUBLISHPROPERTIES_P_H
 
-#include <QtCore/qglobal.h>
+//
+//  W A R N I N G
+//  -------------
+//
+// This file is not part of the Qt API.  It exists purely as an
+// implementation detail.  This header file may change from version to
+// version without notice, or even be removed.
+//
+// We mean it.
+//
+
+#include "qmqttglobal.h"
+#include "qmqttpublishproperties.h"
+
+#include <QtCore/QSharedData>
 
 QT_BEGIN_NAMESPACE
 
-#ifndef QT_STATIC
-#  if defined(QT_BUILD_MQTT_LIB)
-#    define Q_MQTT_EXPORT Q_DECL_EXPORT
-#  else
-#    define Q_MQTT_EXPORT Q_DECL_IMPORT
-#  endif
-#else
-#  define Q_MQTT_EXPORT
-#endif
-
-namespace QMqtt
+class QMqttPublishPropertiesData : public QSharedData
 {
-enum class PayloadFormatIndicator : quint8 {
-    Unspecified = 0,
-    UTF8Encoded = 1
+public:
+    QString responseTopic;
+    QString contentType;
+    QByteArray correlationData;
+    quint32 messageExpiry{0};
+    QList<quint32> subscriptionIdentifier;
+    QMqttPublishProperties::PublishPropertyDetails details{QMqttPublishProperties::None};
+    quint16 topicAlias{0};
+    QMqtt::PayloadFormatIndicator payloadIndicator{QMqtt::PayloadFormatIndicator::Unspecified};
+    QMqttUserProperties userProperties;
 };
 
-enum class MessageStatus : quint8 {
-    Unknown = 0,
-    Published,
-    Acknowledged,
-    Received,
-    Released,
-    Completed
+class QMqttMessageStatusPropertiesData : public QSharedData
+{
+public:
+    QMqttUserProperties userProperties;
+    QString reasonString;
+    QMqtt::ReasonCode reasonCode{QMqtt::ReasonCode::Success};
 };
 
-enum class ReasonCode : quint16 {
-    Success = 0,
-    NoMatchingSubscriber = 0x10,
-    UnspecifiedError = 0x80,
-    ImplementationSpecificError = 0x83,
-    NotAuthorized = 0x87,
-    InvalidTopicName = 0x90,
-    MessageIdInUse = 0x91,
-    MessageIdNotFound = 0x92,
-    QuotaExceeded = 0x97,
-    InvalidPayloadFormat = 0x99
-};
-}
 QT_END_NAMESPACE
 
-#endif //QTQMQTTGLOBAL_H
+#endif // QMQTTPUBLISHPROPERTIES_P_H

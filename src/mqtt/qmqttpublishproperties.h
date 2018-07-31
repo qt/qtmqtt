@@ -38,6 +38,7 @@
 QT_BEGIN_NAMESPACE
 
 class QMqttPublishPropertiesData;
+class QMqttMessageStatusPropertiesData;
 
 class Q_MQTT_EXPORT QMqttPublishProperties
 {
@@ -92,6 +93,24 @@ private:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QMqttPublishProperties::PublishPropertyDetails)
+
+class Q_MQTT_EXPORT QMqttMessageStatusProperties
+{
+    Q_GADGET
+public:
+    QMqttMessageStatusProperties();
+    QMqttMessageStatusProperties(const QMqttMessageStatusProperties &);
+    QMqttMessageStatusProperties &operator=(const QMqttMessageStatusProperties &);
+    ~QMqttMessageStatusProperties();
+
+    QMqtt::ReasonCode reasonCode() const;
+    QString reason() const;
+    QMqttUserProperties userProperties() const;
+
+private:
+    friend class QMqttConnection;
+    QSharedDataPointer<QMqttMessageStatusPropertiesData> data;
+};
 
 QT_END_NAMESPACE
 

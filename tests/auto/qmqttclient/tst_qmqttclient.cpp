@@ -69,6 +69,10 @@ private Q_SLOTS:
     void staticProperties_QTBUG_67176_data();
     void staticProperties_QTBUG_67176();
     void authentication();
+    void messageStatus_data();
+    void messageStatus();
+    void messageStatusReceive_data();
+    void messageStatusReceive();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -623,6 +627,102 @@ void Tst_QMqttClient::authentication()
     QSKIP("No broker available with enhanced authentication.");
     client.connectToHost();
     QTRY_COMPARE(client.state(), QMqttClient::Connected);
+}
+
+Q_DECLARE_METATYPE(QMqtt::MessageStatus)
+
+void Tst_QMqttClient::messageStatus_data()
+{
+    QTest::addColumn<int>("qos");
+    QTest::addColumn<QList<QMqtt::MessageStatus>>("expectedStatus");
+
+    QTest::newRow("QoS1") << 1 << (QList<QMqtt::MessageStatus>() << QMqtt::MessageStatus::Acknowledged);
+    QTest::newRow("QoS2") << 2 << (QList<QMqtt::MessageStatus>() << QMqtt::MessageStatus::Received
+                                   << QMqtt::MessageStatus::Completed);
+}
+
+void Tst_QMqttClient::messageStatus()
+{
+    QFETCH(int, qos);
+    QFETCH(QList<QMqtt::MessageStatus>, expectedStatus);
+
+    QMqttClient client;
+    client.setProtocolVersion(QMqttClient::MQTT_5_0);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    const QString topic = QLatin1String("Qt/client/statusCheck");
+
+    connect(&client, &QMqttClient::messageStatusChanged, [&expectedStatus](qint32,
+                QMqtt::MessageStatus s,
+                const QMqttMessageStatusProperties &)
+    {
+        QCOMPARE(s, expectedStatus.first());
+        expectedStatus.takeFirst();
+    });
+
+    QSignalSpy publishSpy(&client, &QMqttClient::messageSent);
+    client.publish(topic, QByteArray("someContent"), quint8(qos));
+    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish message");
+    QTRY_VERIFY2(expectedStatus.isEmpty(), "Did not receive all status updates.");
+}
+
+void Tst_QMqttClient::messageStatusReceive_data()
+{
+    QTest::addColumn<int>("qos");
+    QTest::addColumn<QList<QMqtt::MessageStatus>>("expectedStatus");
+
+    QTest::newRow("QoS1") << 1 << (QList<QMqtt::MessageStatus>() << QMqtt::MessageStatus::Published);
+    QTest::newRow("QoS2") << 2 << (QList<QMqtt::MessageStatus>() << QMqtt::MessageStatus::Published
+                                   << QMqtt::MessageStatus::Released);
+}
+
+void Tst_QMqttClient::messageStatusReceive()
+{
+    QFETCH(int, qos);
+    QFETCH(QList<QMqtt::MessageStatus>, expectedStatus);
+
+    QMqttClient publisher;
+    publisher.setProtocolVersion(QMqttClient::MQTT_5_0);
+    publisher.setHostname(m_testBroker);
+    publisher.setPort(m_port);
+
+    publisher.connectToHost();
+    QTRY_VERIFY2(publisher.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    QMqttClient subscriber;
+    subscriber.setProtocolVersion(QMqttClient::MQTT_5_0);
+    subscriber.setHostname(m_testBroker);
+    subscriber.setPort(m_port);
+
+    subscriber.connectToHost();
+    QTRY_VERIFY2(subscriber.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    const QString topic = QLatin1String("Qt/client/statusCheckReceive");
+
+    auto subscription = subscriber.subscribe(topic, quint8(qos));
+    QTRY_VERIFY2(subscription->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic");
+    QVERIFY(subscription->qos() >= qos);
+
+    connect(&subscriber, &QMqttClient::messageStatusChanged, [&expectedStatus](qint32,
+                QMqtt::MessageStatus s,
+                const QMqttMessageStatusProperties &)
+    {
+        QCOMPARE(s, expectedStatus.first());
+        expectedStatus.takeFirst();
+    });
+
+    QSignalSpy publishSpy(&publisher, &QMqttClient::messageSent);
+    QSignalSpy receiveSpy(&subscriber, &QMqttClient::messageReceived);
+
+    publisher.publish(topic, QByteArray("someContent"), quint8(qos));
+    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish message");
+    QTRY_VERIFY2(receiveSpy.count() == 1, "Did not receive message");
+
+    QTRY_VERIFY2(expectedStatus.isEmpty(), "Did not receive all status updates.");
 }
 
 QTEST_MAIN(Tst_QMqttClient)

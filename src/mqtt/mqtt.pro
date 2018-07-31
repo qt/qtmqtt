@@ -26,6 +26,7 @@ PRIVATE_HEADERS += \
     qmqttconnectionproperties_p.h \
     qmqttcontrolpacket_p.h \
     qmqttmessage_p.h \
+    qmqttpublishproperties_p.h \
     qmqttsubscription_p.h
 
 SOURCES += \
