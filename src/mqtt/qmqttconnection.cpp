@@ -1471,7 +1471,6 @@ bool QMqttConnection::processDataHelper()
     }
 
     readBuffer(reinterpret_cast<char *>(&m_currentPacket), 1);
-    m_missingData--;
 
     switch (m_currentPacket & 0xF0) {
     case QMqttControlPacket::CONNACK: {
