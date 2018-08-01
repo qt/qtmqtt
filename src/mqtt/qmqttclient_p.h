@@ -57,6 +57,7 @@ public:
     QMqttClientPrivate(QMqttClient *c);
     ~QMqttClientPrivate() override;
     void setStateAndError(QMqttClient::ClientState s, QMqttClient::ClientError e = QMqttClient::NoError);
+    void setClientId(const QString &id);
     QMqttClient *m_client{nullptr};
     QString m_hostname;
     quint16 m_port{0};

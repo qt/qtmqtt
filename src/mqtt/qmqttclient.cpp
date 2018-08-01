@@ -580,6 +580,12 @@ quint16 QMqttClient::keepAlive() const
 void QMqttClient::setHostname(const QString &hostname)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing hostname while connected is not possible.";
+        return;
+    }
+
     if (d->m_hostname == hostname)
         return;
 
@@ -590,6 +596,12 @@ void QMqttClient::setHostname(const QString &hostname)
 void QMqttClient::setPort(quint16 port)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing port while connected is not possible.";
+        return;
+    }
+
     if (d->m_port == port)
         return;
 
@@ -600,11 +612,12 @@ void QMqttClient::setPort(quint16 port)
 void QMqttClient::setClientId(const QString &clientId)
 {
     Q_D(QMqttClient);
-    if (d->m_clientId == clientId)
-        return;
 
-    d->m_clientId = clientId;
-    emit clientIdChanged(clientId);
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing client ID while connected is not possible.";
+        return;
+    }
+    d->setClientId(clientId);
 }
 
 void QMqttClient::setKeepAlive(quint16 keepAlive)
@@ -625,6 +638,12 @@ void QMqttClient::setKeepAlive(quint16 keepAlive)
 void QMqttClient::setProtocolVersion(ProtocolVersion protocolVersion)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing protocol version while connected is not possible.";
+        return;
+    }
+
     if (d->m_protocolVersion == protocolVersion)
         return;
 
@@ -652,6 +671,12 @@ void QMqttClient::setState(ClientState state)
 void QMqttClient::setUsername(const QString &username)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing username while connected is not possible.";
+        return;
+    }
+
     if (d->m_username == username)
         return;
 
@@ -662,6 +687,12 @@ void QMqttClient::setUsername(const QString &username)
 void QMqttClient::setPassword(const QString &password)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing password while connected is not possible.";
+        return;
+    }
+
     if (d->m_password == password)
         return;
 
@@ -672,6 +703,12 @@ void QMqttClient::setPassword(const QString &password)
 void QMqttClient::setCleanSession(bool cleanSession)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing clean session while connected is not possible.";
+        return;
+    }
+
     if (d->m_cleanSession == cleanSession)
         return;
 
@@ -682,6 +719,12 @@ void QMqttClient::setCleanSession(bool cleanSession)
 void QMqttClient::setWillTopic(const QString &willTopic)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing will topic while connected is not possible.";
+        return;
+    }
+
     if (d->m_willTopic == willTopic)
         return;
 
@@ -692,6 +735,12 @@ void QMqttClient::setWillTopic(const QString &willTopic)
 void QMqttClient::setWillQoS(quint8 willQoS)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing will qos while connected is not possible.";
+        return;
+    }
+
     if (d->m_willQoS == willQoS)
         return;
 
@@ -702,6 +751,12 @@ void QMqttClient::setWillQoS(quint8 willQoS)
 void QMqttClient::setWillMessage(const QByteArray &willMessage)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing will message while connected is not possible.";
+        return;
+    }
+
     if (d->m_willMessage == willMessage)
         return;
 
@@ -712,6 +767,12 @@ void QMqttClient::setWillMessage(const QByteArray &willMessage)
 void QMqttClient::setWillRetain(bool willRetain)
 {
     Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing will retain while connected is not possible.";
+        return;
+    }
+
     if (d->m_willRetain == willRetain)
         return;
 
@@ -761,6 +822,17 @@ void QMqttClientPrivate::setStateAndError(QMqttClient::ClientState s, QMqttClien
         q->setState(s);
     if (e != QMqttClient::NoError && m_error != e)
         q->setError(e);
+}
+
+void QMqttClientPrivate::setClientId(const QString &id)
+{
+    Q_Q(QMqttClient);
+
+    if (m_clientId == id)
+        return;
+
+    m_clientId = id;
+    emit q->clientIdChanged(id);
 }
 
 QT_END_NAMESPACE

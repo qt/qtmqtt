@@ -66,6 +66,8 @@ private Q_SLOTS:
     void reconnect_QTBUG65726();
     void openIODevice_QTBUG66955_data();
     void openIODevice_QTBUG66955();
+    void staticProperties_QTBUG_67176_data();
+    void staticProperties_QTBUG_67176();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -549,6 +551,48 @@ void Tst_QMqttClient::openIODevice_QTBUG66955()
     client.connectToHost();
 
     QTRY_COMPARE(trans.written, 1);
+}
+
+DefaultVersionTestData(Tst_QMqttClient::staticProperties_QTBUG_67176_data)
+
+void Tst_QMqttClient::staticProperties_QTBUG_67176()
+{
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+
+    VersionClient(mqttVersion, client);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    const QString clientId = client.clientId();
+    const quint16 keepAlive = client.keepAlive();
+    const bool clean = client.cleanSession();
+
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    client.setClientId(QLatin1String("someclient"));
+    QCOMPARE(client.clientId(), clientId);
+
+    client.setHostname(QLatin1String("some.domain.foo"));
+    QCOMPARE(client.hostname(), m_testBroker);
+
+    client.setPort(1234);
+    QCOMPARE(client.port(), m_port);
+
+    client.setKeepAlive(keepAlive + 10);
+    QCOMPARE(client.keepAlive(), keepAlive);
+
+    client.setProtocolVersion(QMqttClient::MQTT_3_1);
+    QCOMPARE(client.protocolVersion(), mqttVersion);
+
+    client.setUsername(QLatin1String("someUser"));
+    QCOMPARE(client.username(), QLatin1String());
+
+    client.setPassword(QLatin1String("somePassword"));
+    QCOMPARE(client.password(), QLatin1String());
+
+    client.setCleanSession(!clean);
+    QCOMPARE(client.cleanSession(), clean);
 }
 
 QTEST_MAIN(Tst_QMqttClient)

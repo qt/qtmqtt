@@ -691,7 +691,7 @@ void QMqttConnection::readConnackProperties()
         case 0x12: { // 3.2.2.3.7 Assigned clientId
             const QString assignedClientId = readBufferTyped<QString>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
-            m_clientPrivate->m_client->setClientId(assignedClientId);
+            m_clientPrivate->setClientId(assignedClientId);
             break;
         }
         case 0x22: { // 3.2.2.3.8 Topic Alias Maximum
