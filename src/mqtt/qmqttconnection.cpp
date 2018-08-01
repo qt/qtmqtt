@@ -47,29 +47,37 @@ Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
 Q_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
 template<>
-quint32 QMqttConnection::readBufferTyped()
+quint32 QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
+    if (dataSize)
+        *dataSize -= sizeof(quint32);
     return qFromBigEndian<quint32>(reinterpret_cast<const quint32 *>(readBuffer(4).constData()));
 }
 
 template<>
-quint16 QMqttConnection::readBufferTyped()
+quint16 QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
+    if (dataSize)
+        *dataSize -= sizeof(quint16);
     return qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
 }
 
 template<>
-quint8 QMqttConnection::readBufferTyped()
+quint8 QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
     quint8 result;
     readBuffer(reinterpret_cast<char *>(&result), 1);
+    if (dataSize)
+        *dataSize -= sizeof(quint8);
     return result;
 }
 
 template<>
-QString QMqttConnection::readBufferTyped()
+QString QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
-    const quint16 size = readBufferTyped<quint16>();
+    const quint16 size = readBufferTyped<quint16>(dataSize);
+    if (dataSize)
+        *dataSize -= size;
     return QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(size).constData()), size);
 }
 
@@ -641,135 +649,115 @@ QByteArray QMqttConnection::readBuffer(quint64 size)
 
 void QMqttConnection::readConnackProperties()
 {
-    qint32 propertyLength = readVariableByteInteger();
+    qint64 propertyLength = readVariableByteInteger();
     m_missingData = 0;
 
     QMqttServerConnectionProperties serverProperties;
     serverProperties.serverData->valid = true;
 
     while (propertyLength > 0) {
-        quint8 propertyId = readBufferTyped<quint8>();
-        propertyLength--;
+        quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
         case 0x11: { // 3.2.2.3.2 Session Expiry Interval
-            const quint32 expiryInterval = readBufferTyped<quint32>();
-            propertyLength -= 4;
+            const quint32 expiryInterval = readBufferTyped<quint32>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SessionExpiryInterval;
             serverProperties.setSessionExpiryInterval(expiryInterval);
             break;
         }
         case 0x21: { // 3.2.2.3.3 Receive Maximum
-            const quint16 receiveMaximum = readBufferTyped<quint16>();
-            propertyLength -=2;
+            const quint16 receiveMaximum = readBufferTyped<quint16>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumReceive;
             serverProperties.setMaximumReceive(receiveMaximum);
             break;
         }
         case 0x24: { // 3.2.2.3.4 Maximum QoS Level
-            const quint8 maxQoS = readBufferTyped<quint8>();
-            propertyLength--;
+            const quint8 maxQoS = readBufferTyped<quint8>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumQoS;
             serverProperties.serverData->maximumQoS = maxQoS;
             break;
         }
         case 0x25: { // 3.2.2.3.5 Retain available
-            const quint8 retainAvailable = readBufferTyped<quint8>();
-            propertyLength--;
+            const quint8 retainAvailable = readBufferTyped<quint8>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
             serverProperties.serverData->retainAvailable = retainAvailable == 1;
             break;
         }
         case 0x27: { // 3.2.2.3.6 Maximum packet size
-            const quint32 maxPacketSize = readBufferTyped<quint32>();
-            propertyLength -= 4;
+            const quint32 maxPacketSize = readBufferTyped<quint32>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumPacketSize;
             serverProperties.setMaximumPacketSize(maxPacketSize);
             break;
         }
         case 0x12: { // 3.2.2.3.7 Assigned clientId
-            const QString assignedClientId = readBufferTyped<QString>();
-            propertyLength -= assignedClientId.length() + 2;
+            const QString assignedClientId = readBufferTyped<QString>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
             m_clientPrivate->m_client->setClientId(assignedClientId);
             break;
         }
         case 0x22: { // 3.2.2.3.8 Topic Alias Maximum
-            const quint16 topicAliasMaximum = readBufferTyped<quint16>();
-            propertyLength -=2;
+            const quint16 topicAliasMaximum = readBufferTyped<quint16>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumTopicAlias;
             serverProperties.setMaximumTopicAlias(topicAliasMaximum);
             break;
         }
         case 0x1F: { // 3.2.2.3.9 Reason String
-            const QString reasonString = readBufferTyped<QString>();
-            propertyLength -= reasonString.length() + 2;
+            const QString reasonString = readBufferTyped<QString>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ReasonString;
             serverProperties.serverData->reasonString = reasonString;
             break;
         }
         case 0x26: { // 3.2.2.3.10 User property
-            const QString propertyName = readBufferTyped<QString>();
-            propertyLength -= propertyName.length() + 2;
-
-            const QString propertyValue = readBufferTyped<QString>();
-            propertyLength -= propertyValue.length() + 2;
+            const QString propertyName = readBufferTyped<QString>(&propertyLength);
+            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
 
             serverProperties.serverData->details |= QMqttServerConnectionProperties::UserProperty;
             serverProperties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
             break;
         }
         case 0x28: { // 3.2.2.3.11 Wildcard subscriptions available
-            const quint8 available = readBufferTyped<quint8>();
-            propertyLength--;
+            const quint8 available = readBufferTyped<quint8>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
             serverProperties.serverData->wildcardSupported = available == 1;
             break;
         }
         case 0x29: { // 3.2.2.3.12 Subscription identifiers available
-            const quint8 available = readBufferTyped<quint8>();
-            propertyLength--;
+            const quint8 available = readBufferTyped<quint8>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
             serverProperties.serverData->subscriptionIdentifierSupported = available == 1;
             break;
         }
         case 0x2A: { // 3.2.2.3.13 Shared subscriptions available
-            const quint8 available = readBufferTyped<quint8>();
-            propertyLength--;
+            const quint8 available = readBufferTyped<quint8>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
             serverProperties.serverData->sharedSubscriptionSupported = available == 1;
             break;
         }
         case 0x13: { // 3.2.2.3.14 Server Keep Alive
-            const quint16 serverKeepAlive = readBufferTyped<quint16>();
-            propertyLength -=2;
+            const quint16 serverKeepAlive = readBufferTyped<quint16>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerKeepAlive;
             m_clientPrivate->m_client->setKeepAlive(serverKeepAlive);
             break;
         }
         case 0x1A: { // 3.2.2.3.15 Response information
-            const QString responseInfo = readBufferTyped<QString>();
-            propertyLength -= responseInfo.length();
+            const QString responseInfo = readBufferTyped<QString>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ResponseInformation;
             serverProperties.serverData->responseInformation = responseInfo;
             break;
         }
         case 0x1C: { // 3.2.2.3.16 Server reference
-            const QString serverReference = readBufferTyped<QString>();
-            propertyLength -= serverReference.length() + 2;
+            const QString serverReference = readBufferTyped<QString>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerReference;
             serverProperties.serverData->serverReference = serverReference;
             break;
         }
         case 0x15: { // 3.2.2.3.17 Authentication method
-            const QString method = readBufferTyped<QString>();
-            propertyLength -= method.length() + 2;
+            const QString method = readBufferTyped<QString>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationMethod;
             serverProperties.data->authenticationMethod = method;
             break;
         }
         case 0x16: { // 3.2.2.3.18 Authentication data
-            const quint16 dataLength = readBufferTyped<quint16>();
-            propertyLength -=2;
+            const quint16 dataLength = readBufferTyped<quint16>(&propertyLength);
             const QByteArray data = readBuffer(dataLength);
             propertyLength -= dataLength;
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationData;
@@ -787,55 +775,46 @@ void QMqttConnection::readConnackProperties()
 void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 {
     qint32 propertySize = 0;
-    qint32 propertyLength = readVariableByteInteger(&propertySize);
+    qint64 propertyLength = readVariableByteInteger(&propertySize);
     m_missingData -= propertySize;
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
 
     while (propertyLength > 0) {
-        const quint8 propertyId = readBufferTyped<quint8>();
-        propertyLength--;
+        const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
         case 0x01: { // 3.3.2.3.2 Payload Format Indicator
-            const quint8 format = readBufferTyped<quint8>();
-            propertyLength--;
+            const quint8 format = readBufferTyped<quint8>(&propertyLength);
             if (format == 1)
                 properties.setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator::UTF8Encoded);
             break;
         }
         case 0x02: { // 3.3.2.3.3 Message Expiry Interval
-            const quint32 interval = readBufferTyped<quint32>();
-            propertyLength -= 4;
+            const quint32 interval = readBufferTyped<quint32>(&propertyLength);
             properties.setMessageExpiryInterval(interval);
             break;
         }
         case 0x23: { // 3.3.2.3.4 Topic alias
-            const quint16 alias = readBufferTyped<quint16>();
-            propertyLength -= 2;
+            const quint16 alias = readBufferTyped<quint16>(&propertyLength);
             properties.setTopicAlias(alias);
             break;
         }
         case 0x08: { // 3.3.2.3.5 Response Topic
-            const QString responseTopic = readBufferTyped<QString>();
-            propertyLength -= responseTopic.length() + 2;
+            const QString responseTopic = readBufferTyped<QString>(&propertyLength);
             properties.setResponseTopic(responseTopic);
             break;
         }
         case 0x09: { // 3.3.2.3.6 Correlation Data
-            const quint16 length = readBufferTyped<quint16>();
-            propertyLength -=2;
+            const quint16 length = readBufferTyped<quint16>(&propertyLength);
             const QByteArray data = readBuffer(length);
             propertyLength -= length;
             properties.setCorrelationData(data);
             break;
         }
         case 0x26: { // 3.3.2.3.7 User property
-            const QString propertyName = readBufferTyped<QString>();
-            propertyLength -= propertyName.length() + 2;
-
-            const QString propertyValue = readBufferTyped<QString>();
-            propertyLength -= propertyValue.length() + 2;
+            const QString propertyName = readBufferTyped<QString>(&propertyLength);
+            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
             userProperties.append(QMqttStringPair(propertyName, propertyValue));
             break;
         }
@@ -849,8 +828,7 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         case 0x03: { // 3.3.2.3.9 Content Type
-            const QString content = readBufferTyped<QString>();
-            propertyLength -= content.length() + 2;
+            const QString content = readBufferTyped<QString>(&propertyLength);
             properties.setContentType(content);
             break;
         }
@@ -865,25 +843,20 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 
 void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 {
-    qint32 propertyLength = readVariableByteInteger();
+    qint64 propertyLength = readVariableByteInteger();
 
     m_missingData -= propertyLength;
     while (propertyLength > 0) {
-        const quint8 propertyId = readBufferTyped<quint8>();
-        propertyLength--;
+        const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
         case 0x1f: { // 3.9.2.1.2 Reason String
-            const QString content = readBufferTyped<QString>();
-            propertyLength -= content.length() + 2;
+            const QString content = readBufferTyped<QString>(&propertyLength);
             sub->d_func()->m_reasonString = content;
             break;
         }
         case 0x26: { // 3.9.2.1.3
-            const QString propertyName = readBufferTyped<QString>();
-            propertyLength -= propertyName.length() + 2;
-
-            const QString propertyValue = readBufferTyped<QString>();
-            propertyLength -= propertyValue.length() + 2;
+            const QString propertyName = readBufferTyped<QString>(&propertyLength);
+            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
 
             sub->d_func()->m_userProperties.append(QMqttStringPair(propertyName, propertyValue));
             break;
@@ -1187,8 +1160,7 @@ void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
 
-    const quint8 ackFlags = readBufferTyped<quint8>();
-    m_missingData--;
+    const quint8 ackFlags = readBufferTyped<quint8>(&m_missingData);
 
     if (ackFlags > 1) { // MQTT-3.2.2.1
         qCDebug(lcMqttConnection) << "Unexpected CONNACK Flags specified:" << QString::number(ackFlags);
@@ -1210,8 +1182,7 @@ void QMqttConnection::finalize_connack()
         cleanSubscriptions();
     }
 
-    quint8 connectResultValue = readBufferTyped<quint8>();
-    m_missingData--;
+    quint8 connectResultValue = readBufferTyped<quint8>(&m_missingData);
     if (connectResultValue != 0) {
         qCDebug(lcMqttConnection) << "Connection has been rejected.";
         // MQTT-3.2.2-5
@@ -1237,8 +1208,7 @@ void QMqttConnection::finalize_connack()
 
 void QMqttConnection::finalize_suback()
 {
-    const quint16 id = readBufferTyped<quint16>();
-    m_missingData -= 2;
+    const quint16 id = readBufferTyped<quint16>(&m_missingData);
     if (!m_pendingSubscriptionAck.contains(id)) {
         qCDebug(lcMqttConnection) << "Received SUBACK for unknown subscription request.";
         return;
@@ -1250,8 +1220,7 @@ void QMqttConnection::finalize_suback()
         readSubscriptionProperties(sub);
 
     while (m_missingData > 0) {
-        quint8 reason = readBufferTyped<quint8>();
-        m_missingData--;
+        quint8 reason = readBufferTyped<quint8>(&m_missingData);
 
         qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
         if (reason <= 2) {
@@ -1318,8 +1287,7 @@ void QMqttConnection::finalize_suback()
 
 void QMqttConnection::finalize_unsuback()
 {
-    const quint16 id = readBufferTyped<quint16>();
-    m_missingData -= 2;
+    const quint16 id = readBufferTyped<quint16>(&m_missingData);
     qCDebug(lcMqttConnectionVerbose) << "Finalize UNSUBACK: " << id;
     if (!m_pendingUnsubscriptions.contains(id)) {
         qCDebug(lcMqttConnection) << "Received UNSUBACK for unknown request.";
@@ -1333,15 +1301,11 @@ void QMqttConnection::finalize_unsuback()
 void QMqttConnection::finalize_publish()
 {
     // String topic
-    const QMqttTopicName topic = readBufferTyped<QString>();
-    const int topicLength = topic.name().length();
-    m_missingData -= topicLength + 2;
+    const QMqttTopicName topic = readBufferTyped<QString>(&m_missingData);
 
     quint16 id = 0;
-    if (m_currentPublish.qos > 0) {
-        id = readBufferTyped<quint16>();
-        m_missingData -= 2;
-    }
+    if (m_currentPublish.qos > 0)
+        id = readBufferTyped<quint16>(&m_missingData);
 
     QMqttPublishProperties publishProperties;
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
@@ -1376,13 +1340,11 @@ void QMqttConnection::finalize_publish()
 void QMqttConnection::finalize_pubAckRecComp()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/COMP";
-    const quint16 id = readBufferTyped<quint16>();
-    m_missingData -= 2;
+    const quint16 id = readBufferTyped<quint16>(&m_missingData);
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
         // Reason Code (1byte)
-        const quint8 reasonCode = readBufferTyped<quint8>();
-        m_missingData--;
+        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
         Q_UNUSED(reasonCode); // ### TODO: Do something with it, currently silences compiler
         if (m_missingData > 0) {
             // Property Length (Variable Int)
@@ -1422,8 +1384,7 @@ void QMqttConnection::finalize_pubAckRecComp()
 
 void QMqttConnection::finalize_pubrel()
 {
-    const quint16 id = readBufferTyped<quint16>();
-    m_missingData -= 2;
+    const quint16 id = readBufferTyped<quint16>(&m_missingData);
 
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBREL:" << id;
 
@@ -1435,8 +1396,7 @@ void QMqttConnection::finalize_pubrel()
 void QMqttConnection::finalize_pingresp()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize PINGRESP";
-    const quint8 v = readBufferTyped<quint8>();
-    m_missingData--;
+    const quint8 v = readBufferTyped<quint8>(&m_missingData);
 
     if (v != 0) {
         qCDebug(lcMqttConnection) << "Received a PINGRESP including payload.";

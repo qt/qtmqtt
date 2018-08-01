@@ -128,7 +128,7 @@ private:
     QByteArray writeUnsubscriptionProperties(const QMqttUnsubscriptionProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(quint64 size);
-    template<typename T> T readBufferTyped();
+    template<typename T> T readBufferTyped(qint64 *dataSize = nullptr);
     QByteArray m_readBuffer;
     int m_readPosition{0};
     qint64 m_missingData{0};
