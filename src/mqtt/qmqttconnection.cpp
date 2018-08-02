@@ -837,9 +837,7 @@ void QMqttConnection::readConnackProperties()
             break;
         }
         case 0x16: { // 3.2.2.3.18 Authentication data
-            const quint16 dataLength = readBufferTyped<quint16>(&propertyLength);
-            const QByteArray data = readBuffer(dataLength);
-            propertyLength -= dataLength;
+            const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
             serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationData;
             serverProperties.data->authenticationData = data;
             break;
@@ -886,9 +884,7 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         case 0x09: { // 3.3.2.3.6 Correlation Data
-            const quint16 length = readBufferTyped<quint16>(&propertyLength);
-            const QByteArray data = readBuffer(length);
-            propertyLength -= length;
+            const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
             properties.setCorrelationData(data);
             break;
         }
