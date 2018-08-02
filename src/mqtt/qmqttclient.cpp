@@ -283,6 +283,10 @@ QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(thi
 
     \note The transport can only be exchanged if the MQTT client is in the
     \l Disconnected state.
+
+    \note Setting a custom transport for a client does not pass over responsibility
+    on connection management. The transport has to be opened for QIODevice based
+    transports or connected for socket type transports before calling QMqttClient::connectToHost().
  */
 void QMqttClient::setTransport(QIODevice *device, QMqttClient::TransportType transport)
 {
