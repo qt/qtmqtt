@@ -305,6 +305,7 @@ bool QMqttConnection::sendControlConnect()
     }
 
     m_internalState = BrokerWaitForConnectAck;
+    m_missingData = 0;
     return true;
 }
 
