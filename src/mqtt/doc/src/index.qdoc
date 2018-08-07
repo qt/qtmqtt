@@ -41,8 +41,8 @@
 
     The Qt MQTT module provides a standard compliant implementation of the MQTT
     protocol specification. It enables applications to act as telemetry displays
-    and devices to publish telemetry data. The supported versions are MQTT 3.1
-    and MQTT 3.1.1.
+    and devices to publish telemetry data. The supported versions are MQTT 3.1,
+    MQTT 3.1.1, and MQTT 5.0.
 
     \note Qt MQTT is part of the Qt for Automation offering and not Qt. For further
     details please see \l {Qt for Automation}.

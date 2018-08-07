@@ -86,6 +86,28 @@ QT_BEGIN_NAMESPACE
     This signal is emitted when the new message \a msg has been received.
 */
 
+/*!
+    \property QMqttSubscription::reason
+    \since 5.12
+    \brief This property holds the reason string after subscription has
+    been established.
+
+    A reason string is used by the server to provide additional information
+    about the subscription. It is optional for the server to send it.
+*/
+
+/*!
+    \property QMqttSubscription::shared
+    \since 5.12
+    \brief This property holds whether the subscription is shared.
+*/
+
+/*!
+    \property QMqttSubscription::shareName
+    \since 5.12
+    \brief This property holds the name of the shared subscription.
+*/
+
 QMqttSubscription::QMqttSubscription(QObject *parent) : QObject(*(new QMqttSubscriptionPrivate), parent)
 {
 
@@ -126,6 +148,15 @@ QString QMqttSubscription::reason() const
     return d->m_reasonString;
 }
 
+/*!
+    \since 5.12
+
+    Returns the user properties received from the broker when the subscription
+    has been accepted.
+
+    \note This function will only provide valid data when the client
+    specifies QMqttClient::MQTT_5_0 as QMqttClient::ProtocolVersion.
+*/
 QMqttUserProperties QMqttSubscription::userProperties() const
 {
     Q_D(const QMqttSubscription);

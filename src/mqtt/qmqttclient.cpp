@@ -222,6 +222,8 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
            MQTT Standard 3.1
     \value MQTT_3_1_1
            MQTT Standard 3.1.1, publicly referred to as version 4
+    \value MQTT_5_0
+           MQTT Standard 5.0
 */
 
 /*!
@@ -272,6 +274,37 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
 */
 
 /*!
+    \since 5.12
+    \fn QMqttClient::authenticationRequested(const QMqttAuthenticationProperties &p)
+
+    This signal is emitted after a client invoked QMqttClient::connectToHost or
+    QMqttClient::connectToHostEncrypted and before the connection is
+    established. In extended authentication, a broker might request additional
+    details which need to be provided by invoking QMqttClient::authenticate.
+    \a p specifies properties provided by the broker.
+
+    \note Extended authentication is part of the MQTT 5.0 standard and can
+    only be used when the client specifies MQTT_5_0 as ProtocolVersion.
+
+    \sa authenticationFinished(), authenticate()
+*/
+
+/*!
+    \since 5.12
+    \fn QMqttClient::authenticationFinished(const QMqttAuthenticationProperties &p)
+
+    This signal is emitted after extended authentication has finished. \a p
+    specifies available details on the authentication process.
+
+    After successful authentication QMqttClient::connected is emitted.
+
+    \note Extended authentication is part of the MQTT 5.0 standard and can
+    only be used when the client specifies MQTT_5_0 as ProtocolVersion.
+
+    \sa authenticationRequested(), authenticate()
+*/
+
+/*
     Creates a new MQTT client instance with the specified \a parent.
  */
 QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(this)), parent)
@@ -321,6 +354,22 @@ QMqttSubscription *QMqttClient::subscribe(const QMqttTopicFilter &topic, quint8 
     return subscribe(topic, QMqttSubscriptionProperties(), qos);
 }
 
+/*!
+    \since 5.12
+
+    Adds a new subscription to receive notifications on \a topic. The parameter
+    \a properties specifies additional subscription properties to be validated
+    by the broker. The parameter \a qos specifies the level at which security
+    messages are received. For more information about the available QoS levels,
+    see \l {Quality of Service}.
+
+    This function returns a pointer to a \l QMqttSubscription. If the same topic
+    is subscribed twice, the return value points to the same subscription
+    instance. The MQTT client is the owner of the subscription.
+
+    \note \a properties will only be passed to the broker when the client
+    specifies MQTT_5_0 as ProtocolVersion.
+*/
 QMqttSubscription *QMqttClient::subscribe(const QMqttTopicFilter &topic, const QMqttSubscriptionProperties &properties, quint8 qos)
 {
     Q_D(QMqttClient);
@@ -343,6 +392,19 @@ void QMqttClient::unsubscribe(const QMqttTopicFilter &topic)
     unsubscribe(topic, QMqttUnsubscriptionProperties());
 }
 
+/*!
+    \since 5.12
+
+    Unsubscribes from \a topic. No notifications will be sent to any of the
+    subscriptions made by calling subscribe(). \a properties specifies
+    additional user properties to be passed to the broker.
+
+    \note If a client disconnects from a broker without unsubscribing, the
+    broker will store all messages and publish them on the next reconnect.
+
+    \note \a properties will only be passed to the broker when the client
+    specifies MQTT_5_0 as ProtocolVersion.
+*/
 void QMqttClient::unsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties)
 {
     Q_D(QMqttClient);
@@ -357,12 +419,27 @@ void QMqttClient::unsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscr
     other clients to connect and receive the message.
 
     Returns an ID that is used internally to identify the message.
- */
+*/
 qint32 QMqttClient::publish(const QMqttTopicName &topic, const QByteArray &message, quint8 qos, bool retain)
 {
     return publish(topic, QMqttPublishProperties(), message, qos, retain);
 }
 
+/*!
+    \since 5.12
+
+    Publishes a \a message to the broker with the specified \a properties and
+    \a topic. \a qos specifies the level of security required for transferring
+    the message.
+
+    If \a retain is set to \c true, the message will stay on the broker for
+    other clients to connect and receive the message.
+
+    Returns an ID that is used internally to identify the message.
+
+    \note \a properties will only be passed to the broker when the client
+    specifies MQTT_5_0 as ProtocolVersion.
+*/
 qint32 QMqttClient::publish(const QMqttTopicName &topic, const QMqttPublishProperties &properties,
                             const QByteArray &message, quint8 qos, bool retain)
 {
@@ -523,36 +600,108 @@ bool QMqttClient::willRetain() const
     return d->m_willRetain;
 }
 
+/*!
+    \since 5.12
+
+    Sets the connection properties to \a prop. \l QMqttConnectionProperties
+    can be used to ask the server to use a specific feature set. After a
+    connection request the server response can be obtained by calling
+    \l QMqttClient::serverConnectionProperties.
+
+    \note The connection properties can only be set if the MQTT client is in the
+    \l Disconnected state.
+
+    \note QMqttConnectionProperties can only be used when the client specifies
+    MQTT_5_0 as ProtocolVersion.
+*/
 void QMqttClient::setConnectionProperties(const QMqttConnectionProperties &prop)
 {
     Q_D(QMqttClient);
     d->m_connectionProperties = prop;
 }
 
+/*!
+    \since 5.12
+
+    Returns the connection properties the client requests to the broker.
+
+    \note QMqttConnectionProperties can only be used when the client specifies
+    MQTT_5_0 as ProtocolVersion.
+*/
 QMqttConnectionProperties QMqttClient::connectionProperties() const
 {
     Q_D(const QMqttClient);
     return d->m_connectionProperties;
 }
 
+/*!
+    \since 5.12
+
+    Sets the last will properties to \a prop. QMqttLastWillProperties allows
+    to set additional features for the last will message stored at the broker.
+
+    \note The connection properties can only be set if the MQTT client is in the
+    \l Disconnected state.
+
+    \note QMqttLastWillProperties can only be used when the client specifies
+    MQTT_5_0 as ProtocolVersion.
+*/
 void QMqttClient::setLastWillProperties(const QMqttLastWillProperties &prop)
 {
     Q_D(QMqttClient);
     d->m_lastWillProperties = prop;
 }
 
+/*!
+    \since 5.12
+
+    Returns the last will properties.
+
+    \note QMqttLastWillProperties can only be used when the client specifies
+    MQTT_5_0 as ProtocolVersion.
+*/
 QMqttLastWillProperties QMqttClient::lastWillProperties() const
 {
     Q_D(const QMqttClient);
     return d->m_lastWillProperties;
 }
 
+/*!
+    \since 5.12
+
+    Returns the QMqttServerConnectionProperties the broker returned after a
+    connection attempt.
+
+    This can be used to verify that client side connection properties set by
+    QMqttClient::setConnectionProperties have been accepted by the broker. Also,
+    in case of a failed connection attempt, it can be used for connection
+    diagnostics.
+
+    \note QMqttServerConnectionProperties can only be used when the client
+    specifies MQTT_5_0 as ProtocolVersion.
+
+    \sa connectionProperties()
+*/
 QMqttServerConnectionProperties QMqttClient::serverConnectionProperties() const
 {
     Q_D(const QMqttClient);
     return d->m_serverConnectionProperties;
 }
 
+/*!
+    \since 5.12
+
+    Sends an authentication request to the broker. \a prop specifies
+    the required information to fulfill the authentication request.
+
+    This function should only be called after a
+    QMqttClient::authenticationRequested signal has been emitted.
+
+    \note Extended authentication is part of the MQTT 5.0 standard and can
+    only be used when the client specifies MQTT_5_0 as ProtocolVersion.
+
+    \sa authenticationRequested(), authenticationFinished()
+*/
 void QMqttClient::authenticate(const QMqttAuthenticationProperties &prop)
 {
     Q_D(QMqttClient);

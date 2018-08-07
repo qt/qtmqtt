@@ -36,6 +36,54 @@ QT_BEGIN_NAMESPACE
 
 Q_DECLARE_LOGGING_CATEGORY(lcMqttClient)
 
+/*!
+    \class QMqttPublishProperties
+
+    \inmodule QtMqtt
+    \since 5.12
+
+    \brief The QMqttPublishProperties class represents configuration
+    options for sending or receiving a message.
+
+    Invoking QMqttClient::publish() to send a message to a broker can
+    include QMqttPublishProperties to provide additional arguments on
+    how the message should be treated on the broker.
+
+    Furthermore receiving a message by an instantiated subscription
+    might contain publish properties which have been forwarded or
+    adapted by the server.
+
+    \note Publish properties are part of the MQTT 5.0 specification and
+    cannot be used when connecting with a lower protocol level. See
+    QMqttClient::ProtocolVersion for more information.
+*/
+
+/*!
+    \enum QMqttPublishProperties::PublishPropertyDetail
+
+    This enum type specifies the available properties set by the
+    server or the client when creating a message.
+
+    \value None
+           No property has been specified.
+    \value PayloadFormatIndicator
+           The type of content of the message.
+    \value MessageExpiryInterval
+           The duration a message is valid.
+    \value TopicAlias
+           The topic alias for this message.
+    \value ResponseTopic
+           The topic the receipient should respond to.
+    \value CorrelationData
+           An identifier of the response message.
+    \value UserProperty
+           Additional properties set by the user.
+    \value SubscriptionIdentifier
+           An identifier of subscriptions matching the publication.
+    \value ContentType
+           A description of the content of the message.
+*/
+
 class QMqttPublishPropertiesData : public QSharedData
 {
 public:
@@ -55,8 +103,14 @@ QMqttPublishProperties::QMqttPublishProperties() : data(new QMqttPublishProperti
 
 }
 
+/*!
+    \internal
+*/
 QMqttPublishProperties::QMqttPublishProperties(const QMqttPublishProperties &) = default;
 
+/*!
+    \internal
+*/
 QMqttPublishProperties &QMqttPublishProperties::operator=(const QMqttPublishProperties &rhs)
 {
     if (this != &rhs)
@@ -66,38 +120,68 @@ QMqttPublishProperties &QMqttPublishProperties::operator=(const QMqttPublishProp
 
 QMqttPublishProperties::~QMqttPublishProperties() = default;
 
+/*!
+    Returns the available properties specified in this instance. When a message
+    is created, it does not need to include all properties. This function
+    serves as an indicator of those properties which have been explicitly
+    set.
+*/
 QMqttPublishProperties::PublishPropertyDetails QMqttPublishProperties::availableProperties() const
 {
     return data->details;
 }
 
+/*!
+    Returns the payload format indicator.
+*/
 QMqtt::PayloadFormatIndicator QMqttPublishProperties::payloadFormatIndicator() const
 {
     return data->payloadIndicator;
 }
 
+/*!
+    Sets the payload format indicator to \a indicator.
+*/
 void QMqttPublishProperties::setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator indicator)
 {
     data->details |= QMqttPublishProperties::PayloadFormatIndicator;
     data->payloadIndicator = indicator;
 }
 
+/*!
+    Returns the message expiry interval. This value specifies the number
+    of seconds a server is allowed to forward the message. If the interval
+    expires, the server must delete the message and abort publishing it.
+*/
 quint32 QMqttPublishProperties::messageExpiryInterval() const
 {
     return data->messageExpiry;
 }
 
+/*!
+    Sets the message expiry interval to \a interval.
+*/
 void QMqttPublishProperties::setMessageExpiryInterval(quint32 interval)
 {
     data->details |= QMqttPublishProperties::MessageExpiryInterval;
     data->messageExpiry = interval;
 }
 
+/*!
+    Returns the topic alias used for publishing a message.
+*/
 quint16 QMqttPublishProperties::topicAlias() const
 {
     return data->topicAlias;
 }
 
+/*!
+    Sets the topic alias for publishing a message to \a alias. A topic alias
+    value must be greater than zero and less than the maximum topic alias
+    specified by the server.
+
+    \sa QMqttServerConnectionProperties::maximumTopicAlias()
+*/
 void QMqttPublishProperties::setTopicAlias(quint16 alias)
 {
     if (alias == 0) {
@@ -108,44 +192,70 @@ void QMqttPublishProperties::setTopicAlias(quint16 alias)
     data->topicAlias = alias;
 }
 
+/*!
+    Returns the response topic a user should use as a follow up to
+    a request.
+*/
 QString QMqttPublishProperties::responseTopic() const
 {
     return data->responseTopic;
 }
 
+/*!
+    Sets the response topic to \a topic.
+*/
 void QMqttPublishProperties::setResponseTopic(const QString &topic)
 {
     data->details |= QMqttPublishProperties::ResponseTopic;
     data->responseTopic = topic;
 }
 
+/*!
+    Returns the correlation data.
+*/
 QByteArray QMqttPublishProperties::correlationData() const
 {
     return data->correlationData;
 }
 
+/*!
+    Sets the correlation data to \a correlation.
+*/
 void QMqttPublishProperties::setCorrelationData(const QByteArray &correlation)
 {
     data->details |= QMqttPublishProperties::CorrelationData;
     data->correlationData = correlation;
 }
 
+/*!
+    Returns the user properties of a message.
+*/
 QMqttUserProperties QMqttPublishProperties::userProperties() const
 {
     return data->userProperties;
 }
 
+/*!
+    Sets the user properties of a message to \a properties.
+*/
 void QMqttPublishProperties::setUserProperties(const QMqttUserProperties &properties)
 {
     data->details |= QMqttPublishProperties::UserProperty;
     data->userProperties = properties;
 }
 
+/*!
+    Returns the subscription identifiers of subscriptions matching
+    the topic filter of the message.
+*/
 QList<quint32> QMqttPublishProperties::subscriptionIdentifiers() const
 {
     return data->subscriptionIdentifier;
 }
 
+/*!
+    Sets the subscription identifiers to \a id.
+*/
 void QMqttPublishProperties::setSubscriptionIdentifiers(const QList<quint32> &id)
 {
     if (id.indexOf(0) != -1) {
@@ -156,11 +266,17 @@ void QMqttPublishProperties::setSubscriptionIdentifiers(const QList<quint32> &id
     data->subscriptionIdentifier = id;
 }
 
+/*!
+    Returns the content type of the message.
+*/
 QString QMqttPublishProperties::contentType() const
 {
     return data->contentType;
 }
 
+/*!
+    Sets the content type of the message to \a type.
+*/
 void QMqttPublishProperties::setContentType(const QString &type)
 {
     data->details |= QMqttPublishProperties::ContentType;

@@ -153,6 +153,13 @@ void QMqttTopicFilter::setFilter(const QString &filter)
     d->filter = filter;
 }
 
+/*!
+    \since 5.12
+
+    Returns the name of a share if the topic filter has been specified as
+    a shared subscription. The format of shared subscriptions is defined
+    as \c $share/sharename/topicfilter.
+*/
 QString QMqttTopicFilter::shareName() const
 {
     QString result;

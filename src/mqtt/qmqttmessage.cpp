@@ -162,6 +162,19 @@ bool QMqttMessage::retain() const
     return d->m_retain;
 }
 
+/*!
+    \since 5.12
+
+    Returns the publish properties received as part of the message.
+
+    \note This function only specifies the properties when a
+    publish message is received. Messages with a QoS value of
+    1 or 2 can contain additional properties when a message is released.
+    Those can be obtained by the QMqttClient::messageStatusChanged signal.
+
+    \note This function will only provide valid data when the client
+    specifies QMqttClient::MQTT_5_0 as QMqttClient::ProtocolVersion.
+*/
 QMqttPublishProperties QMqttMessage::publishProperties() const
 {
     return d->m_publishProperties;
