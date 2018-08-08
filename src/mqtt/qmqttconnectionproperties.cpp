@@ -288,7 +288,7 @@ bool QMqttServerConnectionProperties::clientIdAssigned() const
     return serverData->details & QMqttServerConnectionProperties::AssignedClientId;
 }
 
-QString QMqttServerConnectionProperties::reasonString() const
+QString QMqttServerConnectionProperties::reason() const
 {
     return serverData->reasonString;
 }

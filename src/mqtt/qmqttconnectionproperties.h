@@ -144,7 +144,7 @@ public:
     quint8 maximumQoS() const;
     bool retainAvailable() const;
     bool clientIdAssigned() const;
-    QString reasonString() const;
+    QString reason() const;
     bool wildcardSupported() const;
     bool subscriptionIdentifierSupported() const;
     bool sharedSubscriptionSupported() const;

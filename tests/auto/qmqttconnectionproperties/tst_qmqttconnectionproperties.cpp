@@ -159,7 +159,7 @@ void tst_QMqttConnectionProperties::receiveServerProperties()
     if (properties & QMqttServerConnectionProperties::MaximumTopicAlias)
         qDebug() << "  MaximumTopicAlias:" << server.maximumTopicAlias();
     if (properties & QMqttServerConnectionProperties::ReasonString)
-        qDebug() << "  ReasonString:" << server.reasonString();
+        qDebug() << "  ReasonString:" << server.reason();
     if (properties & QMqttServerConnectionProperties::UserProperty)
         qDebug() << "  UserProperty:" << server.userProperties();
     if (properties & QMqttServerConnectionProperties::WildCardSupported)
