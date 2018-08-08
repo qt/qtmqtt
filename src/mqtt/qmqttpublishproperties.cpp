@@ -43,7 +43,7 @@ public:
     QString contentType;
     QByteArray correlationData;
     quint32 messageExpiry{0};
-    quint32 subscriptionIdentifier{0}; // Variable Integer
+    QList<quint32> subscriptionIdentifier;
     QMqttPublishProperties::PublishPropertyDetails details{QMqttPublishProperties::None};
     quint16 topicAlias{0};
     QMqtt::PayloadFormatIndicator payloadIndicator{QMqtt::PayloadFormatIndicator::Unspecified};
@@ -141,14 +141,14 @@ void QMqttPublishProperties::setUserProperties(const QMqttUserProperties &proper
     data->userProperties = properties;
 }
 
-quint32 QMqttPublishProperties::subscriptionIdentifier() const
+QList<quint32> QMqttPublishProperties::subscriptionIdentifiers() const
 {
     return data->subscriptionIdentifier;
 }
 
-void QMqttPublishProperties::setSubscriptionIdentifier(quint32 id)
+void QMqttPublishProperties::setSubscriptionIdentifiers(const QList<quint32> &id)
 {
-    if (id == 0) {
+    if (id.indexOf(0) != -1) {
         qCDebug(lcMqttClient) << "A subscription identifier with value 0 is not allowed.";
         return;
     }

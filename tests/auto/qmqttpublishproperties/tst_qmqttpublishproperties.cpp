@@ -118,11 +118,14 @@ void tst_QMqttPublishProperties::getSet()
     QCOMPARE(p.userProperties(), userProperty);
 
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier));
-    p.setSubscriptionIdentifier(1);
-    QCOMPARE(p.subscriptionIdentifier(), 1u);
-    p.setSubscriptionIdentifier(0);
+    const QList<quint32> one{1};
+    p.setSubscriptionIdentifiers(one);
+    QCOMPARE(p.subscriptionIdentifiers(), one);
+
+    const QList<quint32> invalidZero{1, 0};
+    p.setSubscriptionIdentifiers(invalidZero);
     QVERIFY(p.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier);
-    QCOMPARE(p.subscriptionIdentifier(), 1u);
+    QCOMPARE(p.subscriptionIdentifiers(), one);
 
     const QString contentType = QLatin1String("MultimediaContent123");
     QVERIFY(!(p.availableProperties() & QMqttPublishProperties::ContentType));

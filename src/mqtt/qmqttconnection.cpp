@@ -900,6 +900,7 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
+    QList<quint32> subscriptionIds;
 
     while (propertyLength > 0) {
         const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
@@ -942,7 +943,7 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             if (id < 0)
                 return; // readVariableByteInteger closes connection
             propertyLength -= idSize;
-            properties.setSubscriptionIdentifier(quint32(id));
+            subscriptionIds.append(quint32(id));
             break;
         }
         case 0x03: { // 3.3.2.3.9 Content Type
@@ -957,6 +958,9 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
     }
     if (!userProperties.isEmpty())
         properties.setUserProperties(userProperties);
+
+    if (!subscriptionIds.isEmpty())
+        properties.setSubscriptionIdentifiers(subscriptionIds);
 }
 
 void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
@@ -1211,12 +1215,12 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
     }
 
     // 3.3.2.3.8 Subscription Identifier
-    if (properties.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier &&
-            properties.subscriptionIdentifier() > 0) {
-        qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Subscription ID:"
-                                         << properties.subscriptionIdentifier();
-        packet.append(char(0x0b));
-        packet.appendRawVariableInteger(properties.subscriptionIdentifier());
+    if (properties.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier) {
+        for (auto id : properties.subscriptionIdentifiers()) {
+            qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Subscription ID:" << id;
+            packet.append(char(0x0b));
+            packet.appendRawVariableInteger(id);
+        }
     }
 
     // 3.3.2.3.9 Content Type
