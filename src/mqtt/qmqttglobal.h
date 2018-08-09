@@ -64,13 +64,28 @@ enum class ReasonCode : quint16 {
     Success = 0,
     NoMatchingSubscriber = 0x10,
     UnspecifiedError = 0x80,
+    MalformedPacket = 0x81,
+    ProtocolError = 0x82,
     ImplementationSpecificError = 0x83,
+    UnsupportedProtocolVersion = 0x84,
+    InvalidClientId = 0x85,
+    InvalidUserNameOrPassword = 0x86,
     NotAuthorized = 0x87,
+    ServerNotAvailable = 0x88,
+    ServerBusy = 0x89,
+    ClientBanned = 0x8A,
+    InvalidAuthenticationMethod = 0x8C,
     InvalidTopicName = 0x90,
     MessageIdInUse = 0x91,
     MessageIdNotFound = 0x92,
+    PacketTooLarge = 0x95,
     QuotaExceeded = 0x97,
-    InvalidPayloadFormat = 0x99
+    InvalidPayloadFormat = 0x99,
+    RetainNotSupported = 0x9A,
+    QoSNotSupported = 0x9B,
+    UseAnotherServer = 0x9C,
+    ServerMoved = 0x9D,
+    ExceededConnectionRate = 0x9F
 };
 }
 QT_END_NAMESPACE

@@ -71,7 +71,8 @@ public:
         // Qt states
         TransportInvalid       = 256,
         ProtocolViolation,
-        UnknownError
+        UnknownError,
+        Mqtt5SpecificError
     };
     enum ProtocolVersion {
         MQTT_3_1 = 3,

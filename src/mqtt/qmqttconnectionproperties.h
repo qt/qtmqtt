@@ -145,6 +145,7 @@ public:
     bool retainAvailable() const;
     bool clientIdAssigned() const;
     QString reason() const;
+    QMqtt::ReasonCode reasonCode() const;
     bool wildcardSupported() const;
     bool subscriptionIdentifierSupported() const;
     bool sharedSubscriptionSupported() const;

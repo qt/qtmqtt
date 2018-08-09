@@ -121,7 +121,7 @@ private:
     void readBuffer(char *data, quint64 size);
     qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
     void readAuthProperties(QMqttAuthenticationProperties &properties);
-    void readConnackProperties();
+    void readConnackProperties(QMqttServerConnectionProperties &properties);
     void readMessageStatusProperties(QMqttMessageStatusProperties &properties);
     void readPublishProperties(QMqttPublishProperties &properties);
     void readSubscriptionProperties(QMqttSubscription *sub);

@@ -80,6 +80,7 @@ public:
     QString serverReference;
     quint16 serverKeepAlive{0};
     quint8 maximumQoS{2};
+    QMqtt::ReasonCode reasonCode{QMqtt::ReasonCode::Success};
     bool valid{false}; // Only set to true after CONNACK
     bool retainAvailable{true};
     bool wildcardSupported{true};

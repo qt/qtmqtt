@@ -579,6 +579,14 @@ QString QMqttServerConnectionProperties::reason() const
 }
 
 /*!
+    Returns the reason code associated with this response.
+*/
+QMqtt::ReasonCode QMqttServerConnectionProperties::reasonCode() const
+{
+    return serverData->reasonCode;
+}
+
+/*!
     Returns \c true if the server accepts subscriptions including wildcards.
     The default value is \c true.
 */

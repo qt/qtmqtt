@@ -770,119 +770,118 @@ void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properti
     properties.setUserProperties(userProperties);
 }
 
-void QMqttConnection::readConnackProperties()
+void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger();
     m_missingData = 0;
 
-    QMqttServerConnectionProperties serverProperties;
-    serverProperties.serverData->valid = true;
+    properties.serverData->valid = true;
 
     while (propertyLength > 0) {
         quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
         case 0x11: { // 3.2.2.3.2 Session Expiry Interval
             const quint32 expiryInterval = readBufferTyped<quint32>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::SessionExpiryInterval;
-            serverProperties.setSessionExpiryInterval(expiryInterval);
+            properties.serverData->details |= QMqttServerConnectionProperties::SessionExpiryInterval;
+            properties.setSessionExpiryInterval(expiryInterval);
             break;
         }
         case 0x21: { // 3.2.2.3.3 Receive Maximum
             const quint16 receiveMaximum = readBufferTyped<quint16>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumReceive;
-            serverProperties.setMaximumReceive(receiveMaximum);
+            properties.serverData->details |= QMqttServerConnectionProperties::MaximumReceive;
+            properties.setMaximumReceive(receiveMaximum);
             break;
         }
         case 0x24: { // 3.2.2.3.4 Maximum QoS Level
             const quint8 maxQoS = readBufferTyped<quint8>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumQoS;
-            serverProperties.serverData->maximumQoS = maxQoS;
+            properties.serverData->details |= QMqttServerConnectionProperties::MaximumQoS;
+            properties.serverData->maximumQoS = maxQoS;
             break;
         }
         case 0x25: { // 3.2.2.3.5 Retain available
             const quint8 retainAvailable = readBufferTyped<quint8>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
-            serverProperties.serverData->retainAvailable = retainAvailable == 1;
+            properties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
+            properties.serverData->retainAvailable = retainAvailable == 1;
             break;
         }
         case 0x27: { // 3.2.2.3.6 Maximum packet size
             const quint32 maxPacketSize = readBufferTyped<quint32>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumPacketSize;
-            serverProperties.setMaximumPacketSize(maxPacketSize);
+            properties.serverData->details |= QMqttServerConnectionProperties::MaximumPacketSize;
+            properties.setMaximumPacketSize(maxPacketSize);
             break;
         }
         case 0x12: { // 3.2.2.3.7 Assigned clientId
             const QString assignedClientId = readBufferTyped<QString>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
+            properties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
             m_clientPrivate->setClientId(assignedClientId);
             break;
         }
         case 0x22: { // 3.2.2.3.8 Topic Alias Maximum
             const quint16 topicAliasMaximum = readBufferTyped<quint16>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::MaximumTopicAlias;
-            serverProperties.setMaximumTopicAlias(topicAliasMaximum);
+            properties.serverData->details |= QMqttServerConnectionProperties::MaximumTopicAlias;
+            properties.setMaximumTopicAlias(topicAliasMaximum);
             break;
         }
         case 0x1F: { // 3.2.2.3.9 Reason String
             const QString reasonString = readBufferTyped<QString>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::ReasonString;
-            serverProperties.serverData->reasonString = reasonString;
+            properties.serverData->details |= QMqttServerConnectionProperties::ReasonString;
+            properties.serverData->reasonString = reasonString;
             break;
         }
         case 0x26: { // 3.2.2.3.10 User property
             const QString propertyName = readBufferTyped<QString>(&propertyLength);
             const QString propertyValue = readBufferTyped<QString>(&propertyLength);
 
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::UserProperty;
-            serverProperties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            properties.serverData->details |= QMqttServerConnectionProperties::UserProperty;
+            properties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
             break;
         }
         case 0x28: { // 3.2.2.3.11 Wildcard subscriptions available
             const quint8 available = readBufferTyped<quint8>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
-            serverProperties.serverData->wildcardSupported = available == 1;
+            properties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
+            properties.serverData->wildcardSupported = available == 1;
             break;
         }
         case 0x29: { // 3.2.2.3.12 Subscription identifiers available
             const quint8 available = readBufferTyped<quint8>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
-            serverProperties.serverData->subscriptionIdentifierSupported = available == 1;
+            properties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
+            properties.serverData->subscriptionIdentifierSupported = available == 1;
             break;
         }
         case 0x2A: { // 3.2.2.3.13 Shared subscriptions available
             const quint8 available = readBufferTyped<quint8>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
-            serverProperties.serverData->sharedSubscriptionSupported = available == 1;
+            properties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
+            properties.serverData->sharedSubscriptionSupported = available == 1;
             break;
         }
         case 0x13: { // 3.2.2.3.14 Server Keep Alive
             const quint16 serverKeepAlive = readBufferTyped<quint16>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerKeepAlive;
+            properties.serverData->details |= QMqttServerConnectionProperties::ServerKeepAlive;
             m_clientPrivate->m_client->setKeepAlive(serverKeepAlive);
             break;
         }
         case 0x1A: { // 3.2.2.3.15 Response information
             const QString responseInfo = readBufferTyped<QString>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::ResponseInformation;
-            serverProperties.serverData->responseInformation = responseInfo;
+            properties.serverData->details |= QMqttServerConnectionProperties::ResponseInformation;
+            properties.serverData->responseInformation = responseInfo;
             break;
         }
         case 0x1C: { // 3.2.2.3.16 Server reference
             const QString serverReference = readBufferTyped<QString>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::ServerReference;
-            serverProperties.serverData->serverReference = serverReference;
+            properties.serverData->details |= QMqttServerConnectionProperties::ServerReference;
+            properties.serverData->serverReference = serverReference;
             break;
         }
         case 0x15: { // 3.2.2.3.17 Authentication method
             const QString method = readBufferTyped<QString>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationMethod;
-            serverProperties.data->authenticationMethod = method;
+            properties.serverData->details |= QMqttServerConnectionProperties::AuthenticationMethod;
+            properties.data->authenticationMethod = method;
             break;
         }
         case 0x16: { // 3.2.2.3.18 Authentication data
             const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
-            serverProperties.serverData->details |= QMqttServerConnectionProperties::AuthenticationData;
-            serverProperties.data->authenticationData = data;
+            properties.serverData->details |= QMqttServerConnectionProperties::AuthenticationData;
+            properties.data->authenticationData = data;
             break;
         }
         default:
@@ -890,7 +889,6 @@ void QMqttConnection::readConnackProperties()
             break;
         }
     }
-    m_clientPrivate->m_serverConnectionProperties = serverProperties;
 }
 
 void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &properties)
@@ -1400,23 +1398,24 @@ void QMqttConnection::finalize_connack()
     }
 
     quint8 connectResultValue = readBufferTyped<quint8>(&m_missingData);
-    if (connectResultValue != 0) {
+    QMqttServerConnectionProperties serverProp;
+    serverProp.serverData->reasonCode = QMqtt::ReasonCode(connectResultValue);
+    if (connectResultValue != 0 && m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
         qCDebug(lcMqttConnection) << "Connection has been rejected.";
-        // MQTT-3.2.2-5
-        m_readBuffer.clear();
-        m_readPosition = 0;
-        m_transport->close();
-        m_internalState = BrokerDisconnected;
-        // Table 3.1, values 1-5
-        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, static_cast<QMqttClient::ClientError>(connectResultValue));
+        closeConnection(static_cast<QMqttClient::ClientError>(connectResultValue));
         return;
     }
 
     // MQTT 5.0 has variable part != 2 in the header
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        readConnackProperties();
+        readConnackProperties(serverProp);
+        m_clientPrivate->m_serverConnectionProperties = serverProp;
         m_receiveAliases.resize(m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias());
         m_publishAliases.resize(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
+        if (connectResultValue != 0) {
+            closeConnection(QMqttClient::Mqtt5SpecificError);
+            return;
+        }
     }
 
     m_internalState = BrokerConnected;
