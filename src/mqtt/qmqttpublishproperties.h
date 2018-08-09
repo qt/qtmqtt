@@ -83,7 +83,7 @@ public:
     void setUserProperties(const QMqttUserProperties &properties);
 
     QList<quint32> subscriptionIdentifiers() const;
-    void setSubscriptionIdentifiers(const QList<quint32> &id);
+    void setSubscriptionIdentifiers(const QList<quint32> &ids);
 
     QString contentType() const;
     void setContentType(const QString &type);

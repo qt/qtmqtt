@@ -254,16 +254,16 @@ QList<quint32> QMqttPublishProperties::subscriptionIdentifiers() const
 }
 
 /*!
-    Sets the subscription identifiers to \a id.
+    Sets the subscription identifiers to \a ids.
 */
-void QMqttPublishProperties::setSubscriptionIdentifiers(const QList<quint32> &id)
+void QMqttPublishProperties::setSubscriptionIdentifiers(const QList<quint32> &ids)
 {
-    if (id.indexOf(0) != -1) {
+    if (ids.contains(0)) {
         qCDebug(lcMqttClient) << "A subscription identifier with value 0 is not allowed.";
         return;
     }
     data->details |= QMqttPublishProperties::SubscriptionIdentifier;
-    data->subscriptionIdentifier = id;
+    data->subscriptionIdentifier = ids;
 }
 
 /*!
