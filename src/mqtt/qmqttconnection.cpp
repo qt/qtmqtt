@@ -965,9 +965,10 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 
 void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 {
-    qint64 propertyLength = readVariableByteInteger();
+    qint32 bytes = 0;
+    qint64 propertyLength = readVariableByteInteger(&bytes);
 
-    m_missingData -= propertyLength;
+    m_missingData -= bytes;
     while (propertyLength > 0) {
         const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
