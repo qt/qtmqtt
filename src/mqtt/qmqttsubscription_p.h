@@ -58,6 +58,7 @@ public:
     QMqttUserProperties m_userProperties;
     QString m_shareName;
     QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
+    QMqtt::ReasonCode m_reasonCode{QMqtt::ReasonCode::Success};
     quint8 m_qos{0};
     bool m_shared{false};
 };

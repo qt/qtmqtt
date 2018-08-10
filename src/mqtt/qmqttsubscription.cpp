@@ -89,11 +89,19 @@ QT_BEGIN_NAMESPACE
 /*!
     \property QMqttSubscription::reason
     \since 5.12
-    \brief This property holds the reason string after subscription has
-    been established.
+    \brief This property holds the reason string for the subscription.
 
     A reason string is used by the server to provide additional information
     about the subscription. It is optional for the server to send it.
+*/
+
+/*!
+    \property QMqttSubscription::reasonCode
+    \since 5.12
+    \brief This property holds the reason code for the subscription.
+
+    The reason code specifies the error type if a subscription has failed,
+    or the level of QoS for success.
 */
 
 /*!
@@ -146,6 +154,12 @@ QString QMqttSubscription::reason() const
 {
     Q_D(const QMqttSubscription);
     return d->m_reasonString;
+}
+
+QMqtt::ReasonCode QMqttSubscription::reasonCode() const
+{
+    Q_D(const QMqttSubscription);
+    return d->m_reasonCode;
 }
 
 /*!

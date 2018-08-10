@@ -62,6 +62,9 @@ enum class MessageStatus : quint8 {
 
 enum class ReasonCode : quint16 {
     Success = 0,
+    SubscriptionQoSLevel0 = 0,
+    SubscriptionQoSLevel1 = 0x01,
+    SubscriptionQoSLevel2 = 0x02,
     NoMatchingSubscriber = 0x10,
     UnspecifiedError = 0x80,
     MalformedPacket = 0x81,
@@ -75,6 +78,7 @@ enum class ReasonCode : quint16 {
     ServerBusy = 0x89,
     ClientBanned = 0x8A,
     InvalidAuthenticationMethod = 0x8C,
+    InvalidTopicFilter = 0x8F,
     InvalidTopicName = 0x90,
     MessageIdInUse = 0x91,
     MessageIdNotFound = 0x92,
@@ -85,7 +89,10 @@ enum class ReasonCode : quint16 {
     QoSNotSupported = 0x9B,
     UseAnotherServer = 0x9C,
     ServerMoved = 0x9D,
-    ExceededConnectionRate = 0x9F
+    SharedSubscriptionsNotSupported = 0x9E,
+    ExceededConnectionRate = 0x9F,
+    SubscriptionIdsNotSupported = 0xA1,
+    WildCardSubscriptionsNotSupported = 0xA2
 };
 }
 QT_END_NAMESPACE

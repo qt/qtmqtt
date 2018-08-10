@@ -1441,6 +1441,7 @@ void QMqttConnection::finalize_suback()
     while (m_missingData > 0) {
         quint8 reason = readBufferTyped<quint8>(&m_missingData);
 
+        sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reason);
         qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
         if (reason <= 2) {
             // The broker might have a different support level for QoS than what
@@ -1450,56 +1451,9 @@ void QMqttConnection::finalize_suback()
                 emit sub->qosChanged(reason);
             }
             sub->setState(QMqttSubscription::Subscribed);
-        } else if (reason == 0x80) {
-            qCDebug(lcMqttConnection) << "Subscription for id " << id << " failed.";
-            sub->setState(QMqttSubscription::Error);
         } else {
-            bool mqtt5reason = false;
-            if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-                mqtt5reason = true;
-                switch (reason) {
-                case 0x83:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Implementation specific error for id:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0x87:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Not authorized for id:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0x8F:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Topic filter invalid:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0x91:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Packet identifier in use:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0x97:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Quota exceeded:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0x9E:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Shared subscriptions not supported:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0xA1:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Subscription Identifiers not supported:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                case 0xA2:
-                    qCDebug(lcMqttConnection) << "SUBACK Reason code: Wildcard subscriptions not supported:" << id;
-                    sub->setState(QMqttSubscription::Error);
-                    break;
-                default:
-                    mqtt5reason = false;
-                    break;
-                }
-            }
-
-            if (!mqtt5reason) {
-                qCDebug(lcMqttConnection) << "Received invalid SUBACK result value:" << reason;
-                sub->setState(QMqttSubscription::Error);
-            }
+            qCDebug(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
+            sub->setState(QMqttSubscription::Error);
         }
     }
 }

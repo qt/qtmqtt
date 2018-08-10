@@ -49,6 +49,7 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
     Q_PROPERTY(quint8 qos READ qos NOTIFY qosChanged)
     Q_PROPERTY(QMqttTopicFilter topic READ topic)
     Q_PROPERTY(QString reason READ reason)
+    Q_PROPERTY(QMqtt::ReasonCode reasonCode READ reasonCode)
     Q_PROPERTY(bool shared READ isShared)
     Q_PROPERTY(QString shareName READ shareName)
 public:
@@ -65,6 +66,7 @@ public:
     QMqttTopicFilter topic() const;
     quint8 qos() const;
     QString reason() const;
+    QMqtt::ReasonCode reasonCode() const;
     QMqttUserProperties userProperties() const;
 
     bool isShared() const;
