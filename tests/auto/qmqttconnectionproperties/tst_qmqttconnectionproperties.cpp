@@ -142,7 +142,6 @@ void tst_QMqttConnectionProperties::receiveServerProperties()
 
     QMqttServerConnectionProperties::ServerPropertyDetails properties = server.availableProperties();
     qDebug() << "Specified properties:" << properties;
-    QVERIFY(properties != 0);
 
     if (properties & QMqttServerConnectionProperties::SessionExpiryInterval)
         qDebug() << "  SessionExpiryInterval:" << server.sessionExpiryInterval();
@@ -200,7 +199,7 @@ void tst_QMqttConnectionProperties::maximumPacketSize()
             qDebug() << "Server accepts less data than required for this test.";
         }
     } else {
-        qDebug() << "Server has no max packet size specified";
+        QSKIP("Server has no max packet size defined. Default is unlimited.");
     }
 
     const QString topic = QLatin1String("Qt/ConnectionProperties/some/Topic/maxSize");
