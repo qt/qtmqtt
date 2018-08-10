@@ -73,6 +73,7 @@ private Q_SLOTS:
     void messageStatus();
     void messageStatusReceive_data();
     void messageStatusReceive();
+    void subscriptionIdsOverlap();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -723,6 +724,91 @@ void Tst_QMqttClient::messageStatusReceive()
     QTRY_VERIFY2(receiveSpy.count() == 1, "Did not receive message");
 
     QTRY_VERIFY2(expectedStatus.isEmpty(), "Did not receive all status updates.");
+}
+
+void Tst_QMqttClient::subscriptionIdsOverlap()
+{
+
+    // If the Server sends a single copy of the message it MUST include in the
+    // PUBLISH packet the Subscription Identifiers for all matching
+    // subscriptions which have a Subscription Identifiers, their order is not
+    // significant [MQTT-3.3.4-4].
+    // If the Server sends multiple PUBLISH packets it MUST send, in each of
+    // them, the Subscription Identifier of the matching subscription if it has
+    // a Subscription Identifier [MQTT-3.3.4-5].
+
+    const QString topic = QLatin1String("Qt/client/idcheck");
+    // Connect publisher
+    QMqttClient pub;
+    pub.setProtocolVersion(QMqttClient::MQTT_5_0);
+    pub.setHostname(m_testBroker);
+    pub.setPort(m_port);
+
+    pub.connectToHost();
+    QTRY_VERIFY2(pub.state() == QMqttClient::Connected, "Could not connect publisher.");
+
+    // Connect subA
+    QMqttClient subClientA;
+    subClientA.setProtocolVersion(QMqttClient::MQTT_5_0);
+    subClientA.setHostname(m_testBroker);
+    subClientA.setPort(m_port);
+
+    subClientA.connectToHost();
+    QTRY_VERIFY2(subClientA.state() == QMqttClient::Connected, "Could not connect subscriber A.");
+
+    QMqttSubscriptionProperties subAProp;
+    subAProp.setSubscriptionIdentifier(8);
+    auto subA = subClientA.subscribe(topic, subAProp, 1);
+    QTRY_VERIFY2(subA->state() == QMqttSubscription::Subscribed, "Could not subscibe A.");
+
+    int receiveACounter = 0;
+    connect(subA, &QMqttSubscription::messageReceived, [&receiveACounter](QMqttMessage msg) {
+        qDebug() << "Sub A received:" << msg.publishProperties().subscriptionIdentifiers();
+        // ### TODO: Wait for fix at https://github.com/eclipse/paho.mqtt.testing/issues/56
+        //QVERIFY(msg.publishProperties().subscriptionIdentifiers().size() == 1);
+        //QVERIFY(msg.publishProperties().subscriptionIdentifiers().at(0) == 8); // Use sub->id();
+        receiveACounter++;
+    });
+
+    // Connect subB
+    QMqttClient subClientB;
+    subClientB.setProtocolVersion(QMqttClient::MQTT_5_0);
+    subClientB.setHostname(m_testBroker);
+    subClientB.setPort(m_port);
+
+    subClientB.connectToHost();
+    QTRY_VERIFY2(subClientB.state() == QMqttClient::Connected, "Could not connect subscriber A.");
+
+    QMqttSubscriptionProperties subBProp;
+    subBProp.setSubscriptionIdentifier(9);
+    auto subB = subClientB.subscribe(topic, subBProp, 1);
+    QTRY_VERIFY2(subB->state() == QMqttSubscription::Subscribed, "Could not subscibe A.");
+
+    int receiveBCounter = 2;
+    connect(subB, &QMqttSubscription::messageReceived, [&receiveBCounter](QMqttMessage msg) {
+        qDebug() << "Sub B received:" << msg.publishProperties().subscriptionIdentifiers();
+        QVERIFY(msg.publishProperties().subscriptionIdentifiers().size() > 0);
+        receiveBCounter -= msg.publishProperties().subscriptionIdentifiers().size();
+    });
+
+    QMqttSubscriptionProperties subB2Prop;
+    subB2Prop.setSubscriptionIdentifier(14);
+    auto subB2 = subClientB.subscribe(topic + "/#", subB2Prop, 1);
+    QTRY_VERIFY2(subB2->state() == QMqttSubscription::Subscribed, "Could not subscibe A.");
+
+    int receiveB2Counter = 2;
+    connect(subB2, &QMqttSubscription::messageReceived, [&receiveB2Counter](QMqttMessage msg) {
+        qDebug() << "Sub B2 received:" << msg.publishProperties().subscriptionIdentifiers();
+        QVERIFY(msg.publishProperties().subscriptionIdentifiers().size() > 0);
+        receiveB2Counter -= msg.publishProperties().subscriptionIdentifiers().size();
+    });
+
+    QSignalSpy publishSpy(&pub, &QMqttClient::messageSent);
+    pub.publish(topic, "SomeData", 1);
+    QTRY_VERIFY2(publishSpy.count() == 1, "Could not finalize publication.");
+    QTRY_VERIFY2(receiveBCounter == 0, "Did not receive both messages.");
+    QTRY_VERIFY2(receiveB2Counter == 0, "Did not receive both messages.");
+    QTRY_VERIFY2(receiveACounter == 1, "Did not receive non-overlapping message.");
 }
 
 QTEST_MAIN(Tst_QMqttClient)
