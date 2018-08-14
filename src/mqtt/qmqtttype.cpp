@@ -92,6 +92,283 @@ QT_BEGIN_NAMESPACE
            Character Data.
 */
 
+/*!
+    \enum QMqtt::MessageStatus
+    \since 5.12
+
+    This enum type specifies the available states of a message. Depending
+    on the QoS and role of the client, different message statuses are
+    expected.
+
+    \value Unknown
+           The message status is unknown.
+    \value Published
+           The client received a message for one of its subscriptions. This
+           applies to all QoS levels.
+    \value Acknowledged
+           A message has been acknowledged. This applies to QoS 1 and states
+           that the message handling has been finished from the client side.
+    \value Received
+           A message has been received. This applies to QoS 2.
+    \value Released
+           A message has been released. This applies to QoS 2. For a publisher
+           the message handling has been finished.
+    \value Completed
+           A message has been completed. This applies to QoS 2 and states
+           that the message handling has been finished from the client side.
+*/
+
+/*!
+    \enum QMqtt::ReasonCode
+    \since 5.12
+
+    This enum type specifies the available error codes.
+
+    \value Success
+           The specified action has succeeded.
+    \value SubscriptionQoSLevel0
+           A subscription with QoS level 0 has been created.
+    \value SubscriptionQoSLevel1
+           A subscription with QoS level 1 has been created.
+    \value SubscriptionQoSLevel2
+           A subscription with QoS level 2 has been created.
+    \value NoMatchingSubscriber
+           The message has been accepted by the server, but there are no
+           subscribers to receive this message. A broker may send this
+           reason code instead of \l Success.
+    \value UnspecifiedError
+           An unspecified error occurred.
+    \value MalformedPacket
+           The packet sent to the server is invalid.
+    \value ProtocolError
+           A protocol error has occurred. In most cases, this will cause
+           the server to disconnect the client.
+    \value ImplementationSpecificError
+           The packet is valid, but the recipient rejects it.
+    \value UnsupportedProtocolVersion
+           The requested protocol version is not supported by the server.
+    \value InvalidClientId
+           The client ID is invalid.
+    \value InvalidUserNameOrPassword
+           The username or password specified is invalid.
+    \value NotAuthorized
+           The client is not authorized for the specified action.
+    \value ServerNotAvailable
+           The server to connect to is not available.
+    \value ServerBusy
+           The server to connect to is not available. The client is asked to
+           try at a later time.
+    \value ClientBanned
+           The client has been banned from the server.
+    \value InvalidAuthenticationMethod
+           The authentication method specified is invalid.
+    \value InvalidTopicFilter
+           The topic filter specified is invalid.
+    \value InvalidTopicName
+           The topic name specified is invalid.
+    \value MessageIdInUse
+           The message ID used in the previous packet is already in use.
+    \value MessageIdNotFound
+           The message ID used in the previous packet has not been found.
+    \value PacketTooLarge
+           The packet received is too large. See also
+           \l QMqttServerConnectionProperties::maximumPacketSize().
+    \value QuotaExceeded
+           An administratively imposed limit has been exceeded.
+    \value InvalidPayloadFormat
+           The payload format is invalid.
+    \value RetainNotSupported
+           The server does not support retained messages.
+    \value QoSNotSupported
+           The QoS level requested is not supported.
+    \value UseAnotherServer
+           The server the client tries to connect to is not available. See also
+           \l QMqttServerConnectionProperties::serverReference().
+    \value ServerMoved
+           The server the client tries to connect to has moved to a new address.
+           See also \l QMqttServerConnectionProperties::serverReference().
+    \value SharedSubscriptionsNotSupported
+           Shared subscriptions are not supported.
+    \value ExceededConnectionRate
+           The connection rate limit has been exceeded.
+    \value SubscriptionIdsNotSupported
+           Subscription IDs are not supported.
+    \value WildCardSubscriptionsNotSupported
+           Subscriptions using wildcards are not supported by the server.
+
+    Not all values are available in every use case. Especially, some servers
+    will reject a reason code not suited for a specific command. See below
+    table to highlight expected reason codes for specific actions.
+
+    \table
+    \header
+        \li Reason Code
+        \li Connect Properties
+        \li Subscription Properties
+        \li Message Properties
+    \row
+        \li Success
+        \li X
+        \li X
+        \li X
+    \row
+        \li SubscriptionQoSLevel0
+        \li
+        \li X
+        \li
+    \row
+        \li SubscriptionQoSLevel1
+        \li
+        \li X
+        \li
+    \row
+        \li SubscriptionQoSLevel2
+        \li
+        \li X
+        \li
+    \row
+        \li NoMatchingSubscriber
+        \li
+        \li
+        \li X
+    \row
+        \li UnspecifiedError
+        \li X
+        \li X
+        \li X
+    \row
+        \li MalformedPacket
+        \li X
+        \li
+        \li
+    \row
+        \li ProtocolError
+        \li X
+        \li
+        \li
+    \row
+        \li ImplementationSpecificError
+        \li X
+        \li X
+        \li X
+    \row
+        \li UnsupportedProtocolVersion
+        \li X
+        \li
+        \li
+    \row
+        \li InvalidClientId
+        \li X
+        \li
+        \li
+    \row
+        \li InvalidUserNameOrPassword
+        \li X
+        \li
+        \li
+    \row
+        \li NotAuthorized
+        \li X
+        \li X
+        \li X
+    \row
+        \li ServerNotAvailable
+        \li X
+        \li
+        \li
+    \row
+        \li ServerBusy
+        \li X
+        \li
+        \li
+    \row
+        \li ClientBanned
+        \li X
+        \li
+        \li
+    \row
+        \li InvalidAuthenticationMethod
+        \li X
+        \li
+        \li
+    \row
+        \li InvalidTopicFilter
+        \li
+        \li X
+        \li
+    \row
+        \li InvalidTopicName
+        \li X
+        \li
+        \li X
+    \row
+        \li MessageIdInUse
+        \li
+        \li X
+        \li X
+    \row
+        \li MessageIdNotFound
+        \li
+        \li
+        \li X
+    \row
+        \li PacketTooLarge
+        \li X
+        \li
+        \li
+    \row
+        \li QuotaExceeded
+        \li X
+        \li X
+        \li X
+    \row
+        \li InvalidPayloadFormat
+        \li X
+        \li
+        \li X
+    \row
+        \li RetainNotSupported
+        \li X
+        \li
+        \li
+    \row
+        \li QoSNotSupported
+        \li X
+        \li
+        \li
+    \row
+        \li UseAnotherServer
+        \li X
+        \li
+        \li
+    \row
+        \li ServerMoved
+        \li X
+        \li
+        \li
+    \row
+        \li SharedSubscriptionsNotSupported
+        \li
+        \li X
+        \li
+    \row
+        \li ExceededConnectionRate
+        \li X
+        \li
+        \li
+    \row
+        \li SubscriptionIdsNotSupported
+        \li
+        \li X
+        \li
+    \row
+        \li WildCardSubscriptionsNotSupported
+        \li
+        \li X
+        \li
+    \endtable
+*/
+
 class QMqttStringPairData : public QSharedData
 {
 public:

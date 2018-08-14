@@ -210,6 +210,9 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
            connection.
     \value UnknownError
            An unknown error occurred.
+    \value Mqtt5SpecificError
+           The error is related to MQTT protocol level 5. A reason code might
+           provide more details.
 */
 
 /*!
@@ -245,6 +248,15 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
 
     This signal is emitted when a new message has been received. The category of
     the message is specified by \a topic with the content being \a message.
+*/
+
+/*!
+    \fn QMqttClient::messageStatusChanged(qint32 id, QMqtt::MessageStatus s, const QMqttMessageStatusProperties &properties);
+    \since 5.12
+
+    This signal is emitted when the status for the message identified by \a id
+    changes. \a s specifies the new status of the message, and
+    \a properties specify additional properties provided by the server.
 */
 
 /*!
