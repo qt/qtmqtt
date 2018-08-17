@@ -90,6 +90,36 @@
     receive messages on the temperature of all rooms in all apartments in a
     house.
 
+    \section1 Topic Aliases
+
+    Structuring topics in a tree helps to separate data channels and provide a
+    logical order of information. However, this can lead to very long topic
+    names being used during the publication of messages, hence increasing
+    the size of each message.
+
+    The MQTT 5.0 protocol version introduced \e {topic aliases} to circumvent
+    this. Instead of the topic string, an integer value is sent. To create an
+    initial mapping between the client and the server, both the topic string and
+    the alias need to be part of a message. Thereafter, only the ID with an
+    empty topic is used.
+
+    This mapping can be changed at any time by using a topic alias with another
+    topic string. Note that this mapping does not necessarily apply to other
+    connections, such as connections from the server to other clients. Each
+    connection needs to create this mapping manually.
+
+    Qt MQTT provides an automated mechanism to help reduce data rates. After
+    QMqttClient creates a connection, information about topic aliases supported
+    by the server is stored. Subsequently, topic aliases are used in the
+    order the messages are published, until all available aliases are in use. A
+    user is always able to modify this mapping by using
+    QMqttPublishProperties::setTopicAlias() during publication.
+
+    When QMqttClient subscribes to a topic, the server can use topic aliases
+    as well, depending on the QMqttConnectionProperties::maximumTopicAlias()
+    value set by the client. The client automatically maps topic aliases and
+    transparently forwards messages to the user including the full topic string.
+
     \section1 Security
 
     The connections between the clients and the broker are secured by an
@@ -145,4 +175,5 @@
     any previously retained message for its topic at the broker \e{must} be
     discarded. The broker \e{should} store the last message, but \e{may}
     also discard it. This depends on the implementation of the broker.
+
 */
