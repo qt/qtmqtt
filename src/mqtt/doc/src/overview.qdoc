@@ -90,6 +90,31 @@
     receive messages on the temperature of all rooms in all apartments in a
     house.
 
+    \section1 Shared Subscriptions
+
+    \e {Shared subscriptions} describe a pool of subscribers to one topic
+    filter. Instead of all subscribers receiving a message, only one subscriber
+    receives it. This enables load balancing on multiple clients.
+    The format of a shared subscription is:
+
+    \badcode
+    $share/{sharename}/{topicfilter}
+    \endcode
+
+    For example, if \e {Client 1} and \e {Client 2} should share a subscription
+    to the topic \e {sensors/house/temperature}, the topic filter to subscribe
+    to is:
+
+    \badcode
+    $share/poolAB/sensors/house/temperature
+    \endcode
+
+    It is not defined in which order messages are distributed by the server.
+    This is a server specific option.
+
+    To identify whether a server supports shared subscriptions, see also
+    QMqttServerConnectionProperties::sharedSubscriptionSupported().
+
     \section1 Topic Aliases
 
     Structuring topics in a tree helps to separate data channels and provide a
