@@ -66,7 +66,7 @@ public:
     void setCorrelationData(const QByteArray &correlation);
     void setUserProperties(const QMqttUserProperties &properties);
 
-protected:
+private:
     QSharedDataPointer<QMqttLastWillPropertiesData> data;
 };
 
@@ -98,7 +98,8 @@ public:
     void setAuthenticationMethod(const QString &authMethod);
     void setAuthenticationData(const QByteArray &authData);
 
-protected:
+private:
+    friend class QMqttConnection;
     QSharedDataPointer<QMqttConnectionPropertiesData> data;
 };
 
@@ -148,7 +149,6 @@ public:
     quint16 serverKeepAlive() const;
     QString responseInformation() const;
     QString serverReference() const;
-
 
 private:
     friend class QMqttConnection;
