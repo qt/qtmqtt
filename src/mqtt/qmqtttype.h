@@ -56,6 +56,7 @@ public:
     void setValue(const QString &v);
 
     bool operator==(const QMqttStringPair &other) const;
+    bool operator!=(const QMqttStringPair &other) const;
     QMqttStringPair &operator=(const QMqttStringPair &);
 private:
     QSharedDataPointer<QMqttStringPairData> data;
