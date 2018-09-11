@@ -45,8 +45,6 @@ class QMqttUnsubscriptionPropertiesData;
 
 class Q_MQTT_EXPORT QMqttSubscriptionProperties
 {
-    Q_GADGET
-
 public:
     QMqttSubscriptionProperties();
     QMqttSubscriptionProperties(const QMqttSubscriptionProperties &);
@@ -64,8 +62,6 @@ private:
 
 class Q_MQTT_EXPORT QMqttUnsubscriptionProperties
 {
-    Q_GADGET
-
 public:
     QMqttUnsubscriptionProperties();
     QMqttUnsubscriptionProperties(const QMqttUnsubscriptionProperties &);

@@ -44,8 +44,6 @@ class QMqttAuthenticationPropertiesData;
 
 class Q_MQTT_EXPORT QMqttAuthenticationProperties
 {
-    Q_GADGET
-
 public:
     QMqttAuthenticationProperties();
     QMqttAuthenticationProperties(const QMqttAuthenticationProperties &);

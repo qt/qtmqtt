@@ -44,7 +44,6 @@ class QMqttServerConnectionPropertiesData;
 
 class Q_MQTT_EXPORT QMqttLastWillProperties
 {
-    Q_GADGET
 public:
     QMqttLastWillProperties();
     QMqttLastWillProperties(const QMqttLastWillProperties &);
@@ -73,7 +72,6 @@ protected:
 
 class Q_MQTT_EXPORT QMqttConnectionProperties
 {
-    Q_GADGET
 public:
     QMqttConnectionProperties();
     QMqttConnectionProperties(const QMqttConnectionProperties &);
@@ -107,7 +105,6 @@ protected:
 class Q_MQTT_EXPORT QMqttServerConnectionProperties
         : public QMqttConnectionProperties
 {
-    Q_GADGET
 public:
     enum ServerPropertyDetail : quint32 {
         None                            = 0x00000000,
@@ -129,7 +126,6 @@ public:
         AuthenticationMethod            = 0x00010000,
         AuthenticationData              = 0x00020000
     };
-    Q_ENUM(ServerPropertyDetail)
     Q_DECLARE_FLAGS(ServerPropertyDetails, ServerPropertyDetail)
 
     QMqttServerConnectionProperties();
