@@ -56,7 +56,7 @@ public:
     QMqttTopicFilter m_topic;
     QString m_reasonString;
     QMqttUserProperties m_userProperties;
-    QString m_shareName;
+    QString m_sharedSubscriptionName;
     QMqttSubscription::SubscriptionState m_state{QMqttSubscription::Unsubscribed};
     QMqtt::ReasonCode m_reasonCode{QMqtt::ReasonCode::Success};
     quint8 m_qos{0};
