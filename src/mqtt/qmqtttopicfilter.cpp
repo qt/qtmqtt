@@ -160,7 +160,7 @@ void QMqttTopicFilter::setFilter(const QString &filter)
     a shared subscription. The format of shared subscriptions is defined
     as \c $share/sharename/topicfilter.
 */
-QString QMqttTopicFilter::shareName() const
+QString QMqttTopicFilter::sharedSubscriptionName() const
 {
     QString result;
     if (d->filter.startsWith(QLatin1String("$share/"))) {

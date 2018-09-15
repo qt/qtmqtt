@@ -50,8 +50,8 @@ class Q_MQTT_EXPORT QMqttSubscription : public QObject
     Q_PROPERTY(QMqttTopicFilter topic READ topic)
     Q_PROPERTY(QString reason READ reason)
     Q_PROPERTY(QMqtt::ReasonCode reasonCode READ reasonCode)
-    Q_PROPERTY(bool shared READ isShared)
-    Q_PROPERTY(QString shareName READ shareName)
+    Q_PROPERTY(bool sharedSubscription READ isSharedSubscription)
+    Q_PROPERTY(QString sharedSubscriptionName READ sharedSubscriptionName)
 public:
     ~QMqttSubscription() override;
     enum SubscriptionState {
@@ -69,13 +69,13 @@ public:
     QMqtt::ReasonCode reasonCode() const;
     QMqttUserProperties userProperties() const;
 
-    bool isShared() const;
-    QString shareName() const;
+    bool isSharedSubscription() const;
+    QString sharedSubscriptionName() const;
 
 Q_SIGNALS:
     void stateChanged(SubscriptionState state);
     void qosChanged(quint8); // only emitted when broker provides different QoS than requested
-    void messageReceived(QMqttMessage msg);
+    void messageReceived(const QMqttMessage &msg);
 
 public Q_SLOTS:
     void unsubscribe();
@@ -87,8 +87,8 @@ private:
     void setTopic(const QMqttTopicFilter &topic);
     void setClient(QMqttClient *client);
     void setQos(quint8 qos);
-    void setShared(bool s);
-    void setShareName(const QString &name);
+    void setSharedSubscription(bool s);
+    void setSharedSubscriptionName(const QString &name);
     friend class QMqttConnection;
     friend class QMqttClient;
     explicit QMqttSubscription(QObject *parent = nullptr);

@@ -105,13 +105,13 @@ QT_BEGIN_NAMESPACE
 */
 
 /*!
-    \property QMqttSubscription::shared
+    \property QMqttSubscription::sharedSubscription
     \since 5.12
     \brief This property holds whether the subscription is shared.
 */
 
 /*!
-    \property QMqttSubscription::shareName
+    \property QMqttSubscription::sharedSubscriptionName
     \since 5.12
     \brief This property holds the name of the shared subscription.
 */
@@ -177,16 +177,16 @@ QMqttUserProperties QMqttSubscription::userProperties() const
     return d->m_userProperties;
 }
 
-bool QMqttSubscription::isShared() const
+bool QMqttSubscription::isSharedSubscription() const
 {
     Q_D(const QMqttSubscription);
     return d->m_shared;
 }
 
-QString QMqttSubscription::shareName() const
+QString QMqttSubscription::sharedSubscriptionName() const
 {
     Q_D(const QMqttSubscription);
-    return d->m_shareName;
+    return d->m_sharedSubscriptionName;
 }
 
 void QMqttSubscription::setState(QMqttSubscription::SubscriptionState state)
@@ -230,16 +230,16 @@ void QMqttSubscription::setQos(quint8 qos)
     d->m_qos = qos;
 }
 
-void QMqttSubscription::setShared(bool s)
+void QMqttSubscription::setSharedSubscription(bool s)
 {
     Q_D(QMqttSubscription);
     d->m_shared = s;
 }
 
-void QMqttSubscription::setShareName(const QString &name)
+void QMqttSubscription::setSharedSubscriptionName(const QString &name)
 {
     Q_D(QMqttSubscription);
-    d->m_shareName = name;
+    d->m_sharedSubscriptionName = name;
 }
 
 QMqttSubscriptionPrivate::QMqttSubscriptionPrivate()

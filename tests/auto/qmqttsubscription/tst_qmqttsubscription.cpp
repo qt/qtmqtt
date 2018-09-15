@@ -265,8 +265,8 @@ void Tst_QMqttSubscription::sharedConnection()
     // listenerAx: $share/groupA/Qt/Subscription/shared_check/#
     for (int i = 0; i < groupSizeA; ++i) {
         createAndSubscribe(&listenersA[i], &subsA[i], groupTopicA);
-        QCOMPARE(subsA[i]->isShared(), true);
-        QCOMPARE(subsA[i]->shareName(), QLatin1String("groupA"));
+        QCOMPARE(subsA[i]->isSharedSubscription(), true);
+        QCOMPARE(subsA[i]->sharedSubscriptionName(), QLatin1String("groupA"));
         connect(subsA[i], &QMqttSubscription::messageReceived, [i, &messageCounterA, &messageSumA]() {
             messageCounterA[i]++;
             messageSumA++;
@@ -284,8 +284,8 @@ void Tst_QMqttSubscription::sharedConnection()
     // listenerBx: $share/groupB/Qt/Subscription/shared_check/#
     for (int i = 0; i < groupSizeB; ++i) {
         createAndSubscribe(&listenersB[i], &subsB[i], groupTopicB);
-        QCOMPARE(subsB[i]->isShared(), true);
-        QCOMPARE(subsB[i]->shareName(), QLatin1String("groupB"));
+        QCOMPARE(subsB[i]->isSharedSubscription(), true);
+        QCOMPARE(subsB[i]->sharedSubscriptionName(), QLatin1String("groupB"));
         connect(subsB[i], &QMqttSubscription::messageReceived, [i, &messageCounterB, &messageSumB]() {
             messageCounterB[i]++;
             messageSumB++;
@@ -351,12 +351,12 @@ void Tst_QMqttSubscription::sharedNonShared()
     QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
 
     QMqttSubscription *sub1 = client.subscribe(topic1, 1);
-    QCOMPARE(sub1->isShared(), shared1);
-    QVERIFY(sub1->shareName().isEmpty() == !shared1);
+    QCOMPARE(sub1->isSharedSubscription(), shared1);
+    QVERIFY(sub1->sharedSubscriptionName().isEmpty() == !shared1);
 
     QMqttSubscription *sub2 = client.subscribe(topic2, 1);
-    QCOMPARE(sub2->isShared(), shared2);
-    QVERIFY(sub2->shareName().isEmpty() == !shared2);
+    QCOMPARE(sub2->isSharedSubscription(), shared2);
+    QVERIFY(sub2->sharedSubscriptionName().isEmpty() == !shared2);
 
     // Verify that a subscription is reused / not reused
     QCOMPARE(sub1 == sub2, expected);

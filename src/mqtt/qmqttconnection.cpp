@@ -462,11 +462,12 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        if (!topic.shareName().isEmpty()) {
+        if (!topic.sharedSubscriptionName().isEmpty()) {
             const QMqttTopicFilter filter(topic.filter().section(QLatin1Char('/'), 2));
-            if (m_activeSubscriptions.contains(filter) && m_activeSubscriptions.value(filter)->shareName() == topic.shareName())
+            if (m_activeSubscriptions.contains(filter)
+                    && m_activeSubscriptions.value(filter)->sharedSubscriptionName() == topic.sharedSubscriptionName())
                 return m_activeSubscriptions[filter];
-        } else if (m_activeSubscriptions.contains(topic) && !m_activeSubscriptions.value(topic)->isShared())
+        } else if (m_activeSubscriptions.contains(topic) && !m_activeSubscriptions.value(topic)->isSharedSubscription())
             return m_activeSubscriptions[topic];
     } else if (m_activeSubscriptions.contains(topic))
         return m_activeSubscriptions[topic];
@@ -504,9 +505,9 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     result->setClient(m_clientPrivate->m_client);
     result->setQos(qos);
     result->setState(QMqttSubscription::SubscriptionPending);
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && !topic.shareName().isEmpty()) {
-        result->setShareName(topic.shareName());
-        result->setShared(true);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && !topic.sharedSubscriptionName().isEmpty()) {
+        result->setSharedSubscriptionName(topic.sharedSubscriptionName());
+        result->setSharedSubscription(true);
         result->setTopic(topic.filter().section(QLatin1Char('/'), 2));
     }
 

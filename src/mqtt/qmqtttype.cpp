@@ -446,6 +446,14 @@ bool QMqttStringPair::operator==(const QMqttStringPair &other) const
     return *data.constData() == *other.data.constData();
 }
 
+/*!
+    Returns \c true if this instance does not match \a other.
+*/
+bool QMqttStringPair::operator!=(const QMqttStringPair &other) const
+{
+    return !operator==(other);
+}
+
 QMqttStringPair &QMqttStringPair::operator=(const QMqttStringPair &rhs)
 {
     if (this != &rhs)

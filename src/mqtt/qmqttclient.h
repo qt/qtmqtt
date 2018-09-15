@@ -161,20 +161,20 @@ Q_SIGNALS:
     void pingResponseReceived();
     void brokerSessionRestored();
 
-    void hostnameChanged(QString hostname);
+    void hostnameChanged(const QString &hostname);
     void portChanged(quint16 port);
-    void clientIdChanged(QString clientId);
+    void clientIdChanged(const QString &clientId);
     void keepAliveChanged(quint16 keepAlive);
     void protocolVersionChanged(ProtocolVersion protocolVersion);
     void stateChanged(ClientState state);
     void errorChanged(ClientError error);
-    void usernameChanged(QString username);
-    void passwordChanged(QString password);
+    void usernameChanged(const QString &username);
+    void passwordChanged(const QString &password);
     void cleanSessionChanged(bool cleanSession);
 
-    void willTopicChanged(QString willTopic);
+    void willTopicChanged(const QString &willTopic);
     void willQoSChanged(quint8 willQoS);
-    void willMessageChanged(QByteArray willMessage);
+    void willMessageChanged(const QByteArray &willMessage);
     void willRetainChanged(bool willRetain);
 
     void authenticationRequested(const QMqttAuthenticationProperties &p);

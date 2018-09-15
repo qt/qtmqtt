@@ -42,7 +42,6 @@ class QMqttMessageStatusPropertiesData;
 
 class Q_MQTT_EXPORT QMqttPublishProperties
 {
-    Q_GADGET
 public:
     enum PublishPropertyDetail : quint32 {
         None                   = 0x00000000,
@@ -55,7 +54,6 @@ public:
         SubscriptionIdentifier = 0x00000040,
         ContentType            = 0x00000080
     };
-    Q_ENUM(PublishPropertyDetail)
     Q_DECLARE_FLAGS(PublishPropertyDetails, PublishPropertyDetail)
 
     QMqttPublishProperties();
@@ -96,7 +94,6 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(QMqttPublishProperties::PublishPropertyDetails)
 
 class Q_MQTT_EXPORT QMqttMessageStatusProperties
 {
-    Q_GADGET
 public:
     QMqttMessageStatusProperties();
     QMqttMessageStatusProperties(const QMqttMessageStatusProperties &);

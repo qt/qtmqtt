@@ -69,7 +69,7 @@ public:
     QString filter() const;
     void setFilter(const QString &filter);
 
-    QString shareName() const;
+    QString sharedSubscriptionName() const;
 
     Q_REQUIRED_RESULT bool isValid() const;
     Q_REQUIRED_RESULT bool match(const QMqttTopicName &name, MatchOptions matchOptions = NoMatchOption) const;

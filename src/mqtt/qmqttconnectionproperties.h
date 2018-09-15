@@ -44,7 +44,6 @@ class QMqttServerConnectionPropertiesData;
 
 class Q_MQTT_EXPORT QMqttLastWillProperties
 {
-    Q_GADGET
 public:
     QMqttLastWillProperties();
     QMqttLastWillProperties(const QMqttLastWillProperties &);
@@ -67,13 +66,12 @@ public:
     void setCorrelationData(const QByteArray &correlation);
     void setUserProperties(const QMqttUserProperties &properties);
 
-protected:
+private:
     QSharedDataPointer<QMqttLastWillPropertiesData> data;
 };
 
 class Q_MQTT_EXPORT QMqttConnectionProperties
 {
-    Q_GADGET
 public:
     QMqttConnectionProperties();
     QMqttConnectionProperties(const QMqttConnectionProperties &);
@@ -100,14 +98,14 @@ public:
     void setAuthenticationMethod(const QString &authMethod);
     void setAuthenticationData(const QByteArray &authData);
 
-protected:
+private:
+    friend class QMqttConnection;
     QSharedDataPointer<QMqttConnectionPropertiesData> data;
 };
 
 class Q_MQTT_EXPORT QMqttServerConnectionProperties
         : public QMqttConnectionProperties
 {
-    Q_GADGET
 public:
     enum ServerPropertyDetail : quint32 {
         None                            = 0x00000000,
@@ -129,7 +127,6 @@ public:
         AuthenticationMethod            = 0x00010000,
         AuthenticationData              = 0x00020000
     };
-    Q_ENUM(ServerPropertyDetail)
     Q_DECLARE_FLAGS(ServerPropertyDetails, ServerPropertyDetail)
 
     QMqttServerConnectionProperties();
@@ -152,7 +149,6 @@ public:
     quint16 serverKeepAlive() const;
     QString responseInformation() const;
     QString serverReference() const;
-
 
 private:
     friend class QMqttConnection;
