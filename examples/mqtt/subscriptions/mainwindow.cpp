@@ -89,6 +89,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->lineEditHost, &QLineEdit::textChanged, m_client, &QMqttClient::setHostname);
     connect(ui->spinBoxPort, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::setClientPort);
+    connect(ui->lineEditUser, &QLineEdit::textChanged, m_client, &QMqttClient::setUsername);
+    connect(ui->lineEditPassword, &QLineEdit::textChanged, m_client, &QMqttClient::setPassword);
     updateLogStateChange();
 }
 
@@ -103,11 +105,15 @@ void MainWindow::on_buttonConnect_clicked()
     if (m_client->state() == QMqttClient::Disconnected) {
         ui->lineEditHost->setEnabled(false);
         ui->spinBoxPort->setEnabled(false);
+        ui->lineEditUser->setEnabled(false);
+        ui->lineEditPassword->setEnabled(false);
         ui->buttonConnect->setText(tr("Disconnect"));
         m_client->connectToHost();
     } else {
         ui->lineEditHost->setEnabled(true);
         ui->spinBoxPort->setEnabled(true);
+        ui->lineEditUser->setEnabled(true);
+        ui->lineEditPassword->setEnabled(true);
         ui->buttonConnect->setText(tr("Connect"));
         m_client->disconnectFromHost();
     }
@@ -131,6 +137,8 @@ void MainWindow::brokerDisconnected()
 {
     ui->lineEditHost->setEnabled(true);
     ui->spinBoxPort->setEnabled(true);
+    ui->lineEditUser->setEnabled(true);
+    ui->lineEditPassword->setEnabled(true);
     ui->buttonConnect->setText(tr("Connect"));
 }
 
