@@ -162,6 +162,9 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 
     connect(socket, &QAbstractSocket::connected, this, &QMqttConnection::transportConnectionEstablished);
     connect(socket, &QAbstractSocket::disconnected, this, &QMqttConnection::transportConnectionClosed);
+    connect(socket, static_cast<void (QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
+            this, &QMqttConnection::transportError);
+
     connect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
     connect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadReady);
     return true;
@@ -679,6 +682,12 @@ void QMqttConnection::transportReadReady()
     qCDebug(lcMqttConnectionVerbose) << Q_FUNC_INFO;
     m_readBuffer.append(m_transport->readAll());
     processData();
+}
+
+void QMqttConnection::transportError(QAbstractSocket::SocketError e)
+{
+    qCDebug(lcMqttConnection) << Q_FUNC_INFO << e;
+    closeConnection(QMqttClient::TransportInvalid);
 }
 
 void QMqttConnection::readBuffer(char *data, quint64 size)
