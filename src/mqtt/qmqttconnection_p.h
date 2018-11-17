@@ -100,6 +100,7 @@ public Q_SLOTS:
     void transportConnectionEstablished();
     void transportConnectionClosed();
     void transportReadReady();
+    void transportError(QAbstractSocket::SocketError e);
 
 public:
     QIODevice *m_transport{nullptr};

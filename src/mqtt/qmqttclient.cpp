@@ -521,6 +521,11 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
 {
     Q_D(QMqttClient);
 
+    if (state() == QMqttClient::Connecting) {
+        qCDebug(lcMqttClient) << "Connection request currently ongoing.";
+        return;
+    }
+
     if (state() == QMqttClient::Connected) {
         qCDebug(lcMqttClient) << "Already connected to a broker. Rejecting connection request.";
         return;
