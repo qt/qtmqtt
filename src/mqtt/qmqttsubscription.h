@@ -75,7 +75,7 @@ public:
 Q_SIGNALS:
     void stateChanged(SubscriptionState state);
     void qosChanged(quint8); // only emitted when broker provides different QoS than requested
-    void messageReceived(const QMqttMessage &msg);
+    void messageReceived(QMqttMessage msg);
 
 public Q_SLOTS:
     void unsubscribe();
