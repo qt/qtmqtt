@@ -81,6 +81,7 @@ Window {
 
     GridLayout {
         anchors.fill: parent
+        anchors.margins: 10
         columns: 2
 
         Label {
@@ -113,19 +114,22 @@ Window {
         Button {
             id: connectButton
             Layout.columnSpan: 2
+            Layout.fillWidth: true
             text: client.state === MqttClient.Connected ? "Disconnect" : "Connect"
             onClicked: {
-                if (client.state === MqttClient.Connected)
+                if (client.state === MqttClient.Connected) {
                     client.disconnectFromHost()
-                else
+                    messageModel.clear()
+                } else
                     client.connectToHost()
             }
         }
 
-        RowLayout {
+        GridLayout {
             enabled: client.state === MqttClient.Connected
             Layout.columnSpan: 2
             Layout.fillWidth: true
+            columns: 4
 
             Label {
                 text: "Topic:"
@@ -133,6 +137,7 @@ Window {
 
             TextField {
                 id: pubField
+                Layout.fillWidth: true
                 placeholderText: "<Publication topic>"
             }
 
@@ -142,14 +147,9 @@ Window {
 
             TextField {
                 id: msgField
+                Layout.fillWidth: true
                 placeholderText: "<Publication message>"
             }
-        }
-
-        RowLayout {
-            enabled: client.state === MqttClient.Connected
-            Layout.columnSpan: 2
-            Layout.fillWidth: true
 
             Label {
                 text: "QoS:"
@@ -157,6 +157,7 @@ Window {
 
             ComboBox {
                 id: qosItems
+                Layout.fillWidth: true
                 editable: false
                 model: [0, 1, 2]
             }
@@ -169,6 +170,7 @@ Window {
 
             Button {
                 id: pubButton
+                Layout.fillWidth: true
                 text: "Publish"
                 onClicked: {
                     if (pubField.text.length === 0) {
@@ -187,8 +189,11 @@ Window {
             height: 300
             width: 200
             Layout.fillHeight: true
+            Layout.fillWidth: true
+            Layout.columnSpan: 2
+            clip: true
             delegate: Rectangle {
-                width: 150
+                width: messageView.width
                 height: 30
                 color: index % 2 ? "#DDDDDD" : "#888888"
                 radius: 5
