@@ -674,7 +674,10 @@ void QMqttConnection::transportConnectionClosed()
     m_readBuffer.clear();
     m_readPosition = 0;
     m_pingTimer.stop();
-    m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
+    if (m_internalState == BrokerDisconnected) // We manually disconnected
+        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::NoError);
+    else
+        m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
 }
 
 void QMqttConnection::transportReadReady()
