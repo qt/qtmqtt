@@ -83,6 +83,7 @@ Window {
 
     GridLayout {
         anchors.fill: parent
+        anchors.margins: 10
         columns: 2
 
         Label {
@@ -115,11 +116,15 @@ Window {
         Button {
             id: connectButton
             Layout.columnSpan: 2
+            Layout.fillWidth: true
             text: client.state === MqttClient.Connected ? "Disconnect" : "Connect"
             onClicked: {
-                if (client.state === MqttClient.Connected)
+                if (client.state === MqttClient.Connected) {
                     client.disconnectFromHost()
-                else
+                    messageModel.clear()
+                    tempSubscription.destroy()
+                    tempSubscription = 0
+                } else
                     client.connectToHost()
             }
         }
@@ -136,11 +141,14 @@ Window {
             TextField {
                 id: subField
                 placeholderText: "<Subscription topic>"
+                Layout.fillWidth: true
+                enabled: tempSubscription === 0
             }
 
             Button {
                 id: subButton
                 text: "Subscribe"
+                visible: tempSubscription === 0
                 onClicked: {
                     if (subField.text.length === 0) {
                         console.log("No topic specified to subscribe to.")
@@ -157,9 +165,12 @@ Window {
             model: messageModel
             height: 300
             width: 200
+            Layout.columnSpan: 2
             Layout.fillHeight: true
+            Layout.fillWidth: true
+            clip: true
             delegate: Rectangle {
-                width: 150
+                width: messageView.width
                 height: 30
                 color: index % 2 ? "#DDDDDD" : "#888888"
                 radius: 5
