@@ -203,6 +203,8 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
             return sendControlConnect();
 
         m_internalState = BrokerConnecting;
+        if (!m_sslConfiguration.isNull())
+            socket->setSslConfiguration(m_sslConfiguration);
         socket->connectToHostEncrypted(m_clientPrivate->m_hostname, m_clientPrivate->m_port, sslPeerName);
 
         if (!socket->waitForConnected()) {

@@ -42,6 +42,9 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QTcpSocket>
+#ifndef QT_NO_SSL
+#include <QtNetwork/QSslConfiguration>
+#endif
 
 QT_BEGIN_NAMESPACE
 
@@ -128,6 +131,7 @@ public:
     Q_INVOKABLE void connectToHost();
 #ifndef QT_NO_SSL
     Q_INVOKABLE void connectToHostEncrypted(const QString &sslPeerName = QString());
+    void connectToHostEncrypted(const QSslConfiguration &conf);
 #endif
     Q_INVOKABLE void disconnectFromHost();
 

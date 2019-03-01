@@ -515,6 +515,19 @@ void QMqttClient::connectToHostEncrypted(const QString &sslPeerName)
 {
     connectToHost(true, sslPeerName);
 }
+
+/*!
+    \since 5.14
+    Initiates an encrypted connection to the MQTT broker.
+
+    \a conf specifies the SSL configuration to be used for the connection
+ */
+void QMqttClient::connectToHostEncrypted(const QSslConfiguration &conf)
+{
+    Q_D(QMqttClient);
+    d->m_connection.m_sslConfiguration = conf;
+    connectToHost(true, QString());
+}
 #endif
 
 void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)

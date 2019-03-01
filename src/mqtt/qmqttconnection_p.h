@@ -107,6 +107,9 @@ public:
     QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
     bool m_ownTransport{false};
     QMqttClientPrivate *m_clientPrivate{nullptr};
+#ifndef QT_NO_SSL
+    QSslConfiguration m_sslConfiguration;
+#endif
 private:
     Q_DISABLE_COPY(QMqttConnection)
     void finalize_auth();
