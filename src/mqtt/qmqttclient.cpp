@@ -511,10 +511,12 @@ void QMqttClient::connectToHost()
     \a sslPeerName specifies the peer name to be passed to the socket.
  */
 #ifndef QT_NO_SSL
+#if QT_DEPRECATED_SINCE(5, 14)
 void QMqttClient::connectToHostEncrypted(const QString &sslPeerName)
 {
     connectToHost(true, sslPeerName);
 }
+#endif
 
 /*!
     \since 5.14
