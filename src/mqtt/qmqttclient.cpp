@@ -509,9 +509,14 @@ void QMqttClient::connectToHost()
 }
 
 /*!
+    \obsolete
+
     Initiates an encrypted connection to the MQTT broker.
 
     \a sslPeerName specifies the peer name to be passed to the socket.
+
+    This function has been deprecated. Use
+    \l QMqttClient::connectToHostEncrypted(const QSslConfiguration &conf) instead.
  */
 #ifndef QT_NO_SSL
 #if QT_DEPRECATED_SINCE(5, 14)

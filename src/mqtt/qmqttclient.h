@@ -131,7 +131,7 @@ public:
     Q_INVOKABLE void connectToHost();
 #ifndef QT_NO_SSL
 #if QT_DEPRECATED_SINCE(5, 14)
-    Q_INVOKABLE void connectToHostEncrypted(const QString &sslPeerName = QString()); /// ### Qt 6: remove
+    QT_DEPRECATED Q_INVOKABLE void connectToHostEncrypted(const QString &sslPeerName = QString()); /// ### Qt 6: remove
 #endif
     void connectToHostEncrypted(const QSslConfiguration &conf);
 #endif
