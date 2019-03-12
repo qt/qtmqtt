@@ -93,6 +93,9 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
     The interval is specified in milliseconds. However, most brokers are not
     capable of using such a high granularity and will fall back to an interval
     specified in seconds.
+
+    If the broker does not respond within a grace period the connection will be
+    closed.
 */
 
 /*!

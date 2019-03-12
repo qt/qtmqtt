@@ -576,11 +576,19 @@ bool QMqttConnection::sendControlPingRequest()
     if (m_internalState != QMqttConnection::BrokerConnected)
         return false;
 
+    // 3.1.2.10 If a Client does not receive a PINGRESP packet within a reasonable amount of time
+    // after it has sent a PINGREQ, it SHOULD close the Network Connection to the Server
+    // Consider two pending PINGRESP as reasonable.
+    if (m_pingTimeout > 1) {
+        closeConnection(QMqttClient::ServerUnavailable);
+        return false;
+    }
     const QMqttControlPacket packet(QMqttControlPacket::PINGREQ);
     if (!writePacketToTransport(packet)) {
         qCDebug(lcMqttConnection) << "Failed to write PINGREQ to transport.";
         return false;
     }
+    m_pingTimeout++;
     return true;
 }
 
@@ -589,6 +597,7 @@ bool QMqttConnection::sendControlDisconnect()
     qCDebug(lcMqttConnection) << Q_FUNC_INFO;
 
     m_pingTimer.stop();
+    m_pingTimeout = 0;
 
     m_activeSubscriptions.clear();
 
@@ -674,6 +683,7 @@ void QMqttConnection::transportConnectionClosed()
     m_readBuffer.clear();
     m_readPosition = 0;
     m_pingTimer.stop();
+    m_pingTimeout = 0;
     if (m_internalState == BrokerDisconnected) // We manually disconnected
         m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::NoError);
     else
@@ -728,6 +738,7 @@ void QMqttConnection::closeConnection(QMqttClient::ClientError error)
     m_readBuffer.clear();
     m_readPosition = 0;
     m_pingTimer.stop();
+    m_pingTimeout = 0;
     m_activeSubscriptions.clear();
     m_internalState = BrokerDisconnected;
     m_transport->disconnect();
@@ -1618,6 +1629,7 @@ void QMqttConnection::finalize_pingresp()
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
+    m_pingTimeout--;
     emit m_clientPrivate->m_client->pingResponseReceived();
 }
 
