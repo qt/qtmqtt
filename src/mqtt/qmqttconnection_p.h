@@ -157,6 +157,7 @@ private:
     QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
     InternalConnectionState m_internalState{BrokerDisconnected};
     QTimer m_pingTimer;
+    int m_pingTimeout{0};
 
     QVector<QMqttTopicName> m_receiveAliases;
     QVector<QMqttTopicName> m_publishAliases;
