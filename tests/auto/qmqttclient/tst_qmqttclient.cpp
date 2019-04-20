@@ -486,6 +486,8 @@ public slots:
         } else {
             response += char(0); // ackFlags
             response += char(0); // result
+            if (version == QMqttClient::MQTT_5_0)
+                response += char(0); // No properties
         }
         qDebug() << "Fake server response:" << connectionSuccess;
         socket->write(response);
@@ -493,6 +495,7 @@ public slots:
 public:
     QTcpServer *server;
     QTcpSocket *socket;
+    QMqttClient::ProtocolVersion version{QMqttClient::MQTT_3_1_1};
     bool connectionSuccess{false};
 };
 
@@ -508,6 +511,8 @@ void Tst_QMqttClient::reconnect_QTBUG65726()
     client.setClientId(QLatin1String("bugclient"));
     client.setHostname(QLatin1String("localhost"));
     client.setPort(5726);
+
+    server.version = client.protocolVersion();
 
     client.connectToHost();
     QTRY_COMPARE(client.state(), QMqttClient::Disconnected);

@@ -79,7 +79,8 @@ QString QMqttConnection::readBufferTyped(qint64 *dataSize)
     const quint16 size = readBufferTyped<quint16>(dataSize);
     if (dataSize)
         *dataSize -= size;
-    return QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(size).constData()), size);
+    const QByteArray ba = readBuffer(size);
+    return QString::fromUtf8(reinterpret_cast<const char *>(ba.constData()), ba.size());
 }
 
 template<>
@@ -88,7 +89,7 @@ QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
     const quint16 size = readBufferTyped<quint16>(dataSize);
     if (dataSize)
         *dataSize -= size;
-    return QByteArray(reinterpret_cast<const char *>(readBuffer(size).constData()), size);
+    return readBuffer(size);
 }
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
@@ -303,13 +304,13 @@ bool QMqttConnection::sendControlConnect()
     if (m_clientPrivate->m_password.size())
         packet.append(m_clientPrivate->m_password.toUtf8());
 
+    m_internalState = BrokerWaitForConnectAck;
+    m_missingData = 0;
+
     if (!writePacketToTransport(packet)) {
         qCDebug(lcMqttConnection) << "Could not write CONNECT frame to transport.";
         return false;
     }
-
-    m_internalState = BrokerWaitForConnectAck;
-    m_missingData = 0;
     return true;
 }
 
@@ -705,6 +706,10 @@ void QMqttConnection::transportError(QAbstractSocket::SocketError e)
 
 void QMqttConnection::readBuffer(char *data, quint64 size)
 {
+    if (Q_UNLIKELY(quint64(m_readBuffer.size() - m_readPosition) < size)) {
+        qCDebug(lcMqttConnection) << "Reaching out of buffer, protocol violation";
+        closeConnection(QMqttClient::ProtocolViolation);
+    }
     memcpy(data, m_readBuffer.constData() + m_readPosition, size);
     m_readPosition += size;
 }
@@ -748,6 +753,11 @@ void QMqttConnection::closeConnection(QMqttClient::ClientError error)
 
 QByteArray QMqttConnection::readBuffer(quint64 size)
 {
+    if (Q_UNLIKELY(quint64(m_readBuffer.size() - m_readPosition) < size)) {
+        qCDebug(lcMqttConnection) << "Reaching out of buffer, protocol violation";
+        closeConnection(QMqttClient::ProtocolViolation);
+        return QByteArray();
+    }
     QByteArray res(m_readBuffer.constData() + m_readPosition, int(size));
     m_readPosition += size;
     return res;

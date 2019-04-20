@@ -46,3 +46,4 @@ manifestmeta.thumbnail.names  += "QtMqtt/WebSockets MQTT Subscription*"
 
 navigation.landingpage = "Qt MQTT"
 navigation.cppclassespage = "Qt MQTT C++ Classes"
+navigation.homepage = "Qt for Automation"
