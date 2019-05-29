@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
 **
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
@@ -636,12 +636,17 @@ void QMqttConnection::finalize_unsuback()
 void QMqttConnection::finalize_publish()
 {
     // String topic
-    const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+    QDataStream dataStream(readBuffer(2));
+    quint16 topicLength;
+    dataStream >> topicLength;
+//    const quint16 topicLength = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
     const QMqttTopicName topic = QString::fromUtf8(reinterpret_cast<const char *>(readBuffer(topicLength).constData()));
 
     quint16 id = 0;
     if (m_currentPublish.qos > 0) {
-        id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
+        QDataStream idStream(readBuffer(2));
+        idStream >> id;
+//        id = qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
     }
 
     // message
