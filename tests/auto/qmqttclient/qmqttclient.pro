@@ -1,4 +1,4 @@
-CONFIG += testcase
+CONFIG += testcase C++11
 QT       += network testlib mqtt
 QT       -= gui
 QT_PRIVATE += mqtt-private
@@ -15,3 +15,4 @@ INCLUDEPATH += \
     $$PWD/../../common
 
 DEFINES += SRCDIR=\\\"$$PWD/\\\"
+

@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
 **
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
@@ -281,7 +281,7 @@ void Tst_QMqttClient::compliantTopic_data()
     QTest::newRow("subPath") << QString::fromLatin1("topic/subtopic");
 
     QString l;
-    l.fill(QLatin1Char('T'), std::numeric_limits<std::uint16_t>::max());
+    l.fill(QLatin1Char('T'), std::numeric_limits<unsigned short>::max());
     QTest::newRow("maxSize") << l;
 }
 
@@ -289,7 +289,7 @@ void Tst_QMqttClient::compliantTopic()
 {
     QFETCH(QString, topic);
     QString truncTopic = topic;
-    truncTopic.truncate(std::numeric_limits<std::uint16_t>::max());
+    truncTopic.truncate(std::numeric_limits<unsigned short>::max());
 
     QMqttClient publisher;
     publisher.setClientId(QLatin1String("publisher"));
@@ -334,9 +334,10 @@ void Tst_QMqttClient::subscribeLongTopic()
     QTRY_COMPARE(subscriber.state(), QMqttClient::Connected);
 
     QString topic;
-    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
+    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<unsigned short>::max());
     auto sub = subscriber.subscribe(topic);
-    QCOMPARE(sub, nullptr);
+    QObject *obj = nullptr;
+    QCOMPARE(sub, obj);
 }
 
 void Tst_QMqttClient::dataIncludingZero()
@@ -385,7 +386,7 @@ void Tst_QMqttClient::publishLongTopic()
     QTRY_COMPARE(publisher.state(), QMqttClient::Connected);
 
     QString topic;
-    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<std::uint16_t>::max());
+    topic.fill(QLatin1Char('s'), 2 * std::numeric_limits<unsigned short>::max());
     auto pub = publisher.publish(topic);
     QCOMPARE(pub, -1);
 }

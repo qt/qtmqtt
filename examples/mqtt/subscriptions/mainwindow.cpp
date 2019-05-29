@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
 **
 ** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
@@ -63,6 +63,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     m_client = new QMqttClient(this);
+    m_client->setClientId(ui->lineEditClientID->text());
+    m_client->setUsername(ui->lineEditUserName->text());
+    m_client->setPassword(ui->lineEditPWD->text());
     m_client->setHostname(ui->lineEditHost->text());
     m_client->setPort(ui->spinBoxPort->value());
 
@@ -88,7 +91,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(ui->lineEditHost, &QLineEdit::textChanged, m_client, &QMqttClient::setHostname);
-    connect(ui->spinBoxPort, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::setClientPort);
+    connect(ui->lineEditClientID,&QLineEdit::textChanged,m_client,&QMqttClient::setClientId);
+    connect(ui->lineEditUserName,&QLineEdit::textChanged,m_client,&QMqttClient::setUsername);
+    connect(ui->lineEditPWD,&QLineEdit::textChanged,m_client,&QMqttClient::setPassword);
+    connect(ui->spinBoxPort, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &MainWindow::setClientPort);
     updateLogStateChange();
 }
 

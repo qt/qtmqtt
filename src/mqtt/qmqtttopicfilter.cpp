@@ -1,4 +1,4 @@
-/******************************************************************************
+﻿/******************************************************************************
 **
 ** Copyright (C) 2017 Lorenz Haas
 ** Contact: https://www.qt.io/licensing/
@@ -203,8 +203,8 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
     if (matchOptions.testFlag(WildcardsDontMatchDollarTopicMatchOption)
         && topic.startsWith(QLatin1Char('$'))
         && (d->filter.startsWith(QLatin1Char('+'))
-            || d->filter == QLatin1Char('#')
-            || d->filter == QLatin1String("/#"))) {
+            || d->filter.toLatin1() == QChar('#')
+            || d->filter.toLatin1() == QString("/#"))) {
         return false;
     }
 
@@ -222,7 +222,7 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
             return false;
         for (int i = 0; i < filterLevels.size(); ++i) {
             const QStringRef &level = filterLevels.at(i);
-            if (level != QLatin1Char('+') && level != topicLevels.at(i))
+            if (level != QChar('+') && level != topicLevels.at(i))
                 return false;
         }
         return true;
