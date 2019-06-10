@@ -311,17 +311,19 @@ void QMqttConnectionProperties::setSessionExpiryInterval(quint32 expiry)
 }
 
 /*!
-    Sets the maximum QoS level the client is allowed to receive to \a qos.
+    Sets the maximum amount of QoS 1 and QoS 2 publications
+    that the client is willing to process concurrently for this session
+    to \a maximumReceive.
 
     A maximum receive value of 0 is not allowed.
 */
-void QMqttConnectionProperties::setMaximumReceive(quint16 qos)
+void QMqttConnectionProperties::setMaximumReceive(quint16 maximumReceive)
 {
-    if (qos == 0) {
+    if (maximumReceive == 0) {
         qCDebug(lcMqttConnection) << "Maximum Receive is not allowed to be 0.";
         return;
     }
-    data->maximumReceive = qos;
+    data->maximumReceive = maximumReceive;
 }
 
 /*!
@@ -430,7 +432,10 @@ quint32 QMqttConnectionProperties::sessionExpiryInterval() const
 }
 
 /*!
-    Returns the maximum QoS level the client can receive.
+    Returns the maximum amount of QoS 1 and QoS 2 publications
+    that the client (when obtained from \l QMqttClient::connectionProperties())
+    or the server (when obtained from \l QMqttClient::serverConnectionProperties())
+    is willing to process concurrently for this session.
 */
 quint16 QMqttConnectionProperties::maximumReceive() const
 {
@@ -542,8 +547,17 @@ bool QMqttServerConnectionProperties::isValid() const
 }
 
 /*!
-    Returns the maximum QoS level the server is able to understand.
-    The default value is 2.
+    Returns the maximum QoS level the server supports for publishing messages.
+    Publishing messages with QoS level exceeding the maximum QoS level reported by the server
+    is a protocol violation.
+
+    If the client does not need to support QoS 1 or QoS 2, it should restrict the maximum QoS level
+    in any subscription it does to a value it can support; the server would then publish messages
+    with the maximum of supported and restricted QoS levels.
+
+    The default value is \c 2.
+
+    \sa QMqttClient::publish(), QMqttClient::subscribe()
 */
 quint8 QMqttServerConnectionProperties::maximumQoS() const
 {
