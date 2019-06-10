@@ -46,7 +46,7 @@
 #include "qmqttmessage.h"
 #include "qmqttsubscription.h"
 #include <QtCore/QBuffer>
-#include <QtCore/QMap>
+#include <QtCore/QHash>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 #include <QtCore/QTimer>
@@ -147,11 +147,11 @@ private:
     QMqttControlPacket::PacketType m_currentPacket{QMqttControlPacket::UNKNOWN};
 
     bool writePacketToTransport(const QMqttControlPacket &p);
-    QMap<quint16, QMqttSubscription *> m_pendingSubscriptionAck;
-    QMap<quint16, QMqttSubscription *> m_pendingUnsubscriptions;
-    QMap<QMqttTopicFilter, QMqttSubscription *> m_activeSubscriptions;
-    QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingMessages;
-    QMap<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
+    QHash<quint16, QMqttSubscription *> m_pendingSubscriptionAck;
+    QHash<quint16, QMqttSubscription *> m_pendingUnsubscriptions;
+    QHash<QMqttTopicFilter, QMqttSubscription *> m_activeSubscriptions;
+    QHash<quint16, QSharedPointer<QMqttControlPacket>> m_pendingMessages;
+    QHash<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
     InternalConnectionState m_internalState{BrokerDisconnected};
     QTimer m_pingTimer;
 
