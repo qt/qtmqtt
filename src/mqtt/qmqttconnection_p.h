@@ -45,11 +45,11 @@
 #include "qmqttcontrolpacket_p.h"
 #include "qmqttmessage.h"
 #include "qmqttsubscription.h"
+#include <QtCore/QBasicTimer>
 #include <QtCore/QBuffer>
 #include <QtCore/QHash>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
-#include <QtCore/QTimer>
 #include <QtCore/QtEndian>
 
 QT_BEGIN_NAMESPACE
@@ -102,6 +102,9 @@ public Q_SLOTS:
     void transportReadReady();
     void transportError(QAbstractSocket::SocketError e);
 
+protected:
+    void timerEvent(QTimerEvent *event) override;
+
 public:
     QIODevice *m_transport{nullptr};
     QMqttClient::TransportType m_transportType{QMqttClient::IODevice};
@@ -153,7 +156,7 @@ private:
     QHash<quint16, QSharedPointer<QMqttControlPacket>> m_pendingMessages;
     QHash<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
     InternalConnectionState m_internalState{BrokerDisconnected};
-    QTimer m_pingTimer;
+    QBasicTimer m_pingTimer;
     int m_pingTimeout{0};
 
     QVector<QMqttTopicName> m_receiveAliases;

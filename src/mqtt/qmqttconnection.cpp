@@ -94,8 +94,6 @@ QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
-    m_pingTimer.setSingleShot(false);
-    m_pingTimer.connect(&m_pingTimer, &QTimer::timeout, this, &QMqttConnection::sendControlPingRequest);
 }
 
 QMqttConnection::~QMqttConnection()
@@ -105,6 +103,16 @@ QMqttConnection::~QMqttConnection()
 
     if (m_ownTransport && m_transport)
         delete m_transport;
+}
+
+void QMqttConnection::timerEvent(QTimerEvent *event)
+{
+    if (Q_LIKELY(event->timerId() == m_pingTimer.timerId())) {
+        sendControlPingRequest();
+        return;
+    }
+
+    QObject::timerEvent(event);
 }
 
 void QMqttConnection::setTransport(QIODevice *device, QMqttClient::TransportType transport)
@@ -1462,8 +1470,7 @@ void QMqttConnection::finalize_connack()
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
 
-    m_pingTimer.setInterval(m_clientPrivate->m_keepAlive * 1000);
-    m_pingTimer.start();
+    m_pingTimer.start(m_clientPrivate->m_keepAlive * 1000, this);
 }
 
 void QMqttConnection::finalize_suback()
