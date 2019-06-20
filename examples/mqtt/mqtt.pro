@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
-SUBDIRS += \
+qtHaveModule(gui): SUBDIRS += \
            simpleclient \
            subscriptions
 
