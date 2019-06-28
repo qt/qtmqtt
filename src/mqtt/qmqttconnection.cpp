@@ -253,7 +253,7 @@ bool QMqttConnection::sendControlConnect()
     if (m_clientPrivate->m_cleanSession)
         flags |= 1 << 1;
 
-    if (!m_clientPrivate->m_willMessage.isEmpty()) {
+    if (!m_clientPrivate->m_willTopic.isEmpty()) {
         flags |= 1 << 2;
         if (m_clientPrivate->m_willQoS > 2) {
             qCDebug(lcMqttConnection) << "Invalid Will QoS specified.";
@@ -290,7 +290,7 @@ bool QMqttConnection::sendControlConnect()
         packet.append(char(0));
     }
 
-    if (!m_clientPrivate->m_willMessage.isEmpty()) {
+    if (!m_clientPrivate->m_willTopic.isEmpty()) {
         if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
             packet.appendRaw(writeLastWillProperties());
 
