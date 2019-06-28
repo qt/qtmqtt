@@ -1,6 +1,7 @@
 TEMPLATE = subdirs
 SUBDIRS += \
-           consolepubsub \
+           consolepubsub
+qtHaveModule(gui): SUBDIRS += \
            simpleclient \
            subscriptions
 
