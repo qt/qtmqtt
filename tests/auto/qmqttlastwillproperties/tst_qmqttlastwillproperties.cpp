@@ -28,6 +28,7 @@
 
 #include "broker_connection.h"
 
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QString>
 #include <QtTest/QtTest>
 #include <QtMqtt/QMqttClient>
@@ -176,7 +177,7 @@ void tst_QMqttLastWillProperties::willDelay()
     recipient.connectToHost();
     QTRY_VERIFY2(recipient.state() == QMqttClient::Connected, "Could not connect to broker");
 
-    QTime delayTime;
+    QElapsedTimer delayTimer;
     bool receivedWill = false;
     auto sub = recipient.subscribe(wTopic, 1);
     connect(sub, &QMqttSubscription::messageReceived, this, [wMessage, &receivedWill](QMqttMessage m) {
@@ -187,13 +188,12 @@ void tst_QMqttLastWillProperties::willDelay()
 
     auto transport = client.transport();
     transport->close(); // closing transport does not send DISCONNECT
-    delayTime = QTime::currentTime();
-    delayTime.start();
+    delayTimer.start();
 
     const int minimalWait = qMin(delay, expiry) * 1000;
     const int maximumWait = 2 * (minimalWait == 0 ? 1000 : minimalWait);
     QTRY_VERIFY2_WITH_TIMEOUT(receivedWill, "Did not receive a will message", delay * 1000 * 3);
-    const int elapsed = delayTime.elapsed();
+    const int elapsed = delayTimer.elapsed();
     QVERIFY(elapsed > minimalWait);
     QVERIFY(elapsed < maximumWait);
 }
