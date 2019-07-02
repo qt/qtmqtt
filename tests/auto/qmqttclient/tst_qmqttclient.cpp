@@ -74,6 +74,8 @@ private Q_SLOTS:
     void messageStatusReceive_data();
     void messageStatusReceive();
     void subscriptionIdsOverlap();
+    void keepAlive_data();
+    void keepAlive();
 private:
     QProcess m_brokerProcess;
     QString m_testBroker;
@@ -147,6 +149,9 @@ void Tst_QMqttClient::getSetCheck()
     QCOMPARE(client.willMessage(), QByteArray());
     QCOMPARE(client.willQoS(), quint8(0));
     QCOMPARE(client.willRetain(), false);
+    QCOMPARE(client.autoKeepAlive(), true);
+    client.setAutoKeepAlive(false);
+    QCOMPARE(client.autoKeepAlive(), false);
 }
 
 void Tst_QMqttClient::sendReceive_data()
@@ -825,6 +830,83 @@ void Tst_QMqttClient::subscriptionIdsOverlap()
     QTRY_VERIFY2(receiveBCounter == 0, "Did not receive both messages.");
     QTRY_VERIFY2(receiveB2Counter == 0, "Did not receive both messages.");
     QTRY_VERIFY2(receiveACounter == 1, "Did not receive non-overlapping message.");
+}
+
+DefaultVersionTestData(Tst_QMqttClient::keepAlive_data)
+
+void Tst_QMqttClient::keepAlive()
+{
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+    const quint16 keepAlive = 1;
+
+    VersionClient(mqttVersion, client);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    client.setKeepAlive(keepAlive);
+    QCOMPARE(client.keepAlive(), keepAlive);
+    QCOMPARE(client.autoKeepAlive(), true); // default
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    if (client.protocolVersion() == QMqttClient::MQTT_5_0) {
+        const auto serverProps = client.serverConnectionProperties();
+        if (serverProps.isValid() && serverProps.availableProperties() & QMqttServerConnectionProperties::ServerKeepAlive) {
+            if (serverProps.serverKeepAlive() == 0 || serverProps.serverKeepAlive() > keepAlive) {
+                qDebug() << "Server specifies keepAlive which cannot be used for this test";
+                return;
+            }
+        }
+    }
+
+    // Changing autoKeepAlive is not possible while connected
+    client.setAutoKeepAlive(false);
+    QCOMPARE(client.autoKeepAlive(), true);
+
+    // Sending a manual ping request with autoKeepAlive is not allowed
+    // and will be suppressed.
+    const bool sent = client.requestPing();
+    QCOMPARE(sent, false);
+
+    // Verify auto keep alive works
+    QSignalSpy spy(&client, &QMqttClient::pingResponseReceived);
+    QTRY_VERIFY_WITH_TIMEOUT(spy.count() == 5, keepAlive * 1000 * 5 * 2);
+    spy.clear();
+
+    client.disconnectFromHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Disconnected);
+
+    // Set manual keepAlive
+    client.setAutoKeepAlive(false);
+    QCOMPARE(client.autoKeepAlive(), false);
+    client.setKeepAlive(keepAlive);
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    // Check for timeout / disconnect when not ping sent
+    QTRY_COMPARE_WITH_TIMEOUT(client.state(), QMqttClient::Disconnected, keepAlive * 1000 * 5 * 2);
+
+    // Check manual ping
+    QTimer t;
+    t.setInterval(keepAlive * 1000);
+    t.setSingleShot(false);
+    t.connect(&t, &QTimer::timeout, [&client]() {
+        client.requestPing();
+    });
+
+    connect(&client, &QMqttClient::connected, [&t]() {
+        t.start();
+    });
+
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    QTRY_VERIFY_WITH_TIMEOUT(spy.count() == 5, keepAlive * 1000 * 5 * 2);
+
+    client.disconnectFromHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Disconnected);
 }
 
 QTEST_MAIN(Tst_QMqttClient)

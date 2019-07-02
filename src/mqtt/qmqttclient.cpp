@@ -94,6 +94,8 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
 
     If the broker does not respond within a grace period the connection will be
     closed.
+
+    \sa autoKeepAlive(), requestPing(), pingResponseReceived()
 */
 
 /*!
@@ -154,6 +156,24 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
     \property QMqttClient::willRetain
     \brief This property holds whether the Will Message should be retained on
     the broker for future subscribers to receive.
+*/
+
+/*!
+    \property QMqttClient::autoKeepAlive
+    \since 5.14
+    \brief This property holds whether the client will automatically manage
+    keep alive messages to the server.
+
+    If this property is \c true, then the client will automatically send a
+    ping message to the server at the keepAlive interval.
+
+    Otherwise, a user will have to manually invoke requestPing
+    within the specified interval of the connection. If no ping has been
+    sent within the interval, the server will disconnect.
+
+    The default of this property is \c true.
+
+    \sa keepAlive(), requestPing(), serverConnectionProperties(), pingResponseReceived()
 */
 
 /*!
@@ -471,19 +491,25 @@ qint32 QMqttClient::publish(const QMqttTopicName &topic, const QMqttPublishPrope
 }
 
 /*!
-    Sends a ping message to the broker and expects a reply. If the connection
-    is active, the MQTT client will automatically send a ping message at
-    \l keepAlive intervals.
+    Sends a ping message to the broker and expects a reply.
+
+    If the connection is active and \l autoKeepAlive is \c true, then calling this
+    function will fail as the client is responsible for managing this process.
+
+    Using \c requestPing() manually requires a call every time within the \l keepAlive
+    interval as long as the connection is active.
 
     To check whether the ping is successful, connect to the
     \l pingResponseReceived() signal.
 
     Returns \c true if the ping request could be sent.
+
+    \sa pingResponseReceived(), autoKeepAlive(), keepAlive()
  */
 bool QMqttClient::requestPing()
 {
     Q_D(QMqttClient);
-    return d->m_connection.sendControlPingRequest();
+    return d->m_connection.sendControlPingRequest(false);
 }
 
 QString QMqttClient::hostname() const
@@ -640,6 +666,12 @@ bool QMqttClient::willRetain() const
 {
     Q_D(const QMqttClient);
     return d->m_willRetain;
+}
+
+bool QMqttClient::autoKeepAlive() const
+{
+    Q_D(const QMqttClient);
+    return d->m_autoKeepAlive;
 }
 
 /*!
@@ -983,6 +1015,22 @@ void QMqttClient::setWillRetain(bool willRetain)
 
     d->m_willRetain = willRetain;
     emit willRetainChanged(willRetain);
+}
+
+void QMqttClient::setAutoKeepAlive(bool autoKeepAlive)
+{
+    Q_D(QMqttClient);
+
+    if (state() != QMqttClient::Disconnected) {
+        qCDebug(lcMqttClient) << "Changing autoKeepAlive while connected is not possible.";
+        return;
+    }
+
+    if (d->m_autoKeepAlive == autoKeepAlive)
+        return;
+
+    d->m_autoKeepAlive = autoKeepAlive;
+    emit autoKeepAliveChanged(d->m_autoKeepAlive);
 }
 
 void QMqttClient::setError(ClientError e)
