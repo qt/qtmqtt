@@ -263,14 +263,25 @@ void Tst_QMqttClient::retainMessage()
     publisher.disconnect();
 }
 
-DefaultVersionTestData(Tst_QMqttClient::willMessage_data)
+void Tst_QMqttClient::willMessage_data()
+{
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
+    QTest::addColumn<QByteArray>("willMessage");
+
+    QList<QMqttClient::ProtocolVersion> versions{QMqttClient::MQTT_3_1_1, QMqttClient::MQTT_5_0};
+
+    for (int i = 0; i < 2; ++i) {
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":simple")) << versions[i] << QByteArray("The client connection is gone.");
+        QTest::newRow(qPrintable(QString::number(versions[i]) + ":empty")) << versions[i] << QByteArray();
+    }
+}
 
 void Tst_QMqttClient::willMessage()
 {
     QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+    QFETCH(QByteArray, willMessage);
 
     const QString willTopic = QLatin1String("Qt/QMqttClient/will/topic");
-    const QByteArray willMessage("The client died....");
 
     // Client A connects
     VersionClient(mqttVersion, client1);
