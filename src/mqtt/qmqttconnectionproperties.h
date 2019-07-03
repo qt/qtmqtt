@@ -89,7 +89,7 @@ public:
     QByteArray authenticationData() const;
 
     void setSessionExpiryInterval(quint32 expiry);
-    void setMaximumReceive(quint16 qos);
+    void setMaximumReceive(quint16 maximumReceive);
     void setMaximumPacketSize(quint32 packetSize);
     void setMaximumTopicAlias(quint16 alias);
     void setRequestResponseInformation(bool response);
