@@ -706,6 +706,7 @@ void QMqttConnection::readBuffer(char *data, quint64 size)
     if (Q_UNLIKELY(quint64(m_readBuffer.size() - m_readPosition) < size)) {
         qCDebug(lcMqttConnection) << "Reaching out of buffer, protocol violation";
         closeConnection(QMqttClient::ProtocolViolation);
+        return;
     }
     memcpy(data, m_readBuffer.constData() + m_readPosition, size);
     m_readPosition += size;
