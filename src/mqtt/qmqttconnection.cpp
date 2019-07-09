@@ -94,8 +94,6 @@ QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
-    m_pingTimer.setSingleShot(false);
-    m_pingTimer.connect(&m_pingTimer, &QTimer::timeout, this, &QMqttConnection::sendControlPingRequest);
 }
 
 QMqttConnection::~QMqttConnection()
@@ -105,6 +103,16 @@ QMqttConnection::~QMqttConnection()
 
     if (m_ownTransport && m_transport)
         delete m_transport;
+}
+
+void QMqttConnection::timerEvent(QTimerEvent *event)
+{
+    if (Q_LIKELY(event->timerId() == m_pingTimer.timerId())) {
+        sendControlPingRequest();
+        return;
+    }
+
+    QObject::timerEvent(event);
 }
 
 void QMqttConnection::setTransport(QIODevice *device, QMqttClient::TransportType transport)
@@ -255,7 +263,7 @@ bool QMqttConnection::sendControlConnect()
     if (m_clientPrivate->m_cleanSession)
         flags |= 1 << 1;
 
-    if (!m_clientPrivate->m_willMessage.isEmpty()) {
+    if (!m_clientPrivate->m_willTopic.isEmpty()) {
         flags |= 1 << 2;
         if (m_clientPrivate->m_willQoS > 2) {
             qCDebug(lcMqttConnection) << "Invalid Will QoS specified.";
@@ -292,7 +300,7 @@ bool QMqttConnection::sendControlConnect()
         packet.append(char(0));
     }
 
-    if (!m_clientPrivate->m_willMessage.isEmpty()) {
+    if (!m_clientPrivate->m_willTopic.isEmpty()) {
         if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
             packet.appendRaw(writeLastWillProperties());
 
@@ -468,15 +476,22 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        if (!topic.sharedSubscriptionName().isEmpty()) {
+        const QString sharedSubscriptionName = topic.sharedSubscriptionName();
+        if (!sharedSubscriptionName.isEmpty()) {
             const QMqttTopicFilter filter(topic.filter().section(QLatin1Char('/'), 2));
-            if (m_activeSubscriptions.contains(filter)
-                    && m_activeSubscriptions.value(filter)->sharedSubscriptionName() == topic.sharedSubscriptionName())
-                return m_activeSubscriptions[filter];
-        } else if (m_activeSubscriptions.contains(topic) && !m_activeSubscriptions.value(topic)->isSharedSubscription())
-            return m_activeSubscriptions[topic];
-    } else if (m_activeSubscriptions.contains(topic))
-        return m_activeSubscriptions[topic];
+            auto it = m_activeSubscriptions.constFind(filter);
+            if (it != m_activeSubscriptions.cend() && (*it)->sharedSubscriptionName() == sharedSubscriptionName)
+                return *it;
+        } else {
+            auto it = m_activeSubscriptions.constFind(topic);
+            if (it != m_activeSubscriptions.cend() && !(*it)->isSharedSubscription())
+                return *it;
+        }
+    } else {
+        auto it = m_activeSubscriptions.constFind(topic);
+        if (it != m_activeSubscriptions.cend())
+            return *it;
+    }
 
     // has to have 0010 as bits 3-0, maybe update SUBSCRIBE instead?
     // MQTT-3.8.1-1
@@ -1457,19 +1472,18 @@ void QMqttConnection::finalize_connack()
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
 
-    m_pingTimer.setInterval(m_clientPrivate->m_keepAlive * 1000);
-    m_pingTimer.start();
+    m_pingTimer.start(m_clientPrivate->m_keepAlive * 1000, this);
 }
 
 void QMqttConnection::finalize_suback()
 {
     const quint16 id = readBufferTyped<quint16>(&m_missingData);
-    if (!m_pendingSubscriptionAck.contains(id)) {
+
+    auto sub = m_pendingSubscriptionAck.take(id);
+    if (Q_UNLIKELY(sub == nullptr)) {
         qCDebug(lcMqttConnection) << "Received SUBACK for unknown subscription request.";
         return;
     }
-
-    auto sub = m_pendingSubscriptionAck.take(id);
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readSubscriptionProperties(sub);
@@ -1498,11 +1512,13 @@ void QMqttConnection::finalize_unsuback()
 {
     const quint16 id = readBufferTyped<quint16>(&m_missingData);
     qCDebug(lcMqttConnectionVerbose) << "Finalize UNSUBACK: " << id;
-    if (!m_pendingUnsubscriptions.contains(id)) {
+
+    auto sub = m_pendingUnsubscriptions.take(id);
+    if (Q_UNLIKELY(sub == nullptr)) {
         qCDebug(lcMqttConnection) << "Received UNSUBACK for unknown request.";
         return;
     }
-    auto sub = m_pendingUnsubscriptions.take(id);
+
     sub->setState(QMqttSubscription::Unsubscribed);
     m_activeSubscriptions.remove(sub->topic());
 }

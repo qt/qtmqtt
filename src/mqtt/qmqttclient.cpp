@@ -90,9 +90,7 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
     frequent updates to propagate it can still be reached. The interval between
     those updates is specified by this property.
 
-    The interval is specified in milliseconds. However, most brokers are not
-    capable of using such a high granularity and will fall back to an interval
-    specified in seconds.
+    The interval is specified in seconds.
 
     If the broker does not respond within a grace period the connection will be
     closed.
