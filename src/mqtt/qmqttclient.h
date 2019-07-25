@@ -101,6 +101,8 @@ private:
 public:
     explicit QMqttClient(QObject *parent = nullptr);
 
+    virtual ~QMqttClient() = default;
+
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
 
