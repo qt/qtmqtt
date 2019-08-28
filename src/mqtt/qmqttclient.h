@@ -101,6 +101,7 @@ private:
     Q_PROPERTY(QByteArray willMessage READ willMessage WRITE setWillMessage NOTIFY willMessageChanged)
     Q_PROPERTY(quint8 willQoS READ willQoS WRITE setWillQoS NOTIFY willQoSChanged)
     Q_PROPERTY(bool willRetain READ willRetain WRITE setWillRetain NOTIFY willRetainChanged)
+    Q_PROPERTY(bool autoKeepAlive READ autoKeepAlive WRITE setAutoKeepAlive NOTIFY autoKeepAliveChanged)
 public:
     explicit QMqttClient(QObject *parent = nullptr);
 
@@ -148,6 +149,7 @@ public:
     quint8 willQoS() const;
     QByteArray willMessage() const;
     bool willRetain() const;
+    bool autoKeepAlive() const;
 
     void setConnectionProperties(const QMqttConnectionProperties &prop);
     QMqttConnectionProperties connectionProperties() const;
@@ -182,6 +184,7 @@ Q_SIGNALS:
     void willQoSChanged(quint8 willQoS);
     void willMessageChanged(QByteArray willMessage);
     void willRetainChanged(bool willRetain);
+    void autoKeepAliveChanged(bool autoKeepAlive);
 
     void authenticationRequested(const QMqttAuthenticationProperties &p);
     void authenticationFinished(const QMqttAuthenticationProperties &p);
@@ -201,6 +204,7 @@ public Q_SLOTS:
     void setWillQoS(quint8 willQoS);
     void setWillMessage(const QByteArray &willMessage);
     void setWillRetain(bool willRetain);
+    void setAutoKeepAlive(bool autoKeepAlive);
 
 private:
     void connectToHost(bool encrypted, const QString &sslPeerName);
