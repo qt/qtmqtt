@@ -587,20 +587,27 @@ bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic, cons
     return true;
 }
 
-bool QMqttConnection::sendControlPingRequest()
+bool QMqttConnection::sendControlPingRequest(bool isAuto)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO;
 
     if (m_internalState != QMqttConnection::BrokerConnected)
         return false;
 
+
+    if (!isAuto && m_clientPrivate->m_autoKeepAlive) {
+        qCDebug(lcMqttConnection) << "Requesting a manual ping while autoKeepAlive is enabled "
+                                  << "is not allowed.";
+        return false;
+    }
+
     // 3.1.2.10 If a Client does not receive a PINGRESP packet within a reasonable amount of time
     // after it has sent a PINGREQ, it SHOULD close the Network Connection to the Server
-    // Consider two pending PINGRESP as reasonable.
     if (m_pingTimeout > 1) {
         closeConnection(QMqttClient::ServerUnavailable);
         return false;
     }
+
     const QMqttControlPacket packet(QMqttControlPacket::PINGREQ);
     if (!writePacketToTransport(packet)) {
         qCDebug(lcMqttConnection) << "Failed to write PINGREQ to transport.";
@@ -1473,7 +1480,8 @@ void QMqttConnection::finalize_connack()
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
 
-    m_pingTimer.start(m_clientPrivate->m_keepAlive * 1000, this);
+    if (m_clientPrivate->m_autoKeepAlive)
+        m_pingTimer.start(m_clientPrivate->m_keepAlive * 1000, this);
 }
 
 void QMqttConnection::finalize_suback()

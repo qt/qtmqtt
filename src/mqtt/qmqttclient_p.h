@@ -71,6 +71,7 @@ public:
     QByteArray m_willMessage;
     quint8 m_willQoS{0};
     bool m_willRetain{false};
+    bool m_autoKeepAlive{true};
     QString m_username;
     QString m_password;
     bool m_cleanSession{true};
