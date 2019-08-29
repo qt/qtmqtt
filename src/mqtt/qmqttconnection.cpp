@@ -47,49 +47,33 @@ QT_BEGIN_NAMESPACE
 Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
 Q_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
-template<>
-quint32 QMqttConnection::readBufferTyped(qint64 *dataSize)
+template <typename T>
+T QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
-    if (dataSize)
-        *dataSize -= sizeof(quint32);
-    return qFromBigEndian<quint32>(reinterpret_cast<const quint32 *>(readBuffer(4).constData()));
-}
+    Q_STATIC_ASSERT(std::is_integral<T>::value);
 
-template<>
-quint16 QMqttConnection::readBufferTyped(qint64 *dataSize)
-{
-    if (dataSize)
-        *dataSize -= sizeof(quint16);
-    return qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-}
-
-template<>
-quint8 QMqttConnection::readBufferTyped(qint64 *dataSize)
-{
-    quint8 result;
-    readBuffer(reinterpret_cast<char *>(&result), 1);
-    if (dataSize)
-        *dataSize -= sizeof(quint8);
-    return result;
-}
-
-template<>
-QString QMqttConnection::readBufferTyped(qint64 *dataSize)
-{
-    const quint16 size = readBufferTyped<quint16>(dataSize);
-    if (dataSize)
-        *dataSize -= size;
-    const QByteArray ba = readBuffer(size);
-    return QString::fromUtf8(reinterpret_cast<const char *>(ba.constData()), ba.size());
+    T result;
+    readBuffer(reinterpret_cast<char *>(&result), sizeof(result));
+    if (dataSize != nullptr)
+        *dataSize -= sizeof(result);
+    return qFromBigEndian(result);
 }
 
 template<>
 QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
     const quint16 size = readBufferTyped<quint16>(dataSize);
+    QByteArray ba(int(size), Qt::Uninitialized);
+    readBuffer(ba.data(), size);
     if (dataSize)
         *dataSize -= size;
-    return readBuffer(size);
+    return ba;
+}
+
+template<>
+QString QMqttConnection::readBufferTyped(qint64 *dataSize)
+{
+    return QString::fromUtf8(readBufferTyped<QByteArray>(dataSize));
 }
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
