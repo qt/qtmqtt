@@ -86,7 +86,7 @@ public:
     bool sendControlPublishComp(quint16 id);
     QMqttSubscription *sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos, const QMqttSubscriptionProperties &properties);
     bool sendControlUnsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties);
-    bool sendControlPingRequest();
+    bool sendControlPingRequest(bool isAuto = true);
     bool sendControlDisconnect();
 
     void setClientPrivate(QMqttClientPrivate *clientPrivate);
