@@ -47,49 +47,33 @@ QT_BEGIN_NAMESPACE
 Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
 Q_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
-template<>
-quint32 QMqttConnection::readBufferTyped(qint64 *dataSize)
+template <typename T>
+T QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
-    if (dataSize)
-        *dataSize -= sizeof(quint32);
-    return qFromBigEndian<quint32>(reinterpret_cast<const quint32 *>(readBuffer(4).constData()));
-}
+    Q_STATIC_ASSERT(std::is_integral<T>::value);
 
-template<>
-quint16 QMqttConnection::readBufferTyped(qint64 *dataSize)
-{
-    if (dataSize)
-        *dataSize -= sizeof(quint16);
-    return qFromBigEndian<quint16>(reinterpret_cast<const quint16 *>(readBuffer(2).constData()));
-}
-
-template<>
-quint8 QMqttConnection::readBufferTyped(qint64 *dataSize)
-{
-    quint8 result;
-    readBuffer(reinterpret_cast<char *>(&result), 1);
-    if (dataSize)
-        *dataSize -= sizeof(quint8);
-    return result;
-}
-
-template<>
-QString QMqttConnection::readBufferTyped(qint64 *dataSize)
-{
-    const quint16 size = readBufferTyped<quint16>(dataSize);
-    if (dataSize)
-        *dataSize -= size;
-    const QByteArray ba = readBuffer(size);
-    return QString::fromUtf8(reinterpret_cast<const char *>(ba.constData()), ba.size());
+    T result;
+    readBuffer(reinterpret_cast<char *>(&result), sizeof(result));
+    if (dataSize != nullptr)
+        *dataSize -= sizeof(result);
+    return qFromBigEndian(result);
 }
 
 template<>
 QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
     const quint16 size = readBufferTyped<quint16>(dataSize);
+    QByteArray ba(int(size), Qt::Uninitialized);
+    readBuffer(ba.data(), size);
     if (dataSize)
         *dataSize -= size;
-    return readBuffer(size);
+    return ba;
+}
+
+template<>
+QString QMqttConnection::readBufferTyped(qint64 *dataSize)
+{
+    return QString::fromUtf8(readBufferTyped<QByteArray>(dataSize));
 }
 
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
@@ -587,20 +571,27 @@ bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic, cons
     return true;
 }
 
-bool QMqttConnection::sendControlPingRequest()
+bool QMqttConnection::sendControlPingRequest(bool isAuto)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO;
 
     if (m_internalState != QMqttConnection::BrokerConnected)
         return false;
 
+
+    if (!isAuto && m_clientPrivate->m_autoKeepAlive) {
+        qCDebug(lcMqttConnection) << "Requesting a manual ping while autoKeepAlive is enabled "
+                                  << "is not allowed.";
+        return false;
+    }
+
     // 3.1.2.10 If a Client does not receive a PINGRESP packet within a reasonable amount of time
     // after it has sent a PINGREQ, it SHOULD close the Network Connection to the Server
-    // Consider two pending PINGRESP as reasonable.
     if (m_pingTimeout > 1) {
         closeConnection(QMqttClient::ServerUnavailable);
         return false;
     }
+
     const QMqttControlPacket packet(QMqttControlPacket::PINGREQ);
     if (!writePacketToTransport(packet)) {
         qCDebug(lcMqttConnection) << "Failed to write PINGREQ to transport.";
@@ -1473,7 +1464,8 @@ void QMqttConnection::finalize_connack()
     m_internalState = BrokerConnected;
     m_clientPrivate->setStateAndError(QMqttClient::Connected);
 
-    m_pingTimer.start(m_clientPrivate->m_keepAlive * 1000, this);
+    if (m_clientPrivate->m_autoKeepAlive)
+        m_pingTimer.start(m_clientPrivate->m_keepAlive * 1000, this);
 }
 
 void QMqttConnection::finalize_suback()
