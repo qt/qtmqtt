@@ -1,0 +1,13 @@
+version: 1
+accept_configuration:
+  condition: property
+  property: host.os
+  equals_property: target.os
+
+build_instructions:
+  - !include "{{qt/qtbase}}/prepare_building_env.yaml"
+  - !include "{{qt/qtbase}}/cmake_module_build_instructions.yaml"
+  - !include "{{qt/qtbase}}/cmake_build_and_upload_test_artifacts.yaml"
+
+test_instructions:
+  - !include "{{qt/qtbase}}/cmake_regular_test_instructions.yaml"
