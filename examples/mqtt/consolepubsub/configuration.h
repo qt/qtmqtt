@@ -57,6 +57,7 @@
 #include <QLoggingCategory>
 #include <QString>
 #include <QMqttClient>
+#include <QSslConfiguration>
 #include <QSslSocket>
 
 struct Configuration
@@ -66,6 +67,9 @@ struct Configuration
     quint8 qos;
     bool retain{false};
     bool useEncryption{false};
+#ifndef QT_NO_SSL
+    QSslConfiguration sslConfiguration;
+#endif
 };
 
 QMqttClient *createClientWithConfiguration(QCoreApplication *app,
@@ -235,7 +239,7 @@ QMqttClient *createClientWithConfiguration(QCoreApplication *app,
             return nullptr;
         }
 
-        QSslSocket::addDefaultCaCertificates(defaultCerts);
+        msg->sslConfiguration.setCaCertificates(defaultCerts);
         msg->useEncryption = true;
 #endif
     }
