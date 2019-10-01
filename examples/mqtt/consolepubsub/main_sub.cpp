@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 
 #ifndef QT_NO_SSL
     if (description.useEncryption)
-        client->connectToHostEncrypted();
+        client->connectToHostEncrypted(description.sslConfiguration);
     else
 #endif
         client->connectToHost();
