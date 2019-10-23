@@ -80,7 +80,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
-        ui->buttonPing->setEnabled(true);
         const QString content = QDateTime::currentDateTime().toString()
                     + QLatin1String(" PingResponse")
                     + QLatin1Char('\n');
@@ -166,10 +165,4 @@ void MainWindow::on_buttonSubscribe_clicked()
     auto subWindow = new SubscriptionWindow(subscription);
     subWindow->setWindowTitle(subscription->topic().filter());
     subWindow->show();
-}
-
-void MainWindow::on_buttonPing_clicked()
-{
-    ui->buttonPing->setEnabled(false);
-    m_client->requestPing();
 }

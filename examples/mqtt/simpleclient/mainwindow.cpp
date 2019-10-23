@@ -79,7 +79,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
-        ui->buttonPing->setEnabled(true);
         const QString content = QDateTime::currentDateTime().toString()
                     + QLatin1String(" PingResponse")
                     + QLatin1Char('\n');
@@ -150,10 +149,4 @@ void MainWindow::on_buttonSubscribe_clicked()
         QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not subscribe. Is there a valid connection?"));
         return;
     }
-}
-
-void MainWindow::on_buttonPing_clicked()
-{
-    ui->buttonPing->setEnabled(false);
-    m_client->requestPing();
 }

@@ -82,8 +82,6 @@ private slots:
 
     void on_buttonSubscribe_clicked();
 
-    void on_buttonPing_clicked();
-
 private:
     Ui::MainWindow *ui;
     QMqttClient *m_client;
