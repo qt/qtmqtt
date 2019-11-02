@@ -66,7 +66,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 public slots:
@@ -82,8 +82,6 @@ private slots:
     void on_buttonPublish_clicked();
 
     void on_buttonSubscribe_clicked();
-
-    void on_buttonPing_clicked();
 
 private:
     Ui::MainWindow *ui;
