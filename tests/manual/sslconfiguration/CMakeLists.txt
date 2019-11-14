@@ -4,7 +4,7 @@
 ## sslconfiguration Binary:
 #####################################################################
 
-add_qt_executable(sslconfiguration
+qt_add_manual_test(sslconfiguration
     SOURCES
         main.cpp
     DEFINES

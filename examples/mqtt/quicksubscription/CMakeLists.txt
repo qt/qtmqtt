@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(INSTALL_EXAMPLEDIR "examples")
+set(INSTALL_EXAMPLEDIR "examples/mqtt/quicksubscription")
 
 find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS Gui)
@@ -24,6 +24,7 @@ add_qt_gui_executable(quicksubscription
 target_compile_definitions(quicksubscription PUBLIC
     QT_DEPRECATED_WARNINGS
 )
+
 target_link_libraries(quicksubscription PUBLIC
     Qt::Core
     Qt::Gui
@@ -32,18 +33,18 @@ target_link_libraries(quicksubscription PUBLIC
     Qt::Quick
 )
 
+
 # Resources:
 set(qml_resource_files
     "main.qml"
 )
 
-QT6_ADD_RESOURCES(quicksubscription "qml"
+qt6_add_resources(quicksubscription "qml"
     PREFIX
         "/"
     FILES
         ${qml_resource_files}
 )
-
 
 install(TARGETS quicksubscription
     RUNTIME DESTINATION "${INSTALL_EXAMPLEDIR}"

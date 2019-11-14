@@ -4,8 +4,7 @@
 ## tst_conformance Test:
 #####################################################################
 
-add_qt_test(tst_conformance
-    GUI
+qt_add_test(tst_conformance
     SOURCES
         ../../common/broker_connection.h
         tst_conformance.cpp

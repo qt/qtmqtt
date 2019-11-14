@@ -4,8 +4,7 @@
 ## tst_qmqttpublishproperties Test:
 #####################################################################
 
-add_qt_test(tst_qmqttpublishproperties
-    GUI
+qt_add_test(tst_qmqttpublishproperties
     SOURCES
         ../../common/broker_connection.h
         tst_qmqttpublishproperties.cpp

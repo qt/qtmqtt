@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(INSTALL_EXAMPLEDIR "examples")
+set(INSTALL_EXAMPLEDIR "examples/mqtt/websocketsubscription")
 
 find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS WebSockets)
@@ -23,6 +23,7 @@ add_executable(websocketsubscription
 target_compile_definitions(websocketsubscription PUBLIC
     QT_DEPRECATED_WARNINGS
 )
+
 target_link_libraries(websocketsubscription PUBLIC
     Qt::Core
     Qt::Mqtt

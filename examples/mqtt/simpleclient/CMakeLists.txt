@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(INSTALL_EXAMPLEDIR "examples")
+set(INSTALL_EXAMPLEDIR "examples/mqtt/simpleclient")
 
 find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS Gui)
@@ -24,6 +24,7 @@ add_qt_gui_executable(simplemqttclient
 target_compile_definitions(simplemqttclient PUBLIC
     QT_DEPRECATED_WARNINGS
 )
+
 target_link_libraries(simplemqttclient PUBLIC
     Qt::Core
     Qt::Gui
@@ -31,6 +32,12 @@ target_link_libraries(simplemqttclient PUBLIC
     Qt::Network
 )
 target_link_libraries(simplemqttclient PUBLIC Qt::Widgets) # special case
+
+if((QT_MAJOR_VERSION GREATER 4))
+    target_link_libraries(simplemqttclient PUBLIC
+        Qt::Widgets
+    )
+endif()
 
 install(TARGETS simplemqttclient
     RUNTIME DESTINATION "${INSTALL_EXAMPLEDIR}"

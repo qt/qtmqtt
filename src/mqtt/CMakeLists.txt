@@ -4,7 +4,7 @@
 ## Mqtt Module:
 #####################################################################
 
-add_qt_module(Mqtt
+qt_add_module(Mqtt
     SOURCES
         qmqttauthenticationproperties.cpp qmqttauthenticationproperties.h
         qmqttclient.cpp qmqttclient.h qmqttclient_p.h
@@ -25,15 +25,7 @@ add_qt_module(Mqtt
         Qt::Core
         Qt::Network
 )
-
-extend_target(Mqtt CONDITION MSVC AND (TEST_architecture_arch STREQUAL "i386")
-    LINK_OPTIONS
-        "/BASE:0x68000000"
-)
-
-#### Keys ignored in scope 1:.:.:mqtt.pro:<TRUE>:
-# _LOADED = "qt_module"
-add_qt_docs(
+qt_add_docs(Mqtt
     doc/qtmqtt.qdocconf
 )
 

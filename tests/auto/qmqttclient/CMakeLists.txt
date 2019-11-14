@@ -4,8 +4,7 @@
 ## tst_qmqttclient Test:
 #####################################################################
 
-add_qt_test(tst_qmqttclient
-    GUI
+qt_add_test(tst_qmqttclient
     SOURCES
         ../../common/broker_connection.h
         tst_qmqttclient.cpp

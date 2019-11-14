@@ -4,8 +4,7 @@
 ## tst_qmqttconnectionproperties Test:
 #####################################################################
 
-add_qt_test(tst_qmqttconnectionproperties
-    GUI
+qt_add_test(tst_qmqttconnectionproperties
     SOURCES
         ../../common/broker_connection.h
         tst_qmqttconnectionproperties.cpp

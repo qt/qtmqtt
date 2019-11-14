@@ -4,8 +4,7 @@
 ## tst_qmqtttopicname Test:
 #####################################################################
 
-add_qt_test(tst_qmqtttopicname
-    GUI
+qt_add_test(tst_qmqtttopicname
     SOURCES
         tst_qmqtttopicname.cpp
     DEFINES

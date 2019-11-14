@@ -4,8 +4,7 @@
 ## tst_qmqttlastwillproperties Test:
 #####################################################################
 
-add_qt_test(tst_qmqttlastwillproperties
-    GUI
+qt_add_test(tst_qmqttlastwillproperties
     SOURCES
         ../../common/broker_connection.h
         tst_qmqttlastwillproperties.cpp

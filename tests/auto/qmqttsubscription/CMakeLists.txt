@@ -4,8 +4,7 @@
 ## tst_qmqttsubscription Test:
 #####################################################################
 
-add_qt_test(tst_qmqttsubscription
-    GUI
+qt_add_test(tst_qmqttsubscription
     SOURCES
         ../../common/broker_connection.h
         tst_qmqttsubscription.cpp
