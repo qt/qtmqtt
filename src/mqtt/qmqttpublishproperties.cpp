@@ -269,6 +269,24 @@ void QMqttPublishProperties::setContentType(const QString &type)
     data->contentType = type;
 }
 
+/*!
+    \class QMqttMessageStatusProperties
+
+    \inmodule QtMqtt
+    \since 5.12
+
+    \brief The QMqttMessageStatusProperties class represents additional
+    information provided by the server during message delivery.
+
+    Depending on the QoS level of a message being sent by QMqttClient::publish(),
+    a server reports the state of delivery. Additionally to the QMqtt::MessageStatus,
+    complementary information might be included by the server. These are exposed to
+    users via QMqttMessageStatusProperties.
+
+    \note Message status properties are part of the MQTT 5.0 specification and
+    cannot be used when connecting with a lower protocol level. See
+    QMqttClient::ProtocolVersion for more information.
+*/
 QMqttMessageStatusProperties::QMqttMessageStatusProperties() : data(new QMqttMessageStatusPropertiesData)
 {
 
@@ -281,16 +299,25 @@ QMqttMessageStatusProperties &QMqttMessageStatusProperties::operator=(const QMqt
     return *this;
 }
 
+/*!
+    Returns the reason code of a failed message delivery.
+*/
 QMqtt::ReasonCode QMqttMessageStatusProperties::reasonCode() const
 {
     return data->reasonCode;
 }
 
+/*!
+    Returns the reason string of a failed message delivery.
+*/
 QString QMqttMessageStatusProperties::reason() const
 {
     return data->reasonString;
 }
 
+/*!
+    Returns properties specified in conjunction with a message.
+*/
 QMqttUserProperties QMqttMessageStatusProperties::userProperties() const
 {
     return data->userProperties;
