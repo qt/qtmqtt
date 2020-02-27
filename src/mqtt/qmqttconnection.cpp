@@ -153,6 +153,11 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 #endif
                                QMqttClient::AbstractSocket;
 
+#ifndef QT_NO_SSL
+    if (QSslSocket *sslSocket = qobject_cast<QSslSocket *>(socket))
+        QObject::connect(sslSocket, &QSslSocket::encrypted, this, &QMqttConnection::transportConnectionEstablished);
+    else
+#endif
     connect(socket, &QAbstractSocket::connected, this, &QMqttConnection::transportConnectionEstablished);
     connect(socket, &QAbstractSocket::disconnected, this, &QMqttConnection::transportConnectionClosed);
     connect(socket, static_cast<void (QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
@@ -199,16 +204,6 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
         if (!m_sslConfiguration.isNull())
             socket->setSslConfiguration(m_sslConfiguration);
         socket->connectToHostEncrypted(m_clientPrivate->m_hostname, m_clientPrivate->m_port, sslPeerName);
-
-        if (!socket->waitForConnected()) {
-            qCDebug(lcMqttConnection) << "Could not establish socket connection for transport.";
-            return false;
-        }
-
-        if (!socket->waitForEncrypted()) {
-            qCDebug(lcMqttConnection) << "Could not initiate encryption.";
-            return false;
-        }
     }
 #else
     Q_UNUSED(sslPeerName);
