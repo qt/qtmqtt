@@ -52,9 +52,12 @@ T QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
     Q_STATIC_ASSERT(std::is_integral<T>::value);
 
-    T result;
-    readBuffer(reinterpret_cast<char *>(&result), sizeof(result));
-    if (dataSize != nullptr)
+    T result = 0;
+    if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(sizeof(result)))) {
+        qCWarning(lcMqttConnection) << "Attempt to read past the data";
+        return result;
+    }
+    if (readBuffer(reinterpret_cast<char *>(&result), sizeof(result)) && dataSize != nullptr)
         *dataSize -= sizeof(result);
     return qFromBigEndian(result);
 }
@@ -63,9 +66,12 @@ template<>
 QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
     const quint16 size = readBufferTyped<quint16>(dataSize);
+    if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(size))) {
+        qCWarning(lcMqttConnection) << "Attempt to read past the data";
+        return QByteArray();
+    }
     QByteArray ba(int(size), Qt::Uninitialized);
-    readBuffer(ba.data(), size);
-    if (dataSize)
+    if (readBuffer(ba.data(), size) && dataSize != nullptr)
         *dataSize -= size;
     return ba;
 }
@@ -713,27 +719,26 @@ void QMqttConnection::transportError(QAbstractSocket::SocketError e)
     closeConnection(QMqttClient::TransportInvalid);
 }
 
-void QMqttConnection::readBuffer(char *data, quint64 size)
+bool QMqttConnection::readBuffer(char *data, quint64 size)
 {
     if (Q_UNLIKELY(quint64(m_readBuffer.size() - m_readPosition) < size)) {
         qCDebug(lcMqttConnection) << "Reaching out of buffer, protocol violation";
         closeConnection(QMqttClient::ProtocolViolation);
-        return;
+        return false;
     }
     memcpy(data, m_readBuffer.constData() + m_readPosition, size);
     m_readPosition += size;
+    return true;
 }
 
-qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
+qint32 QMqttConnection::readVariableByteInteger(qint64 *dataSize)
 {
     quint32 multiplier = 1;
     qint32 msgLength = 0;
     quint8 b = 0;
     quint8 iteration = 0;
-    if (byteCount)
-        *byteCount = 0;
     do {
-        b = readBufferTyped<quint8>();
+        b = readBufferTyped<quint8>(dataSize);
         msgLength += (b & 127) * multiplier;
         multiplier *= 128;
         iteration++;
@@ -743,8 +748,6 @@ qint32 QMqttConnection::readVariableByteInteger(qint32 *byteCount)
             return -1;
         }
     } while ((b & 128) != 0);
-    if (byteCount)
-        *byteCount += iteration;
     return msgLength;
 }
 
@@ -775,13 +778,12 @@ QByteArray QMqttConnection::readBuffer(quint64 size)
 
 void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properties)
 {
-    qint64 propertyLength = readVariableByteInteger();
-    m_missingData = 0;
+    qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
     while (propertyLength > 0) {
-        quint8 propertyId = readBufferTyped<quint8>();
-        propertyLength--;
+        quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
 
         switch (propertyId) {
         case 0x15: { //3.15.2.2.2 Authentication Method
@@ -817,8 +819,8 @@ void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properti
 
 void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
 {
-    qint64 propertyLength = readVariableByteInteger();
-    m_missingData = 0;
+    qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    m_missingData -= propertyLength;
 
     properties.serverData->valid = true;
 
@@ -938,9 +940,9 @@ void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &pro
 
 void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &properties)
 {
-    qint64 propertyLength = readVariableByteInteger();
-
+    qint64 propertyLength = readVariableByteInteger(&m_missingData);
     m_missingData -= propertyLength;
+
     while (propertyLength > 0) {
         const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
@@ -964,9 +966,7 @@ void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &
 
 void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 {
-    qint32 propertySize = 0;
-    qint64 propertyLength = readVariableByteInteger(&propertySize);
-    m_missingData -= propertySize;
+    qint64 propertyLength = readVariableByteInteger(&m_missingData);
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
@@ -1008,11 +1008,9 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
             break;
         }
         case 0x0b: { // 3.3.2.3.8 Subscription Identifier
-            qint32 idSize = 0;
-            qint32 id = readVariableByteInteger(&idSize);
+            qint32 id = readVariableByteInteger(&propertyLength);
             if (id < 0)
                 return; // readVariableByteInteger closes connection
-            propertyLength -= idSize;
             subscriptionIds.append(quint32(id));
             break;
         }
@@ -1035,10 +1033,9 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 
 void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 {
-    qint32 bytes = 0;
-    qint64 propertyLength = readVariableByteInteger(&bytes);
+    qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    m_missingData -= propertyLength;
 
-    m_missingData -= bytes;
     while (propertyLength > 0) {
         const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
         switch (propertyId) {
@@ -1388,8 +1385,8 @@ void QMqttConnection::finalize_auth()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize AUTH";
 
-    const quint8 authReason = readBufferTyped<quint8>();
-    m_missingData--;
+    const quint8 authReason = readBufferTyped<quint8>(&m_missingData);
+
     QMqttAuthenticationProperties authProperties;
     // 3.15.2.1 - The Reason Code and Property Length can be omitted if the Reason Code
     // is 0x00 (Success) and there are no Properties. In this case the AUTH has a

@@ -124,8 +124,8 @@ private:
     void finalize_pingresp();
     void processData();
     bool processDataHelper();
-    void readBuffer(char *data, quint64 size);
-    qint32 readVariableByteInteger(qint32 *byteCount = nullptr);
+    bool readBuffer(char *data, quint64 size);
+    qint32 readVariableByteInteger(qint64 *dataSize = nullptr);
     void readAuthProperties(QMqttAuthenticationProperties &properties);
     void readConnackProperties(QMqttServerConnectionProperties &properties);
     void readMessageStatusProperties(QMqttMessageStatusProperties &properties);
