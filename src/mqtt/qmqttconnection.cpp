@@ -1447,6 +1447,7 @@ void QMqttConnection::finalize_connack()
     quint8 connectResultValue = readBufferTyped<quint8>(&m_missingData);
     QMqttServerConnectionProperties serverProp;
     serverProp.serverData->reasonCode = QMqtt::ReasonCode(connectResultValue);
+    m_clientPrivate->m_serverConnectionProperties = serverProp;
     if (connectResultValue != 0 && m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
         qCDebug(lcMqttConnection) << "Connection has been rejected.";
         closeConnection(static_cast<QMqttClient::ClientError>(connectResultValue));
@@ -1455,8 +1456,7 @@ void QMqttConnection::finalize_connack()
 
     // MQTT 5.0 has variable part != 2 in the header
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        readConnackProperties(serverProp);
-        m_clientPrivate->m_serverConnectionProperties = serverProp;
+        readConnackProperties(m_clientPrivate->m_serverConnectionProperties);
         m_receiveAliases.resize(m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias());
         m_publishAliases.resize(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
 
