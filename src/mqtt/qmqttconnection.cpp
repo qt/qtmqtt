@@ -1636,8 +1636,6 @@ void QMqttConnection::finalize_pubrel()
 
     emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Released, properties);
 
-    // ### TODO: send to our app now or not???
-    // See standard Figure 4.3 Method A or B ???
     sendControlPublishComp(id);
 }
 
