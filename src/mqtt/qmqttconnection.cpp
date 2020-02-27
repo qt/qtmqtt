@@ -105,7 +105,7 @@ void QMqttConnection::setTransport(QIODevice *device, QMqttClient::TransportType
 
     if (m_transport) {
         disconnect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
-        disconnect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadReady);
+        disconnect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadyRead);
         if (m_ownTransport)
             delete m_transport;
     }
@@ -115,7 +115,7 @@ void QMqttConnection::setTransport(QIODevice *device, QMqttClient::TransportType
     m_ownTransport = false;
 
     connect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
-    connect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadReady);
+    connect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadyRead);
 }
 
 QIODevice *QMqttConnection::transport() const
@@ -159,7 +159,7 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
             this, &QMqttConnection::transportError);
 
     connect(m_transport, &QIODevice::aboutToClose, this, &QMqttConnection::transportConnectionClosed);
-    connect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadReady);
+    connect(m_transport, &QIODevice::readyRead, this, &QMqttConnection::transportReadyRead);
     return true;
 }
 
@@ -699,7 +699,7 @@ void QMqttConnection::transportConnectionClosed()
         m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::TransportInvalid);
 }
 
-void QMqttConnection::transportReadReady()
+void QMqttConnection::transportReadyRead()
 {
     qCDebug(lcMqttConnectionVerbose) << Q_FUNC_INFO;
     m_readBuffer.append(m_transport->readAll());

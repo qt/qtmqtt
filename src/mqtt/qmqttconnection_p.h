@@ -99,7 +99,7 @@ public:
 public Q_SLOTS:
     void transportConnectionEstablished();
     void transportConnectionClosed();
-    void transportReadReady();
+    void transportReadyRead();
     void transportError(QAbstractSocket::SocketError e);
 
 protected:
