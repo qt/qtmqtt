@@ -1532,8 +1532,13 @@ void QMqttConnection::finalize_suback()
         quint8 reason = readBufferTyped<quint8>(&m_missingData);
 
         sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reason);
-        qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
-        if (reason <= 2) {
+
+        // 3.9.3
+        switch (QMqtt::ReasonCode(reason)) {
+        case QMqtt::ReasonCode::SubscriptionQoSLevel0:
+        case QMqtt::ReasonCode::SubscriptionQoSLevel1:
+        case QMqtt::ReasonCode::SubscriptionQoSLevel2:
+            qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
             // The broker might have a different support level for QoS than what
             // the client requested
             if (reason != sub->qos()) {
@@ -1541,9 +1546,29 @@ void QMqttConnection::finalize_suback()
                 emit sub->qosChanged(reason);
             }
             sub->setState(QMqttSubscription::Subscribed);
-        } else {
-            qCDebug(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
+            break;
+        case QMqtt::ReasonCode::UnspecifiedError:
+            qCWarning(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
             sub->setState(QMqttSubscription::Error);
+            break;
+        case QMqtt::ReasonCode::ImplementationSpecificError:
+        case QMqtt::ReasonCode::NotAuthorized:
+        case QMqtt::ReasonCode::InvalidTopicFilter:
+        case QMqtt::ReasonCode::MessageIdInUse:
+        case QMqtt::ReasonCode::QuotaExceeded:
+        case QMqtt::ReasonCode::SharedSubscriptionsNotSupported:
+        case QMqtt::ReasonCode::SubscriptionIdsNotSupported:
+        case QMqtt::ReasonCode::WildCardSubscriptionsNotSupported:
+            if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+                qCWarning(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
+                sub->setState(QMqttSubscription::Error);
+                break;
+            }
+            Q_FALLTHROUGH();
+        default:
+            qCWarning(lcMqttConnection) << "Received illegal SUBACK reason code:" << reason;
+            closeConnection(QMqttClient::ProtocolViolation);
+            break;
         }
     }
 }
