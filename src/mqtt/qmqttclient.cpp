@@ -347,6 +347,15 @@ QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(thi
 }
 
 /*!
+    Deletes a MQTT client. If the MQTT client was not already disconnected from the MQTT broker,
+    it will be disconnected from automatically.
+*/
+QMqttClient::~QMqttClient()
+{
+    disconnectFromHost();
+}
+
+/*!
     Sets the transport to \a device. A transport can be either a socket type
     or derived from QIODevice and is specified by \a transport.
 

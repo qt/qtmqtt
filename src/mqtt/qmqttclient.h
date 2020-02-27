@@ -111,6 +111,7 @@ private:
     Q_PROPERTY(bool autoKeepAlive READ autoKeepAlive WRITE setAutoKeepAlive NOTIFY autoKeepAliveChanged)
 public:
     explicit QMqttClient(QObject *parent = nullptr);
+    ~QMqttClient() override;
 
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
