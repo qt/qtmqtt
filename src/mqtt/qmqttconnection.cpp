@@ -810,7 +810,8 @@ void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properti
             break;
         }
     }
-    properties.setUserProperties(userProperties);
+    if (!userProperties.isEmpty())
+        properties.setUserProperties(userProperties);
 }
 
 void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
