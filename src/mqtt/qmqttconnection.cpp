@@ -321,11 +321,11 @@ bool QMqttConnection::sendControlAuthenticate(const QMqttAuthenticationPropertie
         return false;
     case BrokerWaitForConnectAck:
         qCDebug(lcMqttConnection) << "AUTH while connecting, set continuation flag.";
-        packet.append(char(0x18));
+        packet.append(char(QMqtt::ReasonCode::ContinueAuthentication));
         break;
     case BrokerConnected:
         qCDebug(lcMqttConnection) << "AUTH while connected, initiate re-authentication.";
-        packet.append(char(0x19));
+        packet.append(char(QMqtt::ReasonCode::ReAuthenticate));
         break;
     }
 
@@ -1401,12 +1401,13 @@ void QMqttConnection::finalize_auth()
     } else if (m_missingData > 0)
         readAuthProperties(authProperties);
 
-    switch (authReason) {
-    case 0x00: // Success
+    // 3.15.2.1
+    switch (QMqtt::ReasonCode(authReason)) {
+    case QMqtt::ReasonCode::Success:
         emit m_clientPrivate->m_client->authenticationFinished(authProperties);
         break;
-    case 0x18: // Continue Authentication
-    case 0x19: // Re-authenticate
+    case QMqtt::ReasonCode::ContinueAuthentication:
+    case QMqtt::ReasonCode::ReAuthenticate:
         emit m_clientPrivate->m_client->authenticationRequested(authProperties);
         break;
     default:
