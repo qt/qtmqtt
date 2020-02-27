@@ -1809,6 +1809,22 @@ bool QMqttConnection::processDataHelper()
         m_missingData = remaining;
         break;
     }
+    case QMqttControlPacket::AUTH:
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            qCDebug(lcMqttConnection) << "Received unknown command.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        qCDebug(lcMqttConnectionVerbose) << "Received AUTH";
+        if ((m_currentPacket & 0x0F) != 0) {
+            qCDebug(lcMqttConnection) << "Malformed fixed header for AUTH.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        m_missingData = readVariableByteInteger();
+        if (m_missingData == -1)
+            return false; // Connection closed inside readVariableByteInteger
+        break;
     default:
         qCDebug(lcMqttConnection) << "Received unknown command.";
         closeConnection(QMqttClient::ProtocolViolation);
