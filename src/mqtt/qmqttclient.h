@@ -58,11 +58,14 @@ public:
         AbstractSocket,
         SecureSocket
     };
+
     enum ClientState {
         Disconnected = 0,
         Connecting,
         Connected
     };
+    Q_ENUM(ClientState)
+
     enum ClientError {
         // Protocol states
         NoError                = 0,
@@ -77,16 +80,20 @@ public:
         UnknownError,
         Mqtt5SpecificError
     };
+    Q_ENUM(ClientError)
+
     enum ProtocolVersion {
         MQTT_3_1 = 3,
         MQTT_3_1_1 = 4,
         MQTT_5_0 = 5
     };
+    Q_ENUM(ProtocolVersion)
 
 private:
     Q_OBJECT
     Q_ENUMS(ClientState)
     Q_ENUMS(ClientError)
+    Q_ENUMS(ProtocolVersion)
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
