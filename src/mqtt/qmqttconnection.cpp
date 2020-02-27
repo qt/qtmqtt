@@ -1459,8 +1459,51 @@ void QMqttConnection::finalize_connack()
         m_clientPrivate->m_serverConnectionProperties = serverProp;
         m_receiveAliases.resize(m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias());
         m_publishAliases.resize(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
-        if (connectResultValue != 0) {
+
+        // 3.2.2.2
+        switch (QMqtt::ReasonCode(connectResultValue)) {
+        case QMqtt::ReasonCode::Success:
+            break;
+        case QMqtt::ReasonCode::MalformedPacket:
+        case QMqtt::ReasonCode::ProtocolError:
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        case QMqtt::ReasonCode::UnsupportedProtocolVersion:
+            closeConnection(QMqttClient::InvalidProtocolVersion);
+            return;
+        case QMqtt::ReasonCode::InvalidClientId:
+            closeConnection(QMqttClient::IdRejected);
+            return;
+        case QMqtt::ReasonCode::ServerNotAvailable:
+        case QMqtt::ReasonCode::ServerBusy:
+        case QMqtt::ReasonCode::UseAnotherServer:
+        case QMqtt::ReasonCode::ServerMoved:
+            closeConnection(QMqttClient::ServerUnavailable);
+            return;
+        case QMqtt::ReasonCode::InvalidUserNameOrPassword:
+            closeConnection(QMqttClient::BadUsernameOrPassword);
+            return;
+        case QMqtt::ReasonCode::NotAuthorized:
+            closeConnection(QMqttClient::NotAuthorized);
+            return;
+        case QMqtt::ReasonCode::UnspecifiedError:
+            closeConnection(QMqttClient::UnknownError);
+            return;
+        case QMqtt::ReasonCode::ImplementationSpecificError:
+        case QMqtt::ReasonCode::ClientBanned:
+        case QMqtt::ReasonCode::InvalidAuthenticationMethod:
+        case QMqtt::ReasonCode::InvalidTopicName:
+        case QMqtt::ReasonCode::PacketTooLarge:
+        case QMqtt::ReasonCode::QuotaExceeded:
+        case QMqtt::ReasonCode::InvalidPayloadFormat:
+        case QMqtt::ReasonCode::RetainNotSupported:
+        case QMqtt::ReasonCode::QoSNotSupported:
+        case QMqtt::ReasonCode::ExceededConnectionRate:
             closeConnection(QMqttClient::Mqtt5SpecificError);
+            return;
+        default:
+            qCDebug(lcMqttConnection) << "Received illegal CONNACK reason code:" << connectResultValue;
+            closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
     }
