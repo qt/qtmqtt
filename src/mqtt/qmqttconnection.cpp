@@ -1828,6 +1828,25 @@ bool QMqttConnection::processDataHelper()
         if (m_missingData == -1)
             return false; // Connection closed inside readVariableByteInteger
         break;
+    case QMqttControlPacket::DISCONNECT:
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            qCDebug(lcMqttConnection) << "Received unknown command.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        qCDebug(lcMqttConnectionVerbose) << "Received DISCONNECT";
+        if ((m_currentPacket & 0x0F) != 0) {
+            qCDebug(lcMqttConnection) << "Malformed fixed header for DISCONNECT.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        if (m_internalState != BrokerConnected) {
+            qCDebug(lcMqttConnection) << "Received DISCONNECT at unexpected time.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        closeConnection(QMqttClient::NoError);
+        return false;
     default:
         qCDebug(lcMqttConnection) << "Received unknown command.";
         closeConnection(QMqttClient::ProtocolViolation);
