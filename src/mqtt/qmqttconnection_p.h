@@ -120,8 +120,7 @@ private:
     void finalize_suback();
     void finalize_unsuback();
     void finalize_publish();
-    void finalize_pubAckRecComp();
-    void finalize_pubrel();
+    void finalize_pubAckRecRelComp();
     void finalize_pingresp();
     void processData();
     bool processDataHelper();

@@ -1586,9 +1586,9 @@ void QMqttConnection::finalize_publish()
         sendControlPublishReceive(id);
 }
 
-void QMqttConnection::finalize_pubAckRecComp()
+void QMqttConnection::finalize_pubAckRecRelComp()
 {
-    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/COMP";
+    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/REL/COMP";
     const quint16 id = readBufferTyped<quint16>(&m_missingData);
 
     QMqttMessageStatusProperties properties;
@@ -1599,6 +1599,14 @@ void QMqttConnection::finalize_pubAckRecComp()
         if (m_missingData > 0)
             readMessageStatusProperties(properties);
     }
+
+    if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREL) {
+        qCDebug(lcMqttConnectionVerbose) << " PUBREL:" << id;
+        emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Released, properties);
+        sendControlPublishComp(id);
+        return;
+    }
+
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBCOMP) {
         qCDebug(lcMqttConnectionVerbose) << " PUBCOMP:" << id;
         auto pendingRelease = m_pendingReleaseMessages.take(id);
@@ -1624,25 +1632,6 @@ void QMqttConnection::finalize_pubAckRecComp()
         emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Acknowledged, properties);
         emit m_clientPrivate->m_client->messageSent(id);
     }
-}
-
-void QMqttConnection::finalize_pubrel()
-{
-    const quint16 id = readBufferTyped<quint16>(&m_missingData);
-
-    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBREL:" << id;
-
-    QMqttMessageStatusProperties properties;
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
-        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
-        properties.data->reasonCode = QMqtt::ReasonCode(reasonCode);
-        if (m_missingData > 0)
-            readMessageStatusProperties(properties);
-    }
-
-    emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Released, properties);
-
-    sendControlPublishComp(id);
 }
 
 void QMqttConnection::finalize_pingresp()
@@ -1683,14 +1672,12 @@ bool QMqttConnection::processDataHelper()
             break;
         case QMqttControlPacket::PUBACK:
         case QMqttControlPacket::PUBREC:
+        case QMqttControlPacket::PUBREL:
         case QMqttControlPacket::PUBCOMP:
-            finalize_pubAckRecComp();
+            finalize_pubAckRecRelComp();
             break;
         case QMqttControlPacket::PINGRESP:
             finalize_pingresp();
-            break;
-        case QMqttControlPacket::PUBREL:
-            finalize_pubrel();
             break;
         default:
             qCDebug(lcMqttConnection) << "Unknown packet to finalize.";
