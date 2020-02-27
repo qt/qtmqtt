@@ -314,15 +314,16 @@ bool QMqttConnection::sendControlAuthenticate(const QMqttAuthenticationPropertie
 
     QMqttControlPacket packet(QMqttControlPacket::AUTH);
 
-    switch (m_clientPrivate->m_state) {
-    case QMqttClient::Disconnected:
+    switch (m_internalState) {
+    case BrokerDisconnected:
+    case BrokerConnecting:
         qCDebug(lcMqttConnection) << "Using AUTH while disconnected.";
         return false;
-    case QMqttClient::Connecting:
+    case BrokerWaitForConnectAck:
         qCDebug(lcMqttConnection) << "AUTH while connecting, set continuation flag.";
         packet.append(char(0x18));
         break;
-    case QMqttClient::Connected:
+    case BrokerConnected:
         qCDebug(lcMqttConnection) << "AUTH while connected, initiate re-authentication.";
         packet.append(char(0x19));
         break;
