@@ -96,7 +96,7 @@ public:
 
     void cleanSubscriptions();
 
-public Q_SLOTS:
+private:
     void transportConnectionEstablished();
     void transportConnectionClosed();
     void transportReadyRead();
