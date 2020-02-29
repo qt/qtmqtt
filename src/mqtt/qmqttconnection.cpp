@@ -180,7 +180,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
     }
 
     if (m_transportType == QMqttClient::AbstractSocket) {
-        auto socket = dynamic_cast<QTcpSocket*>(m_transport);
+        auto socket = qobject_cast<QTcpSocket *>(m_transport);
         Q_ASSERT(socket);
         if (socket->state() == QAbstractSocket::ConnectedState)
             return sendControlConnect();
@@ -190,7 +190,7 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
     }
 #ifndef QT_NO_SSL
     else if (m_transportType == QMqttClient::SecureSocket) {
-        auto socket = dynamic_cast<QSslSocket*>(m_transport);
+        auto socket = qobject_cast<QSslSocket *>(m_transport);
         Q_ASSERT(socket);
         if (socket->state() == QAbstractSocket::ConnectedState)
             return sendControlConnect();
@@ -810,7 +810,8 @@ void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properti
             break;
         }
     }
-    properties.setUserProperties(userProperties);
+    if (!userProperties.isEmpty())
+        properties.setUserProperties(userProperties);
 }
 
 void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
