@@ -60,7 +60,7 @@ enum class MessageStatus : quint8 {
     Completed
 };
 
-enum class ReasonCode : quint16 {
+enum class ReasonCode : quint8 {
     Success = 0,
     SubscriptionQoSLevel0 = 0,
     SubscriptionQoSLevel1 = 0x01,
