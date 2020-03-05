@@ -104,7 +104,7 @@ QT_BEGIN_NAMESPACE
            The message status is unknown.
     \value Published
            The client received a message for one of its subscriptions. This
-           applies to all QoS levels.
+           applies to QoS levels 1 and 2.
     \value Acknowledged
            A message has been acknowledged. This applies to QoS 1 and states
            that the message handling has been finished from the client side.
