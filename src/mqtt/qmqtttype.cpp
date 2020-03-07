@@ -104,7 +104,7 @@ QT_BEGIN_NAMESPACE
            The message status is unknown.
     \value Published
            The client received a message for one of its subscriptions. This
-           applies to all QoS levels.
+           applies to QoS levels 1 and 2.
     \value Acknowledged
            A message has been acknowledged. This applies to QoS 1 and states
            that the message handling has been finished from the client side.
@@ -177,10 +177,13 @@ QT_BEGIN_NAMESPACE
            An administratively imposed limit has been exceeded.
     \value InvalidPayloadFormat
            The payload format is invalid.
+           See also \l QMqttPublishProperties::payloadFormatIndicator().
     \value RetainNotSupported
            The server does not support retained messages.
+           See also \l QMqttServerConnectionProperties::retainAvailable().
     \value QoSNotSupported
            The QoS level requested is not supported.
+           See also \l QMqttServerConnectionProperties::maximumQoS().
     \value UseAnotherServer
            The server the client tries to connect to is not available. See also
            \l QMqttServerConnectionProperties::serverReference().
@@ -189,12 +192,15 @@ QT_BEGIN_NAMESPACE
            See also \l QMqttServerConnectionProperties::serverReference().
     \value SharedSubscriptionsNotSupported
            Shared subscriptions are not supported.
+           See also \l QMqttServerConnectionProperties::sharedSubscriptionSupported().
     \value ExceededConnectionRate
            The connection rate limit has been exceeded.
     \value SubscriptionIdsNotSupported
            Subscription IDs are not supported.
+           See also \l QMqttServerConnectionProperties::subscriptionIdentifierSupported().
     \value WildCardSubscriptionsNotSupported
            Subscriptions using wildcards are not supported by the server.
+           See also \l QMqttServerConnectionProperties::wildcardSupported().
 
     Not all values are available in every use case. Especially, some servers
     will reject a reason code not suited for a specific command. See below
