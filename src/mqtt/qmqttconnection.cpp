@@ -364,6 +364,12 @@ qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic,
     // topic alias
     QMqttPublishProperties publishProperties(properties);
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        // 3.3.4 A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier
+        if (publishProperties.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier) {
+            qCWarning(lcMqttConnection) << "SubscriptionIdentifier must not be specified for publish.";
+            return -1;
+        }
+
         const quint16 topicAlias = publishProperties.topicAlias();
         if (topicAlias > 0) { // User specified topic Alias
             if (topicAlias > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
