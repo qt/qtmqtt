@@ -1531,18 +1531,21 @@ void QMqttConnection::finalize_publish()
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readPublishProperties(publishProperties);
 
-    const quint16 topicAlias = publishProperties.topicAlias();
-    if (topicAlias > 0) {
-        if (topicAlias > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
+    if (publishProperties.availableProperties() & QMqttPublishProperties::TopicAlias) {
+        const quint16 topicAlias = publishProperties.topicAlias();
+        if (topicAlias == 0 || topicAlias > m_clientPrivate->m_connectionProperties.maximumTopicAlias()) {
             qCDebug(lcMqttConnection) << "TopicAlias receive: overflow.";
             closeConnection(QMqttClient::ProtocolViolation);
-        } else if (topicLength == 0) { // New message on existing topic alias
-            if (m_receiveAliases.at(topicAlias - 1).name().isEmpty()) {
+            return;
+        }
+        if (topicLength == 0) { // New message on existing topic alias
+            topic = m_receiveAliases.at(topicAlias - 1);
+            if (topic.name().isEmpty()) {
                 qCDebug(lcMqttConnection) << "TopicAlias receive: alias for unknown topic.";
                 closeConnection(QMqttClient::ProtocolViolation);
+                return;
             }
             qCDebug(lcMqttConnectionVerbose) << "TopicAlias receive: Using " << topicAlias;
-            topic = m_receiveAliases.at(topicAlias - 1);
         } else { // Resetting a topic alias
             qCDebug(lcMqttConnection) << "TopicAlias receive: Resetting:" << topic.name() << " : " << topicAlias;
             m_receiveAliases[topicAlias - 1] = topic;
@@ -1636,8 +1639,6 @@ void QMqttConnection::finalize_pubrel()
 
     emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Released, properties);
 
-    // ### TODO: send to our app now or not???
-    // See standard Figure 4.3 Method A or B ???
     sendControlPublishComp(id);
 }
 
