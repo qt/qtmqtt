@@ -1660,6 +1660,38 @@ void QMqttConnection::finalize_pubAckRecRelComp()
         // Reason Code (1byte)
         const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
         properties.data->reasonCode = QMqtt::ReasonCode(reasonCode);
+
+        if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBACK || (m_currentPacket & 0xF0) == QMqttControlPacket::PUBREC) {
+            // 3.4.2.1, 3.5.2.1
+            switch (QMqtt::ReasonCode(reasonCode)) {
+            case QMqtt::ReasonCode::Success:
+            case QMqtt::ReasonCode::NoMatchingSubscriber:
+            case QMqtt::ReasonCode::UnspecifiedError:
+            case QMqtt::ReasonCode::ImplementationSpecificError:
+            case QMqtt::ReasonCode::NotAuthorized:
+            case QMqtt::ReasonCode::InvalidTopicName:
+            case QMqtt::ReasonCode::MessageIdInUse:
+            case QMqtt::ReasonCode::QuotaExceeded:
+            case QMqtt::ReasonCode::InvalidPayloadFormat:
+                break;
+            default:
+                qCWarning(lcMqttConnection) << "Received illegal PUBACK/REC reason code:" << reasonCode;
+                closeConnection(QMqttClient::ProtocolViolation);
+                return;
+            }
+        } else {
+            // 3.6.2.1, 3.7.2.1
+            switch (QMqtt::ReasonCode(reasonCode)) {
+            case QMqtt::ReasonCode::Success:
+            case QMqtt::ReasonCode::MessageIdNotFound:
+                break;
+            default:
+                qCWarning(lcMqttConnection) << "Received illegal PUBREL/COMP reason code:" << reasonCode;
+                closeConnection(QMqttClient::ProtocolViolation);
+                return;
+            }
+        }
+
         if (m_missingData > 0)
             readMessageStatusProperties(properties);
     }
