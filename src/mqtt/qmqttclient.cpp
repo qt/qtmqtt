@@ -450,7 +450,7 @@ void QMqttClient::unsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscr
 
 /*!
     Publishes a \a message to the broker with the specified \a topic. \a qos
-    specifies the level of security required for transferring the message.
+    specifies the QoS level required for transferring the message.
 
     If \a retain is set to \c true, the message will stay on the broker for
     other clients to connect and receive the message.
@@ -466,7 +466,7 @@ qint32 QMqttClient::publish(const QMqttTopicName &topic, const QByteArray &messa
     \since 5.12
 
     Publishes a \a message to the broker with the specified \a properties and
-    \a topic. \a qos specifies the level of security required for transferring
+    \a topic. \a qos specifies the QoS level required for transferring
     the message.
 
     If \a retain is set to \c true, the message will stay on the broker for

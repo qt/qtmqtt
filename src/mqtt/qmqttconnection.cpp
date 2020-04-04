@@ -153,6 +153,11 @@ bool QMqttConnection::ensureTransport(bool createSecureIfNeeded)
 #endif
                                QMqttClient::AbstractSocket;
 
+#ifndef QT_NO_SSL
+    if (QSslSocket *sslSocket = qobject_cast<QSslSocket *>(socket))
+        QObject::connect(sslSocket, &QSslSocket::encrypted, this, &QMqttConnection::transportConnectionEstablished);
+    else
+#endif
     connect(socket, &QAbstractSocket::connected, this, &QMqttConnection::transportConnectionEstablished);
     connect(socket, &QAbstractSocket::disconnected, this, &QMqttConnection::transportConnectionClosed);
     connect(socket, static_cast<void (QAbstractSocket::*)(QAbstractSocket::SocketError)>(&QAbstractSocket::error),
@@ -199,16 +204,6 @@ bool QMqttConnection::ensureTransportOpen(const QString &sslPeerName)
         if (!m_sslConfiguration.isNull())
             socket->setSslConfiguration(m_sslConfiguration);
         socket->connectToHostEncrypted(m_clientPrivate->m_hostname, m_clientPrivate->m_port, sslPeerName);
-
-        if (!socket->waitForConnected()) {
-            qCDebug(lcMqttConnection) << "Could not establish socket connection for transport.";
-            return false;
-        }
-
-        if (!socket->waitForEncrypted()) {
-            qCDebug(lcMqttConnection) << "Could not initiate encryption.";
-            return false;
-        }
     }
 #else
     Q_UNUSED(sslPeerName);
@@ -314,17 +309,18 @@ bool QMqttConnection::sendControlAuthenticate(const QMqttAuthenticationPropertie
 
     QMqttControlPacket packet(QMqttControlPacket::AUTH);
 
-    switch (m_clientPrivate->m_state) {
-    case QMqttClient::Disconnected:
+    switch (m_internalState) {
+    case BrokerDisconnected:
+    case BrokerConnecting:
         qCDebug(lcMqttConnection) << "Using AUTH while disconnected.";
         return false;
-    case QMqttClient::Connecting:
+    case BrokerWaitForConnectAck:
         qCDebug(lcMqttConnection) << "AUTH while connecting, set continuation flag.";
-        packet.append(char(0x18));
+        packet.append(char(QMqtt::ReasonCode::ContinueAuthentication));
         break;
-    case QMqttClient::Connected:
+    case BrokerConnected:
         qCDebug(lcMqttConnection) << "AUTH while connected, initiate re-authentication.";
-        packet.append(char(0x19));
+        packet.append(char(QMqtt::ReasonCode::ReAuthenticate));
         break;
     }
 
@@ -363,6 +359,12 @@ qint32 QMqttConnection::sendControlPublish(const QMqttTopicName &topic,
     // topic alias
     QMqttPublishProperties publishProperties(properties);
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        // 3.3.4 A PUBLISH packet sent from a Client to a Server MUST NOT contain a Subscription Identifier
+        if (publishProperties.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier) {
+            qCWarning(lcMqttConnection) << "SubscriptionIdentifier must not be specified for publish.";
+            return -1;
+        }
+
         const quint16 topicAlias = publishProperties.topicAlias();
         if (topicAlias > 0) { // User specified topic Alias
             if (topicAlias > m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias()) {
@@ -1400,12 +1402,13 @@ void QMqttConnection::finalize_auth()
     } else if (m_missingData > 0)
         readAuthProperties(authProperties);
 
-    switch (authReason) {
-    case 0x00: // Success
+    // 3.15.2.1
+    switch (QMqtt::ReasonCode(authReason)) {
+    case QMqtt::ReasonCode::Success:
         emit m_clientPrivate->m_client->authenticationFinished(authProperties);
         break;
-    case 0x18: // Continue Authentication
-    case 0x19: // Re-authenticate
+    case QMqtt::ReasonCode::ContinueAuthentication:
+    case QMqtt::ReasonCode::ReAuthenticate:
         emit m_clientPrivate->m_client->authenticationRequested(authProperties);
         break;
     default:
@@ -1444,6 +1447,7 @@ void QMqttConnection::finalize_connack()
     quint8 connectResultValue = readBufferTyped<quint8>(&m_missingData);
     QMqttServerConnectionProperties serverProp;
     serverProp.serverData->reasonCode = QMqtt::ReasonCode(connectResultValue);
+    m_clientPrivate->m_serverConnectionProperties = serverProp;
     if (connectResultValue != 0 && m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
         qCDebug(lcMqttConnection) << "Connection has been rejected.";
         closeConnection(static_cast<QMqttClient::ClientError>(connectResultValue));
@@ -1452,12 +1456,54 @@ void QMqttConnection::finalize_connack()
 
     // MQTT 5.0 has variable part != 2 in the header
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        readConnackProperties(serverProp);
-        m_clientPrivate->m_serverConnectionProperties = serverProp;
+        readConnackProperties(m_clientPrivate->m_serverConnectionProperties);
         m_receiveAliases.resize(m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias());
         m_publishAliases.resize(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
-        if (connectResultValue != 0) {
+
+        // 3.2.2.2
+        switch (QMqtt::ReasonCode(connectResultValue)) {
+        case QMqtt::ReasonCode::Success:
+            break;
+        case QMqtt::ReasonCode::MalformedPacket:
+        case QMqtt::ReasonCode::ProtocolError:
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        case QMqtt::ReasonCode::UnsupportedProtocolVersion:
+            closeConnection(QMqttClient::InvalidProtocolVersion);
+            return;
+        case QMqtt::ReasonCode::InvalidClientId:
+            closeConnection(QMqttClient::IdRejected);
+            return;
+        case QMqtt::ReasonCode::ServerNotAvailable:
+        case QMqtt::ReasonCode::ServerBusy:
+        case QMqtt::ReasonCode::UseAnotherServer:
+        case QMqtt::ReasonCode::ServerMoved:
+            closeConnection(QMqttClient::ServerUnavailable);
+            return;
+        case QMqtt::ReasonCode::InvalidUserNameOrPassword:
+            closeConnection(QMqttClient::BadUsernameOrPassword);
+            return;
+        case QMqtt::ReasonCode::NotAuthorized:
+            closeConnection(QMqttClient::NotAuthorized);
+            return;
+        case QMqtt::ReasonCode::UnspecifiedError:
+            closeConnection(QMqttClient::UnknownError);
+            return;
+        case QMqtt::ReasonCode::ImplementationSpecificError:
+        case QMqtt::ReasonCode::ClientBanned:
+        case QMqtt::ReasonCode::InvalidAuthenticationMethod:
+        case QMqtt::ReasonCode::InvalidTopicName:
+        case QMqtt::ReasonCode::PacketTooLarge:
+        case QMqtt::ReasonCode::QuotaExceeded:
+        case QMqtt::ReasonCode::InvalidPayloadFormat:
+        case QMqtt::ReasonCode::RetainNotSupported:
+        case QMqtt::ReasonCode::QoSNotSupported:
+        case QMqtt::ReasonCode::ExceededConnectionRate:
             closeConnection(QMqttClient::Mqtt5SpecificError);
+            return;
+        default:
+            qCDebug(lcMqttConnection) << "Received illegal CONNACK reason code:" << connectResultValue;
+            closeConnection(QMqttClient::ProtocolViolation);
             return;
         }
     }
@@ -1486,8 +1532,13 @@ void QMqttConnection::finalize_suback()
         quint8 reason = readBufferTyped<quint8>(&m_missingData);
 
         sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reason);
-        qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
-        if (reason <= 2) {
+
+        // 3.9.3
+        switch (QMqtt::ReasonCode(reason)) {
+        case QMqtt::ReasonCode::SubscriptionQoSLevel0:
+        case QMqtt::ReasonCode::SubscriptionQoSLevel1:
+        case QMqtt::ReasonCode::SubscriptionQoSLevel2:
+            qCDebug(lcMqttConnectionVerbose) << "Finalize SUBACK: id:" << id << "qos:" << reason;
             // The broker might have a different support level for QoS than what
             // the client requested
             if (reason != sub->qos()) {
@@ -1495,9 +1546,29 @@ void QMqttConnection::finalize_suback()
                 emit sub->qosChanged(reason);
             }
             sub->setState(QMqttSubscription::Subscribed);
-        } else {
-            qCDebug(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
+            break;
+        case QMqtt::ReasonCode::UnspecifiedError:
+            qCWarning(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
             sub->setState(QMqttSubscription::Error);
+            break;
+        case QMqtt::ReasonCode::ImplementationSpecificError:
+        case QMqtt::ReasonCode::NotAuthorized:
+        case QMqtt::ReasonCode::InvalidTopicFilter:
+        case QMqtt::ReasonCode::MessageIdInUse:
+        case QMqtt::ReasonCode::QuotaExceeded:
+        case QMqtt::ReasonCode::SharedSubscriptionsNotSupported:
+        case QMqtt::ReasonCode::SubscriptionIdsNotSupported:
+        case QMqtt::ReasonCode::WildCardSubscriptionsNotSupported:
+            if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+                qCWarning(lcMqttConnection) << "Subscription for id " << id << " failed. Reason Code:" << reason;
+                sub->setState(QMqttSubscription::Error);
+                break;
+            }
+            Q_FALLTHROUGH();
+        default:
+            qCWarning(lcMqttConnection) << "Received illegal SUBACK reason code:" << reason;
+            closeConnection(QMqttClient::ProtocolViolation);
+            break;
         }
     }
 }
@@ -1583,9 +1654,9 @@ void QMqttConnection::finalize_publish()
         sendControlPublishReceive(id);
 }
 
-void QMqttConnection::finalize_pubAckRecComp()
+void QMqttConnection::finalize_pubAckRecRelComp()
 {
-    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/COMP";
+    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/REL/COMP";
     const quint16 id = readBufferTyped<quint16>(&m_missingData);
 
     QMqttMessageStatusProperties properties;
@@ -1596,6 +1667,14 @@ void QMqttConnection::finalize_pubAckRecComp()
         if (m_missingData > 0)
             readMessageStatusProperties(properties);
     }
+
+    if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREL) {
+        qCDebug(lcMqttConnectionVerbose) << " PUBREL:" << id;
+        emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Released, properties);
+        sendControlPublishComp(id);
+        return;
+    }
+
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBCOMP) {
         qCDebug(lcMqttConnectionVerbose) << " PUBCOMP:" << id;
         auto pendingRelease = m_pendingReleaseMessages.take(id);
@@ -1621,25 +1700,6 @@ void QMqttConnection::finalize_pubAckRecComp()
         emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Acknowledged, properties);
         emit m_clientPrivate->m_client->messageSent(id);
     }
-}
-
-void QMqttConnection::finalize_pubrel()
-{
-    const quint16 id = readBufferTyped<quint16>(&m_missingData);
-
-    qCDebug(lcMqttConnectionVerbose) << "Finalize PUBREL:" << id;
-
-    QMqttMessageStatusProperties properties;
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
-        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
-        properties.data->reasonCode = QMqtt::ReasonCode(reasonCode);
-        if (m_missingData > 0)
-            readMessageStatusProperties(properties);
-    }
-
-    emit m_clientPrivate->m_client->messageStatusChanged(id, QMqtt::MessageStatus::Released, properties);
-
-    sendControlPublishComp(id);
 }
 
 void QMqttConnection::finalize_pingresp()
@@ -1680,14 +1740,12 @@ bool QMqttConnection::processDataHelper()
             break;
         case QMqttControlPacket::PUBACK:
         case QMqttControlPacket::PUBREC:
+        case QMqttControlPacket::PUBREL:
         case QMqttControlPacket::PUBCOMP:
-            finalize_pubAckRecComp();
+            finalize_pubAckRecRelComp();
             break;
         case QMqttControlPacket::PINGRESP:
             finalize_pingresp();
-            break;
-        case QMqttControlPacket::PUBREL:
-            finalize_pubrel();
             break;
         default:
             qCDebug(lcMqttConnection) << "Unknown packet to finalize.";
@@ -1809,6 +1867,41 @@ bool QMqttConnection::processDataHelper()
         m_missingData = remaining;
         break;
     }
+    case QMqttControlPacket::AUTH:
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            qCDebug(lcMqttConnection) << "Received unknown command.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        qCDebug(lcMqttConnectionVerbose) << "Received AUTH";
+        if ((m_currentPacket & 0x0F) != 0) {
+            qCDebug(lcMqttConnection) << "Malformed fixed header for AUTH.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        m_missingData = readVariableByteInteger();
+        if (m_missingData == -1)
+            return false; // Connection closed inside readVariableByteInteger
+        break;
+    case QMqttControlPacket::DISCONNECT:
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            qCDebug(lcMqttConnection) << "Received unknown command.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        qCDebug(lcMqttConnectionVerbose) << "Received DISCONNECT";
+        if ((m_currentPacket & 0x0F) != 0) {
+            qCDebug(lcMqttConnection) << "Malformed fixed header for DISCONNECT.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        if (m_internalState != BrokerConnected) {
+            qCDebug(lcMqttConnection) << "Received DISCONNECT at unexpected time.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
+        closeConnection(QMqttClient::NoError);
+        return false;
     default:
         qCDebug(lcMqttConnection) << "Received unknown command.";
         closeConnection(QMqttClient::ProtocolViolation);
