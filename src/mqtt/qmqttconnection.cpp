@@ -1385,18 +1385,15 @@ void QMqttConnection::finalize_auth()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize AUTH";
 
-    const quint8 authReason = readBufferTyped<quint8>(&m_missingData);
-
+    quint8 authReason = 0;
     QMqttAuthenticationProperties authProperties;
     // 3.15.2.1 - The Reason Code and Property Length can be omitted if the Reason Code
     // is 0x00 (Success) and there are no Properties. In this case the AUTH has a
     // Remaining Length of 0.
-    if (m_missingData == 0 && authReason != 0) {
-        qCDebug(lcMqttConnection) << "Received non success AUTH without properties.";
-        closeConnection(QMqttClient::ProtocolViolation);
-        return;
-    } else if (m_missingData > 0)
+    if (m_missingData > 0) {
+        authReason = readBufferTyped<quint8>(&m_missingData);
         readAuthProperties(authProperties);
+    }
 
     // 3.15.2.1
     switch (QMqtt::ReasonCode(authReason)) {
@@ -1692,8 +1689,7 @@ void QMqttConnection::finalize_pubAckRecRelComp()
             }
         }
 
-        if (m_missingData > 0)
-            readMessageStatusProperties(properties);
+        readMessageStatusProperties(properties);
     }
 
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREL) {
