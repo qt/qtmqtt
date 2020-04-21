@@ -145,7 +145,7 @@ int QMqttTopicName::levelCount() const
  */
 QStringList QMqttTopicName::levels() const
 {
-    return d->name.split(QLatin1Char('/'), QString::KeepEmptyParts);
+    return d->name.split(QLatin1Char('/'), Qt::KeepEmptyParts);
 }
 
 /*!
