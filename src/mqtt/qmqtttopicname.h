@@ -43,7 +43,7 @@ class QMqttTopicNamePrivate;
 
 class QMqttTopicName;
 // qHash is a friend, but we can't use default arguments for friends (§8.3.6.4)
-Q_MQTT_EXPORT uint qHash(const QMqttTopicName &name, uint seed = 0) Q_DECL_NOTHROW;
+Q_MQTT_EXPORT size_t qHash(const QMqttTopicName &name, size_t seed = 0) Q_DECL_NOTHROW;
 
 class Q_MQTT_EXPORT QMqttTopicName
 {
@@ -70,7 +70,7 @@ public:
     friend Q_MQTT_EXPORT bool operator==(const QMqttTopicName &lhs, const QMqttTopicName &rhs) Q_DECL_NOTHROW;
     friend inline bool operator!=(const QMqttTopicName &lhs, const QMqttTopicName &rhs) Q_DECL_NOTHROW { return !(lhs == rhs); }
     friend Q_MQTT_EXPORT bool operator<(const QMqttTopicName &lhs, const QMqttTopicName &rhs) Q_DECL_NOTHROW;
-    friend Q_MQTT_EXPORT uint qHash(const QMqttTopicName &name, uint seed) Q_DECL_NOTHROW;
+    friend Q_MQTT_EXPORT size_t qHash(const QMqttTopicName &name, size_t seed) Q_DECL_NOTHROW;
 
 private:
     QExplicitlySharedDataPointer<QMqttTopicNamePrivate> d;

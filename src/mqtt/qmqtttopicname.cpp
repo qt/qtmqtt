@@ -184,7 +184,7 @@ bool operator<(const QMqttTopicName &lhs, const QMqttTopicName &rhs) Q_DECL_NOTH
     Returns the hash value for \a name. If specified, \a seed is used to
     initialize the hash.
 */
-uint qHash(const QMqttTopicName &name, uint seed) Q_DECL_NOTHROW
+size_t qHash(const QMqttTopicName &name, size_t seed) Q_DECL_NOTHROW
 {
     return qHash(name.d->name, seed);
 }

@@ -292,7 +292,7 @@ bool operator<(const QMqttTopicFilter &lhs, const QMqttTopicFilter &rhs) Q_DECL_
     Returns the hash value for \a filter. If specified, \a seed is used to
     initialize the hash.
 */
-uint qHash(const QMqttTopicFilter &filter, uint seed) Q_DECL_NOTHROW
+size_t qHash(const QMqttTopicFilter &filter, size_t seed) Q_DECL_NOTHROW
 {
     return qHash(filter.d->filter, seed);
 }
