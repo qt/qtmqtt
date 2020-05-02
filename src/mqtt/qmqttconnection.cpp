@@ -1749,8 +1749,11 @@ bool QMqttConnection::processDataHelper()
         default:
             qCDebug(lcMqttConnection) << "Unknown packet to finalize.";
             closeConnection(QMqttClient::ProtocolViolation);
-            return false;
+            break;
         }
+
+        if (m_internalState == BrokerDisconnected)
+            return false;
 
         Q_ASSERT(m_missingData == 0);
 
