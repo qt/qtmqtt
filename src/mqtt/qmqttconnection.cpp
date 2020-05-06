@@ -1520,7 +1520,9 @@ void QMqttConnection::finalize_suback()
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readSubscriptionProperties(sub);
 
-    while (m_missingData > 0) {
+    // 3.9.3 - The Payload contains a list of Reason Codes. Each Reason Code corresponds to a Topic Filter in the SUBSCRIBE packet being acknowledged.
+    // Whereas 3.8.3 states "The Payload MUST contain at least one Topic Filter and Subscription Options pair. A SUBSCRIBE packet with no Payload is a Protocol Error."
+    do {
         quint8 reason = readBufferTyped<quint8>(&m_missingData);
 
         sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reason);
@@ -1562,7 +1564,7 @@ void QMqttConnection::finalize_suback()
             closeConnection(QMqttClient::ProtocolViolation);
             break;
         }
-    }
+    } while (m_missingData > 0);
 }
 
 void QMqttConnection::finalize_unsuback()
