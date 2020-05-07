@@ -209,7 +209,6 @@ void QMqttSubscription::unsubscribe()
 {
     Q_D(QMqttSubscription);
     d->m_client->unsubscribe(d->m_topic);
-    setState(Unsubscribed);
 }
 
 void QMqttSubscription::setTopic(const QMqttTopicFilter &topic)
