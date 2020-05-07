@@ -1578,8 +1578,44 @@ void QMqttConnection::finalize_unsuback()
         return;
     }
 
-    sub->setState(QMqttSubscription::Unsubscribed);
     m_activeSubscriptions.remove(sub->topic());
+
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        readSubscriptionProperties(sub);
+    } else {
+        // 3.11.3 - The UNSUBACK Packet has no payload.
+        // emulate successful unsubscription
+        sub->d_func()->m_reasonCode = QMqtt::ReasonCode::Success;
+        sub->setState(QMqttSubscription::Unsubscribed);
+        return;
+    }
+
+    // 3.1.3 - The Payload contains a list of Reason Codes. Each Reason Code corresponds to a Topic Filter in the UNSUBSCRIBE packet being acknowledged.
+    // Whereas 3.10.3 states "The Payload of an UNSUBSCRIBE packet MUST contain at least one Topic Filter. An UNSUBSCRIBE packet with no Payload is a Protocol Error."
+    do {
+        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
+        sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reasonCode);
+
+        // 3.11.3
+        switch (QMqtt::ReasonCode(reasonCode)) {
+        case QMqtt::ReasonCode::Success:
+            sub->setState(QMqttSubscription::Unsubscribed);
+            break;
+        case QMqtt::ReasonCode::NoSubscriptionExisted:
+        case QMqtt::ReasonCode::ImplementationSpecificError:
+        case QMqtt::ReasonCode::NotAuthorized:
+        case QMqtt::ReasonCode::InvalidTopicFilter:
+        case QMqtt::ReasonCode::MessageIdInUse:
+        case QMqtt::ReasonCode::UnspecifiedError:
+            qCWarning(lcMqttConnection) << "Unsubscription for id " << id << " failed. Reason Code:" << reasonCode;
+            sub->setState(QMqttSubscription::Error);
+            break;
+        default:
+            qCWarning(lcMqttConnection) << "Received illegal UNSUBACK reason code:" << reasonCode;
+            closeConnection(QMqttClient::ProtocolViolation);
+            break;
+        }
+    } while (m_missingData > 0);
 }
 
 void QMqttConnection::finalize_publish()
