@@ -466,6 +466,17 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
+    // Overflow protection
+    if (Q_UNLIKELY(!topic.isValid())) {
+        qCWarning(lcMqttConnection) << "Invalid subscription topic filter.";
+        return nullptr;
+    }
+
+    if (Q_UNLIKELY(qos > 2)) {
+        qCWarning(lcMqttConnection) << "Invalid subscription QoS.";
+        return nullptr;
+    }
+
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
         const QString sharedSubscriptionName = topic.sharedSubscriptionName();
         if (!sharedSubscriptionName.isEmpty()) {
@@ -497,20 +508,8 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         packet.appendRaw(writeSubscriptionProperties(properties));
 
-    // Overflow protection
-    if (!topic.isValid()) {
-        qCDebug(lcMqttConnection) << "Invalid subscription topic filter.";
-        return nullptr;
-    }
-
     packet.append(topic.filter().toUtf8());
-
-    switch (qos) {
-    case 0: packet.append(char(0x0)); break;
-    case 1: packet.append(char(0x1)); break;
-    case 2: packet.append(char(0x2)); break;
-    default: return nullptr;
-    }
+    packet.append(char(qos));
 
     auto result = new QMqttSubscription(this);
     result->setTopic(topic);
