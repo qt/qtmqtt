@@ -235,7 +235,7 @@ void tst_QMqttConnectionProperties::maximumTopicAlias()
     client.setHostname(m_testBroker);
     client.setPort(m_port);
 
-    const int userMaxTopicAlias = 9;
+    const int userMaxTopicAlias = 20;
     QMqttConnectionProperties userProperties;
     userProperties.setMaximumTopicAlias(userMaxTopicAlias);
     client.setConnectionProperties(userProperties);
@@ -251,6 +251,9 @@ void tst_QMqttConnectionProperties::maximumTopicAlias()
     const quint16 serverMaxAlias = serverProperties.maximumTopicAlias();
     if (serverMaxAlias == 0)
         QSKIP("Need to skip this test due to topic aliases not supported on server");
+
+    if (serverMaxAlias > userMaxTopicAlias)
+        QSKIP("This test requires that the client contains more topic aliases than the server");
 
     //qDebug() << "Server Max Alias:" << serverMaxAlias;
     //QLoggingCategory::setFilterRules("qt.mqtt.connection*=true");

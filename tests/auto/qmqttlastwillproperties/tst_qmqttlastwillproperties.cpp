@@ -191,7 +191,7 @@ void tst_QMqttLastWillProperties::willDelay()
     delayTimer.start();
 
     const int minimalWait = qMin(delay, expiry) * 1000;
-    const int maximumWait = 2 * (minimalWait == 0 ? 1000 : minimalWait);
+    const int maximumWait = 10 * (minimalWait == 0 ? 1000 : minimalWait);
     QTRY_VERIFY2_WITH_TIMEOUT(receivedWill, "Did not receive a will message", delay * 1000 * 3);
     const int elapsed = delayTimer.elapsed();
     QVERIFY(elapsed > minimalWait);

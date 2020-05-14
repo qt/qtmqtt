@@ -502,8 +502,10 @@ public slots:
         } else {
             response += char(0); // ackFlags
             response += char(0); // result
-            if (version == QMqttClient::MQTT_5_0)
+            if (version == QMqttClient::MQTT_5_0) {
                 response += char(0); // No properties
+                response[1] = response[1] + 1; // Adjust payload size
+            }
         }
         qDebug() << "Fake server response:" << connectionSuccess;
         socket->write(response);
