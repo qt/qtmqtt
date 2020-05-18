@@ -66,6 +66,7 @@ enum class ReasonCode : quint8 {
     SubscriptionQoSLevel1 = 0x01,
     SubscriptionQoSLevel2 = 0x02,
     NoMatchingSubscriber = 0x10,
+    NoSubscriptionExisted = 0x11,
     ContinueAuthentication = 0x18,
     ReAuthenticate = 0x19,
     UnspecifiedError = 0x80,

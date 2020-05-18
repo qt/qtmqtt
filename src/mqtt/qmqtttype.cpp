@@ -136,6 +136,8 @@ QT_BEGIN_NAMESPACE
            The message has been accepted by the server, but there are no
            subscribers to receive this message. A broker may send this
            reason code instead of \l Success.
+    \value [since 5.15] NoSubscriptionExisted
+           No matching Topic Filter is being used by the Client.
     \value [since 5.15] ContinueAuthentication
            Continue the authentication with another step.
     \value [since 5.15] ReAuthenticate

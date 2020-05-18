@@ -466,6 +466,17 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO << " Topic:" << topic << " qos:" << qos;
 
+    // Overflow protection
+    if (Q_UNLIKELY(!topic.isValid())) {
+        qCWarning(lcMqttConnection) << "Invalid subscription topic filter.";
+        return nullptr;
+    }
+
+    if (Q_UNLIKELY(qos > 2)) {
+        qCWarning(lcMqttConnection) << "Invalid subscription QoS.";
+        return nullptr;
+    }
+
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
         const QString sharedSubscriptionName = topic.sharedSubscriptionName();
         if (!sharedSubscriptionName.isEmpty()) {
@@ -497,20 +508,8 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         packet.appendRaw(writeSubscriptionProperties(properties));
 
-    // Overflow protection
-    if (!topic.isValid()) {
-        qCDebug(lcMqttConnection) << "Invalid subscription topic filter.";
-        return nullptr;
-    }
-
     packet.append(topic.filter().toUtf8());
-
-    switch (qos) {
-    case 0: packet.append(char(0x0)); break;
-    case 1: packet.append(char(0x1)); break;
-    case 2: packet.append(char(0x2)); break;
-    default: return nullptr;
-    }
+    packet.append(char(qos));
 
     auto result = new QMqttSubscription(this);
     result->setTopic(topic);
@@ -1521,7 +1520,9 @@ void QMqttConnection::finalize_suback()
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
         readSubscriptionProperties(sub);
 
-    while (m_missingData > 0) {
+    // 3.9.3 - The Payload contains a list of Reason Codes. Each Reason Code corresponds to a Topic Filter in the SUBSCRIBE packet being acknowledged.
+    // Whereas 3.8.3 states "The Payload MUST contain at least one Topic Filter and Subscription Options pair. A SUBSCRIBE packet with no Payload is a Protocol Error."
+    do {
         quint8 reason = readBufferTyped<quint8>(&m_missingData);
 
         sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reason);
@@ -1563,7 +1564,7 @@ void QMqttConnection::finalize_suback()
             closeConnection(QMqttClient::ProtocolViolation);
             break;
         }
-    }
+    } while (m_missingData > 0);
 }
 
 void QMqttConnection::finalize_unsuback()
@@ -1577,8 +1578,44 @@ void QMqttConnection::finalize_unsuback()
         return;
     }
 
-    sub->setState(QMqttSubscription::Unsubscribed);
     m_activeSubscriptions.remove(sub->topic());
+
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        readSubscriptionProperties(sub);
+    } else {
+        // 3.11.3 - The UNSUBACK Packet has no payload.
+        // emulate successful unsubscription
+        sub->d_func()->m_reasonCode = QMqtt::ReasonCode::Success;
+        sub->setState(QMqttSubscription::Unsubscribed);
+        return;
+    }
+
+    // 3.1.3 - The Payload contains a list of Reason Codes. Each Reason Code corresponds to a Topic Filter in the UNSUBSCRIBE packet being acknowledged.
+    // Whereas 3.10.3 states "The Payload of an UNSUBSCRIBE packet MUST contain at least one Topic Filter. An UNSUBSCRIBE packet with no Payload is a Protocol Error."
+    do {
+        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
+        sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reasonCode);
+
+        // 3.11.3
+        switch (QMqtt::ReasonCode(reasonCode)) {
+        case QMqtt::ReasonCode::Success:
+            sub->setState(QMqttSubscription::Unsubscribed);
+            break;
+        case QMqtt::ReasonCode::NoSubscriptionExisted:
+        case QMqtt::ReasonCode::ImplementationSpecificError:
+        case QMqtt::ReasonCode::NotAuthorized:
+        case QMqtt::ReasonCode::InvalidTopicFilter:
+        case QMqtt::ReasonCode::MessageIdInUse:
+        case QMqtt::ReasonCode::UnspecifiedError:
+            qCWarning(lcMqttConnection) << "Unsubscription for id " << id << " failed. Reason Code:" << reasonCode;
+            sub->setState(QMqttSubscription::Error);
+            break;
+        default:
+            qCWarning(lcMqttConnection) << "Received illegal UNSUBACK reason code:" << reasonCode;
+            closeConnection(QMqttClient::ProtocolViolation);
+            break;
+        }
+    } while (m_missingData > 0);
 }
 
 void QMqttConnection::finalize_publish()
