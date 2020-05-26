@@ -1,7 +1,7 @@
 # Generated from mqtt.pro.
 
 add_subdirectory(consolepubsub)
-if(TARGET Qt::Gui)
+if(TARGET Qt::Gui AND TARGET Qt::Widgets)
     add_subdirectory(simpleclient)
     add_subdirectory(subscriptions)
 endif()
