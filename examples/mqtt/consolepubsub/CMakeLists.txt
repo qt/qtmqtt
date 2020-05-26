@@ -9,7 +9,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(INSTALL_EXAMPLEDIR "examples")
+if(NOT DEFINED INSTALL_EXAMPLESDIR)
+  set(INSTALL_EXAMPLESDIR "examples")
+endif()
+
+set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/consolepubsub")
 
 find_package(Qt6 COMPONENTS Mqtt)
 
@@ -20,6 +24,7 @@ add_executable(qtmqtt_pub
 target_compile_definitions(qtmqtt_pub PUBLIC
     QT_DEPRECATED_WARNINGS
 )
+
 target_link_libraries(qtmqtt_pub PUBLIC
     # Remove: gui
     Qt::Mqtt
@@ -39,7 +44,11 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(INSTALL_EXAMPLEDIR "examples")
+if(NOT DEFINED INSTALL_EXAMPLESDIR)
+  set(INSTALL_EXAMPLESDIR "examples")
+endif()
+
+set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/consolepubsub")
 
 find_package(Qt6 COMPONENTS Mqtt)
 
@@ -50,6 +59,7 @@ add_executable(qtmqtt_sub
 target_compile_definitions(qtmqtt_sub PUBLIC
     QT_DEPRECATED_WARNINGS
 )
+
 target_link_libraries(qtmqtt_sub PUBLIC
     # Remove: gui
     Qt::Mqtt

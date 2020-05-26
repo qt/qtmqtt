@@ -24,6 +24,8 @@ qt_add_module(Mqtt
     PUBLIC_LIBRARIES
         Qt::Core
         Qt::Network
+    PRIVATE_MODULE_INTERFACE
+        Qt::CorePrivate
 )
 qt_add_docs(Mqtt
     doc/qtmqtt.qdocconf

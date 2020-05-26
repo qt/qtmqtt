@@ -1,6 +1,9 @@
 # Generated from auto.pro.
 
-if(WIN32 OR (LINUX AND NOT cross_compile))
+if(WIN32 OR (LINUX AND NOT CMAKE_CROSSCOMPILING))
+# special case begin
+#   add_subdirectory(cmake)
+# special case end
     add_subdirectory(conformance)
     add_subdirectory(qmqttconnectionproperties)
     add_subdirectory(qmqttcontrolpacket)
