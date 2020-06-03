@@ -178,9 +178,9 @@ void Tst_MqttConformance::retained_message_test()
     const QStringList topics{"Qt/conformance/tests/retain1", "Qt/conformance/tests/retain2", "Qt/conformance/tests2/retain1"};
     const QString subTop{"Qt/conformance/#"}; // ### TODO: The test suite uses {"Qt/+/+"}; but we do not support ++ yet.
 
-    client.publish(topics[0], messages[0].toLocal8Bit(), 0, true);
-    client.publish(topics[1], messages[1].toLocal8Bit(), 1, true);
-    qint32 id = client.publish(topics[2], messages[2].toLocal8Bit(), 2, true);
+    client.publish(topics[0], messages[0].toUtf8(), 0, true);
+    client.publish(topics[1], messages[1].toUtf8(), 1, true);
+    qint32 id = client.publish(topics[2], messages[2].toUtf8(), 2, true);
     bool lastPublishSucceeded = false;
     connect(&client, &QMqttClient::messageSent, this, [id, &lastPublishSucceeded](qint32 recId) {
         if (recId == id)
