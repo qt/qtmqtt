@@ -234,19 +234,19 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
     }
 
     if (d->filter.endsWith(QLatin1Char('#'))) {
-        QStringRef root = d->filter.leftRef(d->filter.size() - 1);
+        QStringView root = QStringView{d->filter}.left(d->filter.size() - 1);
         if (root.endsWith(QLatin1Char('/'))) // '#' also represents the parent level!
             root = root.left(root.size() - 1);
         return topic.startsWith(root);
     }
 
     if (d->filter.contains(QLatin1Char('+'))) {
-        const QVector<QStringRef> filterLevels = d->filter.splitRef(QLatin1Char('/'));
-        const QVector<QStringRef> topicLevels = topic.splitRef(QLatin1Char('/'));
+        const QVector<QStringView> filterLevels = QStringView{d->filter}.split(QLatin1Char('/'));
+        const QVector<QStringView> topicLevels = QStringView{topic}.split(QLatin1Char('/'));
         if (filterLevels.size() != topicLevels.size())
             return false;
         for (int i = 0; i < filterLevels.size(); ++i) {
-            const QStringRef &level = filterLevels.at(i);
+            const auto &level = filterLevels.at(i);
             if (level != QLatin1Char('+') && level != topicLevels.at(i))
                 return false;
         }
