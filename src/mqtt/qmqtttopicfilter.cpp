@@ -30,7 +30,7 @@
 #include "qmqtttopicfilter.h"
 
 #include <QtCore/QDebug>
-#include <QtCore/QVector>
+#include <QtCore/QList>
 
 QT_BEGIN_NAMESPACE
 
@@ -241,8 +241,8 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
     }
 
     if (d->filter.contains(QLatin1Char('+'))) {
-        const QVector<QStringView> filterLevels = QStringView{d->filter}.split(QLatin1Char('/'));
-        const QVector<QStringView> topicLevels = QStringView{topic}.split(QLatin1Char('/'));
+        const auto filterLevels = QStringView{d->filter}.split(QLatin1Char('/'));
+        const auto topicLevels = QStringView{topic}.split(QLatin1Char('/'));
         if (filterLevels.size() != topicLevels.size())
             return false;
         for (int i = 0; i < filterLevels.size(); ++i) {

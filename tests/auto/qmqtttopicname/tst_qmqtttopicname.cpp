@@ -28,8 +28,8 @@
 ******************************************************************************/
 
 #include <QtCore/QHash>
+#include <QtCore/QList>
 #include <QtCore/QMap>
-#include <QtCore/QVector>
 #include <QtMqtt/QMqttTopicName>
 #include <QtTest/QtTest>
 
@@ -42,7 +42,7 @@ private Q_SLOTS:
     void checkLevelCount();
     void checkLevels_data();
     void checkLevels();
-    void usableWithQVector();
+    void usableWithQList();
     void usableWithQMap();
     void usableWithQHash();
 };
@@ -92,10 +92,10 @@ void Tst_QMqttTopicName::checkLevels()
     QCOMPARE(name.levels(), levels);
 }
 
-void Tst_QMqttTopicName::usableWithQVector()
+void Tst_QMqttTopicName::usableWithQList()
 {
     const QMqttTopicName topic{"a/b"};
-    QVector<QMqttTopicName> names;
+    QList<QMqttTopicName> names;
     names.append(topic);
     QCOMPARE(topic, names.constFirst());
 }

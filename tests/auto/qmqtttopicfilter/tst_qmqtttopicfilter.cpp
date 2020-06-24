@@ -28,8 +28,8 @@
 ******************************************************************************/
 
 #include <QtCore/QHash>
+#include <QtCore/QList>
 #include <QtCore/QMap>
-#include <QtCore/QVector>
 #include <QtMqtt/QMqttTopicFilter>
 #include <QtTest/QtTest>
 
@@ -41,7 +41,7 @@ private Q_SLOTS:
     void checkValidity();
     void matches();
 
-    void usableWithQVector();
+    void usableWithQList();
     void usableWithQMap();
     void usableWithQHash();
 };
@@ -123,10 +123,10 @@ void Tst_QMqttTopicFilter::matches()
     QVERIFY(QMqttTopicFilter("$SYS/monitor/+").match(QMqttTopicName("$SYS/monitor/Clients"), QMqttTopicFilter::WildcardsDontMatchDollarTopicMatchOption));
 }
 
-void Tst_QMqttTopicFilter::usableWithQVector()
+void Tst_QMqttTopicFilter::usableWithQList()
 {
     const QMqttTopicFilter topic{"a/b"};
-    QVector<QMqttTopicFilter> names;
+    QList<QMqttTopicFilter> names;
     names.append(topic);
     QCOMPARE(topic, names.constFirst());
 }

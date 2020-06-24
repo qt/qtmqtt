@@ -161,8 +161,8 @@ private:
     QBasicTimer m_pingTimer;
     int m_pingTimeout{0};
 
-    QVector<QMqttTopicName> m_receiveAliases;
-    QVector<QMqttTopicName> m_publishAliases;
+    QList<QMqttTopicName> m_receiveAliases;
+    QList<QMqttTopicName> m_publishAliases;
 };
 
 QT_END_NAMESPACE

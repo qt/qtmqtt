@@ -33,10 +33,10 @@
 #include <QtMqtt/qmqttglobal.h>
 
 #include <QtCore/QDebug>
+#include <QtCore/QList>
 #include <QtCore/QPair>
 #include <QtCore/QSharedDataPointer>
 #include <QtCore/QString>
-#include <QtCore/QVector>
 
 QT_BEGIN_NAMESPACE
 
@@ -66,7 +66,7 @@ private:
 Q_MQTT_EXPORT QDebug operator<<(QDebug d, const QMqttStringPair &s);
 #endif
 
-class Q_MQTT_EXPORT QMqttUserProperties : public QVector<QMqttStringPair>
+class Q_MQTT_EXPORT QMqttUserProperties : public QList<QMqttStringPair>
 {
 public:
 };
