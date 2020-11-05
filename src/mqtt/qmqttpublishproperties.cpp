@@ -244,7 +244,7 @@ QList<quint32> QMqttPublishProperties::subscriptionIdentifiers() const
 */
 void QMqttPublishProperties::setSubscriptionIdentifiers(const QList<quint32> &ids)
 {
-    if (ids.contains(0)) {
+    if (ids.contains(quint32(0))) {
         qCDebug(lcMqttClient) << "A subscription identifier with value 0 is not allowed.";
         return;
     }
