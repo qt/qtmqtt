@@ -5,3 +5,6 @@ dependencies:
   ../qtdeclarative:
     ref: 7ef1fc3545d4f9604e7c87fb208d897bc3f1f089
     required: false
+  ../qttools:
+    ref: 834047647fe0003c58b0f6f36936fd143c2e4cb4
+    required: true
