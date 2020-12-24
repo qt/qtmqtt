@@ -1063,10 +1063,9 @@ void QMqttClientPrivate::setStateAndError(QMqttClient::ClientState s, QMqttClien
 {
     Q_Q(QMqttClient);
 
-    if (s != m_state)
-        q->setState(s);
-    if (e != QMqttClient::NoError && m_error != e)
+    if (e != QMqttClient::NoError)
         q->setError(e);
+    q->setState(s);
 }
 
 void QMqttClientPrivate::setClientId(const QString &id)
