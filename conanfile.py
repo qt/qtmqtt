@@ -36,7 +36,7 @@ class QtConanError(Exception):
 
 class QtMQTT(ConanFile):
     name = "qtmqtt"
-    version = "6.0.1"
+    version = "6.1.0"
     license = "GPL-3.0+, Commercial Qt License Agreement"
     author = "The Qt Company <https://www.qt.io/contact-us>"
     url = "https://code.qt.io/cgit/qt/qtmqtt.git"
