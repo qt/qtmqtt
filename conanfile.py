@@ -54,11 +54,11 @@ class QtMQTT(ConanFile):
         pass
 
     def _get_cmake_prefix_path(self):
-        # 'QT_PATH' provided as env variable in profile file which is part of the Qt essential binary
+        # 'QTDIR' provided as env variable in profile file which is part of the Qt essential binary
         # package(s). Installed under .conan/profiles
-        cmake_prefix_path = os.environ.get("QT_PATH")
+        cmake_prefix_path = os.environ.get("QTDIR")
         if not cmake_prefix_path:
-            raise QtConanError("'QT_PATH' not defined! The 'QT_PATH' needs to point to Qt installation directory.")
+            raise QtConanError("'QTDIR' not defined! The 'QTDIR' needs to point to Qt installation directory.")
         print(f"CMAKE_PREFIX_PATH for '{self.name}/{self.version}' build is: {cmake_prefix_path}")
         return cmake_prefix_path
 
@@ -73,7 +73,7 @@ class QtMQTT(ConanFile):
         ext = ".bat" if tools.os_info.is_windows else ""
         qtcmake = os.path.abspath(os.path.join(qt_install_path, "bin", "qt-cmake" + ext))
         if not os.path.exists(qtcmake):
-            raise QtConanError(f"Unable to locate {qtcmake} from 'QT_PATH': {qt_install_path}")
+            raise QtConanError(f"Unable to locate {qtcmake} from 'QTDIR': {qt_install_path}")
         return qtcmake
 
     def _get_cmake_tool(self):
