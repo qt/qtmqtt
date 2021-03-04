@@ -28,6 +28,7 @@
 
 from conans import ConanFile, tools, CMake
 import os
+from pathlib import Path
 
 
 class QtConanError(Exception):
@@ -48,6 +49,8 @@ class QtMQTT(ConanFile):
     default_options = {"shared": "default",  # default: Use the value of the Qt build
                        "qt6": None}
     exports_sources = "*", "!conan*.*"
+    # use commit ID as the RREV (recipe revision) if this is exported from .git repository
+    revision_mode = "scm" if Path(Path(__file__).parent.resolve() / ".git").exists() else "hash"
 
     def source(self):
         # sources are installed next to recipe, no need to clone etc. sources here
