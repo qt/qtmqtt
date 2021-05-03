@@ -3,5 +3,5 @@ dependencies:
     ref: 9e1b49c53c50f97134515b9a924985a2a709c6f3
     required: true
   ../qtdeclarative:
-    ref: 689522817dc559056f7c55f811a189c4821b7787
+    ref: 3464655f5e2adaa1aed8925a9a54b8fb5f238f31
     required: true
