@@ -10,8 +10,10 @@ project(QtMqtt
     LANGUAGES CXX C
 )
 
+# Make sure we use the fixed BASE argument of qt_add_resource.
+set(QT_USE_FIXED_QT_ADD_RESOURCE_BASE TRUE)
+
 find_package(Qt6 ${PROJECT_VERSION} CONFIG REQUIRED COMPONENTS BuildInternals Core Network) # special case
 find_package(Qt6 ${PROJECT_VERSION} CONFIG OPTIONAL_COMPONENTS Quick WebSockets # For tests # special case
                                                                Gui Widgets) # For examples # special case
 qt_build_repo()
-
