@@ -19,10 +19,14 @@ find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS WebSockets)
 find_package(Qt6 COMPONENTS Mqtt)
 
-add_executable(websocketsubscription
+qt_add_executable(websocketsubscription
     clientsubscription.cpp clientsubscription.h
     main.cpp
     websocketiodevice.cpp websocketiodevice.h
+)
+set_target_properties(websocketsubscription PROPERTIES
+    WIN32_EXECUTABLE FALSE
+    MACOSX_BUNDLE FALSE
 )
 target_compile_definitions(websocketsubscription PUBLIC
     QT_DEPRECATED_WARNINGS

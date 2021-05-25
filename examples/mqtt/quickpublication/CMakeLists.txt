@@ -21,9 +21,13 @@ find_package(Qt6 COMPONENTS Qml)
 find_package(Qt6 COMPONENTS Quick)
 find_package(Qt6 COMPONENTS Mqtt)
 
-add_qt_gui_executable(quickpublication
+qt_add_executable(quickpublication
     main.cpp
     qmlmqttclient.cpp qmlmqttclient.h
+)
+set_target_properties(quickpublication PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
 )
 target_compile_definitions(quickpublication PUBLIC
     QT_DEPRECATED_WARNINGS

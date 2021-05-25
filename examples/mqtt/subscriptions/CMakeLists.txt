@@ -21,10 +21,14 @@ find_package(Qt6 COMPONENTS Network)
 find_package(Qt6 COMPONENTS Widgets)
 find_package(Qt6 COMPONENTS Mqtt)
 
-add_qt_gui_executable(mqttsubscriptions
+qt_add_executable(mqttsubscriptions
     main.cpp
     mainwindow.cpp mainwindow.h mainwindow.ui
     subscriptionwindow.cpp subscriptionwindow.h subscriptionwindow.ui
+)
+set_target_properties(mqttsubscriptions PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
 )
 target_compile_definitions(mqttsubscriptions PUBLIC
     QT_DEPRECATED_WARNINGS

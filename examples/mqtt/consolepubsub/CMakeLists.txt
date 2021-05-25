@@ -17,9 +17,13 @@ set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/consolepubsub")
 
 find_package(Qt6 COMPONENTS Mqtt)
 
-add_executable(qtmqtt_pub
+qt_add_executable(qtmqtt_pub
     configuration.h
     main_pub.cpp
+)
+set_target_properties(qtmqtt_pub PROPERTIES
+    WIN32_EXECUTABLE FALSE
+    MACOSX_BUNDLE FALSE
 )
 target_compile_definitions(qtmqtt_pub PUBLIC
     QT_DEPRECATED_WARNINGS
@@ -52,9 +56,13 @@ set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/consolepubsub")
 
 find_package(Qt6 COMPONENTS Mqtt)
 
-add_executable(qtmqtt_sub
+qt_add_executable(qtmqtt_sub
     configuration.h
     main_sub.cpp
+)
+set_target_properties(qtmqtt_sub PROPERTIES
+    WIN32_EXECUTABLE FALSE
+    MACOSX_BUNDLE FALSE
 )
 target_compile_definitions(qtmqtt_sub PUBLIC
     QT_DEPRECATED_WARNINGS

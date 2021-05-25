@@ -4,7 +4,7 @@
 ## tst_qmqttcontrolpacket Test:
 #####################################################################
 
-qt_add_test(tst_qmqttcontrolpacket
+qt_internal_add_test(tst_qmqttcontrolpacket
     SOURCES
         tst_qmqttcontrolpacket.cpp
     DEFINES

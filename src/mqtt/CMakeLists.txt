@@ -4,7 +4,7 @@
 ## Mqtt Module:
 #####################################################################
 
-qt_add_module(Mqtt
+qt_internal_add_module(Mqtt
     SOURCES
         qmqttauthenticationproperties.cpp qmqttauthenticationproperties.h
         qmqttclient.cpp qmqttclient.h qmqttclient_p.h
@@ -27,7 +27,6 @@ qt_add_module(Mqtt
     PRIVATE_MODULE_INTERFACE
         Qt::CorePrivate
 )
-qt_add_docs(Mqtt
+qt_internal_add_docs(Mqtt
     doc/qtmqtt.qdocconf
 )
-

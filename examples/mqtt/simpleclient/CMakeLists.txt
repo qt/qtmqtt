@@ -21,9 +21,13 @@ find_package(Qt6 COMPONENTS Network)
 find_package(Qt6 COMPONENTS Mqtt)
 find_package(Qt6 COMPONENTS Widgets) # special case
 
-add_qt_gui_executable(simplemqttclient
+qt_add_executable(simplemqttclient
     main.cpp
     mainwindow.cpp mainwindow.h mainwindow.ui
+)
+set_target_properties(simplemqttclient PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
 )
 target_compile_definitions(simplemqttclient PUBLIC
     QT_DEPRECATED_WARNINGS

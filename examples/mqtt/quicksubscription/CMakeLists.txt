@@ -21,9 +21,13 @@ find_package(Qt6 COMPONENTS Qml)
 find_package(Qt6 COMPONENTS Quick)
 find_package(Qt6 COMPONENTS Mqtt)
 
-add_qt_gui_executable(quicksubscription
+qt_add_executable(quicksubscription
     main.cpp
     qmlmqttclient.cpp qmlmqttclient.h
+)
+set_target_properties(quicksubscription PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
 )
 target_compile_definitions(quicksubscription PUBLIC
     QT_DEPRECATED_WARNINGS
