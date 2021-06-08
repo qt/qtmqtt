@@ -257,7 +257,8 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
 }
 
 /*!
-    \relates QMqttTopicFilter
+    //! friend
+    \fn bool QMqttTopicFilter::operator==(const QMqttTopicFilter &lhs, const QMqttTopicFilter &rhs)
 
     Returns \c true if the topic filters \a lhs and \a rhs are equal,
     otherwise returns \c false.
@@ -268,15 +269,16 @@ bool operator==(const QMqttTopicFilter &lhs, const QMqttTopicFilter &rhs) Q_DECL
 }
 
 /*!
-    \fn bool operator!=(const QMqttTopicFilter &lhs, const QMqttTopicFilter &rhs)
-    \relates QMqttTopicFilter
+    //! friend
+    \fn bool QMqttTopicFilter::operator!=(const QMqttTopicFilter &lhs, const QMqttTopicFilter &rhs)
 
     Returns \c true if the topic filters \a lhs and \a rhs are different,
     otherwise returns \c false.
  */
 
 /*!
-    \relates QMqttTopicFilter
+    //! friend
+    \fn bool QMqttTopicFilter::operator<(const QMqttTopicFilter &lhs, const QMqttTopicFilter &rhs)
 
     Returns \c true if the topic filter \a lhs is lexically less than the topic
     filter \a rhs; otherwise returns \c false.
