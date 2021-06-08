@@ -149,7 +149,8 @@ QStringList QMqttTopicName::levels() const
 }
 
 /*!
-    \relates QMqttTopicName
+    //! friend
+    \fn bool QMqttTopicName::operator==(const QMqttTopicName &lhs, const QMqttTopicName &rhs)
 
     Returns \c true if the topic names \a lhs and \a rhs are equal,
     otherwise returns \c false.
@@ -160,15 +161,16 @@ bool operator==(const QMqttTopicName &lhs, const QMqttTopicName &rhs) Q_DECL_NOT
 }
 
 /*!
-    \fn bool operator!=(const QMqttTopicName &lhs, const QMqttTopicName &rhs)
-    \relates QMqttTopicName
+    //! friend
+    \fn bool QMqttTopicName::operator!=(const QMqttTopicName &lhs, const QMqttTopicName &rhs)
 
     Returns \c true if the topic names \a lhs and \a rhs are different,
     otherwise returns \c false.
  */
 
 /*!
-    \relates QMqttTopicName
+    //! friend
+    \fn bool QMqttTopicName::operator<(const QMqttTopicName &lhs, const QMqttTopicName &rhs)
 
     Returns \c true if the topic name \a lhs is lexically less than the topic
     name \a rhs; otherwise returns \c false.
