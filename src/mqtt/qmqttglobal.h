@@ -31,18 +31,9 @@
 #define QTQMQTTGLOBAL_H
 
 #include <QtCore/qglobal.h>
+#include <QtMqtt/qtmqttexports.h>
 
 QT_BEGIN_NAMESPACE
-
-#ifndef QT_STATIC
-#  if defined(QT_BUILD_MQTT_LIB)
-#    define Q_MQTT_EXPORT Q_DECL_EXPORT
-#  else
-#    define Q_MQTT_EXPORT Q_DECL_IMPORT
-#  endif
-#else
-#  define Q_MQTT_EXPORT
-#endif
 
 namespace QMqtt
 {
