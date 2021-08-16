@@ -1,6 +1,6 @@
 # Generated from consolepubsub.pro.
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 project(qtmqtt_pub LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -39,7 +39,7 @@ install(TARGETS qtmqtt_pub
     BUNDLE DESTINATION "${INSTALL_EXAMPLEDIR}"
     LIBRARY DESTINATION "${INSTALL_EXAMPLEDIR}"
 )
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 project(qtmqtt_sub LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
