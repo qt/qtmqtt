@@ -14,10 +14,6 @@ qhp.QtMqtt.virtualFolder       = qtmqtt
 qhp.QtMqtt.indexTitle          = Qt MQTT
 qhp.QtMqtt.indexRoot           =
 
-qhp.QtMqtt.filterAttributes    = qtmqtt $QT_VERSION qtrefdoc
-qhp.QtMqtt.customFilters.Qt.name = QtMqtt $QT_VERSION
-qhp.QtMqtt.customFilters.Qt.filterAttributes = qtmqtt $QT_VERSION
-
 qhp.QtMqtt.subprojects         = classes examples
 qhp.QtMqtt.subprojects.classes.title = C++ Classes
 qhp.QtMqtt.subprojects.classes.indexTitle = Qt MQTT C++ Classes
