@@ -3,8 +3,8 @@ dependencies:
     ref: ae1921b0ea15435159dffb29b69ac2504b2932bd
     required: true
   ../qtdeclarative:
-    ref: ad78142247bc06fa318b67d3a990f19b9c911a5a
+    ref: 0533725c60198aeced54ad53454a09a3b3691394
     required: true
   ../qttools:
-    ref: f843030f3e6e107f83a05d2facfc0deb21d37e0c
+    ref: 143ee6d602e610b36d8b9f6c67ad133a8e2d8db7
     required: true
