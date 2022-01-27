@@ -35,7 +35,7 @@ excludedirs += ../qt4support
 
 Cpp.ignoretokens += Q_MQTT_EXPORT
 
-depends += qtcore qtdoc qtnetwork qmake qtwebsockets
+depends += qtcore qtdoc qtnetwork qmake qtwebsockets qtcmake
 
 #add generic thumbnail images for example documentation that does not have an image.
 manifestmeta.thumbnail.names  += "QtMqtt/WebSockets MQTT Subscription*"
