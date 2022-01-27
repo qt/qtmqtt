@@ -44,19 +44,16 @@
     and devices to publish telemetry data. The supported versions are MQTT 3.1,
     MQTT 3.1.1, and MQTT 5.0.
 
-    \note Qt MQTT is part of the Qt for Automation offering and not Qt. For further
-    details please see \l {Qt for Automation}.
-
-    \section1 Getting Started
-
-    To include the definitions of the module's classes, use the following
-    directive:
+    \include module-use.qdocinc using qt module
 
     \code
-    #include <QtMqtt/QtMqtt>
+    find_package(Qt6 REQUIRED COMPONENTS Mqtt)
+    target_link_libraries(mytarget PRIVATE Qt6::Mqtt)
     \endcode
 
-    To link against the module, add this line to your \l qmake \c .pro file:
+    See also the \l {Build with CMake} overview.
+
+    \include module-use.qdocinc building with qmake
 
     \code
     QT += mqtt

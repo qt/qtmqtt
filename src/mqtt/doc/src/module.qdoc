@@ -30,19 +30,9 @@
     \module QtMqtt
     \title Qt MQTT C++ Classes
     \ingroup modules
+    \qtcmakepackage Mqtt
     \qtvariable mqtt
     \brief Provides classes that enable sending messages via the MQTT protocol.
 
-    To use these classes in your application, use the following include
-    statement:
-
-    \code
-    #include <QtMqtt/QtMqtt>
-    \endcode
-
-    To link against the module, add this line to your \l qmake \c .pro file:
-
-    \code
-    QT += mqtt
-    \endcode
+    The \l{Qt MQTT} page contains information about how to use the module.
 */
