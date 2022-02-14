@@ -1,5 +1,3 @@
-# Generated from mqtt.pro.
-
 qt_internal_add_example(consolepubsub)
 if(TARGET Qt::Gui AND TARGET Qt::Widgets)
     qt_internal_add_example(simpleclient)

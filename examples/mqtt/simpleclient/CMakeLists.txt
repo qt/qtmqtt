@@ -1,34 +1,27 @@
-# Generated from simpleclient.pro.
-
 cmake_minimum_required(VERSION 3.16)
 project(simplemqttclient LANGUAGES CXX)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 if(NOT DEFINED INSTALL_EXAMPLESDIR)
-  set(INSTALL_EXAMPLESDIR "examples")
+    set(INSTALL_EXAMPLESDIR "examples")
 endif()
 
 set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/simpleclient")
 
-find_package(Qt6 COMPONENTS Core)
-find_package(Qt6 COMPONENTS Gui)
-find_package(Qt6 COMPONENTS Network)
-find_package(Qt6 COMPONENTS Mqtt)
-find_package(Qt6 COMPONENTS Widgets) # special case
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Mqtt Network Widgets)
 
 qt_add_executable(simplemqttclient
     main.cpp
     mainwindow.cpp mainwindow.h mainwindow.ui
 )
+
 set_target_properties(simplemqttclient PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
+
 target_compile_definitions(simplemqttclient PUBLIC
     QT_DEPRECATED_WARNINGS
 )
@@ -39,7 +32,8 @@ target_link_libraries(simplemqttclient PUBLIC
     Qt::Mqtt
     Qt::Network
 )
-target_link_libraries(simplemqttclient PUBLIC Qt::Widgets) # special case
+
+target_link_libraries(simplemqttclient PUBLIC Qt::Widgets)
 
 if((QT_MAJOR_VERSION GREATER 4))
     target_link_libraries(simplemqttclient PUBLIC

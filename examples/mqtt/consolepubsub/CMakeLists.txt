@@ -1,36 +1,35 @@
-# Generated from consolepubsub.pro.
-
 cmake_minimum_required(VERSION 3.16)
-project(qtmqtt_pub LANGUAGES CXX)
-
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+project(qtmqtt_pub_sub LANGUAGES CXX)
 
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
 
 if(NOT DEFINED INSTALL_EXAMPLESDIR)
-  set(INSTALL_EXAMPLESDIR "examples")
+    set(INSTALL_EXAMPLESDIR "examples")
 endif()
 
 set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/consolepubsub")
 
-find_package(Qt6 COMPONENTS Mqtt)
+find_package(Qt6 REQUIRED COMPONENTS Mqtt)
+
+#
+# Pub
+#
 
 qt_add_executable(qtmqtt_pub
     configuration.h
     main_pub.cpp
 )
+
 set_target_properties(qtmqtt_pub PROPERTIES
     WIN32_EXECUTABLE FALSE
     MACOSX_BUNDLE FALSE
 )
+
 target_compile_definitions(qtmqtt_pub PUBLIC
     QT_DEPRECATED_WARNINGS
 )
 
 target_link_libraries(qtmqtt_pub PUBLIC
-    # Remove: gui
     Qt::Mqtt
 )
 
@@ -39,37 +38,26 @@ install(TARGETS qtmqtt_pub
     BUNDLE DESTINATION "${INSTALL_EXAMPLEDIR}"
     LIBRARY DESTINATION "${INSTALL_EXAMPLEDIR}"
 )
-cmake_minimum_required(VERSION 3.16)
-project(qtmqtt_sub LANGUAGES CXX)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-
-if(NOT DEFINED INSTALL_EXAMPLESDIR)
-  set(INSTALL_EXAMPLESDIR "examples")
-endif()
-
-set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/consolepubsub")
-
-find_package(Qt6 COMPONENTS Mqtt)
+#
+# Sub
+#
 
 qt_add_executable(qtmqtt_sub
     configuration.h
     main_sub.cpp
 )
+
 set_target_properties(qtmqtt_sub PROPERTIES
     WIN32_EXECUTABLE FALSE
     MACOSX_BUNDLE FALSE
 )
+
 target_compile_definitions(qtmqtt_sub PUBLIC
     QT_DEPRECATED_WARNINGS
 )
 
 target_link_libraries(qtmqtt_sub PUBLIC
-    # Remove: gui
     Qt::Mqtt
 )
 
