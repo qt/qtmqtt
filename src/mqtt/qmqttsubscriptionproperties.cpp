@@ -66,6 +66,7 @@ class QMqttSubscriptionPropertiesData : public QSharedData
 public:
     quint32 subscriptionIdentifier{0};
     QMqttUserProperties userProperties;
+    bool noLocal{false};
 };
 
 class QMqttUnsubscriptionPropertiesData : public QSharedData
@@ -126,6 +127,27 @@ quint32 QMqttSubscriptionProperties::subscriptionIdentifier() const
 void QMqttSubscriptionProperties::setSubscriptionIdentifier(quint32 id)
 {
     data->subscriptionIdentifier = id;
+}
+
+/*!
+ * \since 6.4
+ * Returns true if the subscription shall not receive local messages on the same topic.
+ */
+bool QMqttSubscriptionProperties::noLocal() const
+{
+    return data->noLocal;
+}
+
+/*!
+ * \since 6.4
+ * Sets the subscription option to not receive local message.
+ * When a client publishes a message with the same topic as an existing local subscription
+ * the server by default sends the message back to the client. If \a noloc is set to true
+ * the broker will not send any message the same client has published.
+ */
+void QMqttSubscriptionProperties::setNoLocal(bool noloc)
+{
+    data->noLocal = noloc;
 }
 
 /*!

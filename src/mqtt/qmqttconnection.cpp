@@ -509,7 +509,10 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
         packet.appendRaw(writeSubscriptionProperties(properties));
 
     packet.append(topic.filter().toUtf8());
-    packet.append(char(qos));
+    char options = char(qos);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && properties.noLocal())
+        options |= 1 << 2;
+    packet.append(options);
 
     auto result = new QMqttSubscription(this);
     result->setTopic(topic);

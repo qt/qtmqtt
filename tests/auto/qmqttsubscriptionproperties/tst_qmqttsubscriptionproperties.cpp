@@ -77,6 +77,10 @@ void tst_QMqttSubscriptionProperties::getSet()
     properties.setSubscriptionIdentifier(id);
     QCOMPARE(properties.subscriptionIdentifier(), id);
 
+    QCOMPARE(properties.noLocal(), false);
+    properties.setNoLocal(true);
+    QCOMPARE(properties.noLocal(), true);
+
     const QString userKey1 = QLatin1String("UserName1");
     const QString userValue1 = QLatin1String("SomeValue");
     const QString userKey2 = QLatin1String("UserName2");

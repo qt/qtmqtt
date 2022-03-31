@@ -52,6 +52,8 @@ private Q_SLOTS:
     void sharedConnection();
     void sharedNonShared_data();
     void sharedNonShared();
+    void noLocal_data();
+    void noLocal();
 private:
     void createAndSubscribe(QMqttClient *c, QMqttSubscription **sub, const QString &topic);
     QProcess m_brokerProcess;
@@ -375,6 +377,50 @@ void Tst_QMqttSubscription::sharedNonShared()
 //    // Verify both subscriptions receive the message
 //    QTRY_VERIFY(receivalSpy1.count() == 1);
 //    QTRY_VERIFY(receivalSpy2.count() == 1);
+}
+
+void Tst_QMqttSubscription::noLocal_data()
+{
+    QTest::addColumn<QMqttClient::ProtocolVersion>("version");
+    QTest::addColumn<bool>("non");
+    QTest::newRow("3.1.1 - false") << QMqttClient::MQTT_3_1_1 << false;
+    QTest::newRow("3.1.1 - true") << QMqttClient::MQTT_3_1_1 << true;
+    QTest::newRow("5.0 - false") << QMqttClient::MQTT_5_0 << false;
+    QTest::newRow("5.0 - true") << QMqttClient::MQTT_5_0 << true;
+}
+
+void Tst_QMqttSubscription::noLocal()
+{
+    QFETCH(QMqttClient::ProtocolVersion, version);
+    QFETCH(bool, non);
+
+    QMqttClient client;
+    client.setProtocolVersion(version);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    QMqttSubscriptionProperties subProps;
+    subProps.setNoLocal(non);
+
+    const QString topic(QLatin1String("Qt/Subscription/NonLoc"));
+
+    auto sub = client.subscribe(topic, subProps, 1);
+    QTRY_VERIFY2(sub->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic.");
+
+    QSignalSpy publishSpy(&client, SIGNAL(messageSent(qint32)));
+    QSignalSpy receivalSpy(sub, SIGNAL(messageReceived(QMqttMessage)));
+
+    client.publish(topic, "content", 1);
+    QTRY_VERIFY(publishSpy.count() == 1);
+
+    if (version == QMqttClient::MQTT_3_1_1 || !non) { // 3.1.1 does not know NoLocal and sends to subscription
+        QTRY_VERIFY(receivalSpy.count() == 1);
+    } else {
+        QTest::qWait(3000);
+        QCOMPARE(receivalSpy.count(), 0);
+    }
 }
 
 QTEST_MAIN(Tst_QMqttSubscription)

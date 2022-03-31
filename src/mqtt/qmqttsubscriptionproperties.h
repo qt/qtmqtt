@@ -56,6 +56,9 @@ public:
 
     quint32 subscriptionIdentifier() const;
     void setSubscriptionIdentifier(quint32 id);
+
+    bool noLocal() const;
+    void setNoLocal(bool noloc);
 private:
     QSharedDataPointer<QMqttSubscriptionPropertiesData> data;
 };
