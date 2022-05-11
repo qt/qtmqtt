@@ -61,10 +61,10 @@ public:
     QMqttTopicFilter &operator=(const QMqttTopicFilter &filter);
 
 #ifdef Q_COMPILER_RVALUE_REFS
-    inline QMqttTopicFilter &operator=(QMqttTopicFilter &&other) Q_DECL_NOTHROW { qSwap(d, other.d); return *this; }
+    QMqttTopicFilter &operator=(QMqttTopicFilter &&other) noexcept { swap(other); return *this; }
 #endif
 
-    inline void swap(QMqttTopicFilter &other) Q_DECL_NOTHROW { qSwap(d, other.d); }
+    void swap(QMqttTopicFilter &other) noexcept { d.swap(other.d); }
 
     QString filter() const;
     void setFilter(const QString &filter);
