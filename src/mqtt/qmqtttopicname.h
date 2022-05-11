@@ -55,10 +55,10 @@ public:
     QMqttTopicName &operator=(const QMqttTopicName &name);
 
 #ifdef Q_COMPILER_RVALUE_REFS
-    inline QMqttTopicName &operator=(QMqttTopicName &&other) Q_DECL_NOTHROW { qSwap(d, other.d); return *this; }
+    QMqttTopicName &operator=(QMqttTopicName &&other) noexcept { swap(other); return *this; }
 #endif
 
-    inline void swap(QMqttTopicName &other) Q_DECL_NOTHROW { qSwap(d, other.d); }
+    void swap(QMqttTopicName &other) noexcept { d.swap(other.d); }
 
     QString name() const;
     void setName(const QString &name);
