@@ -14,6 +14,5 @@ qt_internal_add_test(tst_qmqtttopicfilter
         SRCDIR=\\\"${CMAKE_CURRENT_SOURCE_DIR}/\\\"
     LIBRARIES
         Qt::MqttPrivate
-    PUBLIC_LIBRARIES
         Qt::Mqtt
 )

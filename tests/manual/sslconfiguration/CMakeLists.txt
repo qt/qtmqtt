@@ -12,7 +12,7 @@ qt_add_manual_test(sslconfiguration
         main.cpp
     DEFINES
         QT_DEPRECATED_WARNINGS
-    PUBLIC_LIBRARIES
+    LIBRARIES
         Qt::Mqtt
         Qt::Network
 )

@@ -17,7 +17,6 @@ qt_internal_add_test(tst_qmqttsubscription
         ../../common
     LIBRARIES
         Qt::MqttPrivate
-    PUBLIC_LIBRARIES
         Qt::Mqtt
         Qt::Network
 )
