@@ -311,7 +311,7 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
     \sa authenticationRequested(), authenticate()
 */
 
-/*
+/*!
     Creates a new MQTT client instance with the specified \a parent.
  */
 QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(this)), parent)
