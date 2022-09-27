@@ -209,9 +209,24 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
 
     if (d->filter.endsWith(QLatin1Char('#'))) {
         QStringView root = QStringView{d->filter}.left(d->filter.size() - 1);
+
+        if (root.isEmpty()) // Filter: #
+            return true;
+
         if (root.endsWith(QLatin1Char('/'))) // '#' also represents the parent level!
             root = root.left(root.size() - 1);
-        return topic.startsWith(root);
+
+        const auto filterLevels = root.split(QLatin1Char('/'));
+        const auto topicLevels = QStringView{topic}.split(QLatin1Char('/'));
+
+        if (topicLevels.size() < filterLevels.size())
+            return false;
+
+        for (int i = 0; i < filterLevels.size(); ++i) {
+            if (filterLevels.at(i) != topicLevels.at(i))
+                return false;
+        }
+        return true;
     }
 
     if (d->filter.contains(QLatin1Char('+'))) {
