@@ -95,6 +95,9 @@ void Tst_QMqttTopicFilter::matches()
 
     QVERIFY(QMqttTopicFilter("$SYS/monitor/+").match(QMqttTopicName("$SYS/monitor/Clients")));
     QVERIFY(QMqttTopicFilter("$SYS/monitor/+").match(QMqttTopicName("$SYS/monitor/Clients"), QMqttTopicFilter::WildcardsDontMatchDollarTopicMatchOption));
+
+    QVERIFY(!QMqttTopicFilter{QLatin1String("x/#")}.match(QLatin1String("xy/foo"))); // QTBUG-92817
+    QVERIFY(!QMqttTopicFilter{QLatin1String("x/y/#")}.match(QLatin1String("x")));
 }
 
 void Tst_QMqttTopicFilter::usableWithQList()
