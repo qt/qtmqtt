@@ -29,6 +29,7 @@ private Q_SLOTS:
     void sharedNonShared();
     void noLocal_data();
     void noLocal();
+    void qtbug_106203();
 private:
     void createAndSubscribe(QMqttClient *c, QMqttSubscription **sub, const QString &topic);
     QProcess m_brokerProcess;
@@ -396,6 +397,57 @@ void Tst_QMqttSubscription::noLocal()
         QTest::qWait(3000);
         QCOMPARE(receivalSpy.size(), 0);
     }
+}
+
+void Tst_QMqttSubscription::qtbug_106203()
+{
+    const QString topic(QLatin1String("Qt/qtbug106203/Identity"));
+
+    // Fill up sub-Topics with retained messages (ie connection state of devices)
+    QMqttClient retainer;
+    retainer.setHostname(m_testBroker);
+    retainer.setPort(m_port);
+    retainer.connectToHost();
+    const int messageCount = 200;
+    QTRY_VERIFY2(retainer.state() == QMqttClient::Connected, "Could not connect to broker.");
+    for (int i = 0; i < messageCount; ++i) {
+        QSignalSpy publishSpy(&retainer, SIGNAL(messageSent(qint32)));
+        const QByteArray content = QString::fromLatin1("Content: %1").arg(i).toLocal8Bit();
+
+        retainer.publish(topic + QString("/msg%1").arg(i), content, 1, true);
+        QTRY_VERIFY(publishSpy.count() == 1);
+    }
+
+    retainer.disconnectFromHost();
+    QTRY_VERIFY2(retainer.state() == QMqttClient::Disconnected, "Could not disconnect from broker.");
+
+    QMqttClient client;
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    auto sub = client.subscribe(topic + QLatin1String("/#"), 1);
+    QSignalSpy receiveSpy(sub, SIGNAL(messageReceived(QMqttMessage)));
+
+    connect(sub, &QMqttSubscription::messageReceived, sub, [&client, topic](QMqttMessage msg) {
+        // This can potentially cause relayout of internal structures
+        auto subsub = client.subscribe(QString("/%1").arg(msg.payload()) + topic, 1);
+        connect(subsub, &QMqttSubscription::messageReceived, &client, [](QMqttMessage) {
+            QVERIFY2(false, "Second sub should never be reached");
+        });
+    });
+
+    // We cannot use QTRY_ here as the bug is about receiving too many messages
+    QTest::qWait(3000);
+    QVERIFY2(receiveSpy.count() == messageCount, "Received invalid amount of messages.");
+
+    sub->unsubscribe();
+    QTRY_VERIFY2(sub->state() == QMqttSubscription::Unsubscribed, "Client could not unsubscribe.");
+
+    client.disconnectFromHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect from broker.");
 }
 
 QTEST_MAIN(Tst_QMqttSubscription)
