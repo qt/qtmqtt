@@ -220,7 +220,7 @@ void Tst_QMqttClient::retainMessage()
 
         QSignalSpy publishSpy(&publisher, SIGNAL(messageSent(qint32)));
         publisher.publish(testTopic, testMessage, 1, i == 1 ? true : false);
-        QTRY_COMPARE(publishSpy.count(), 1);
+        QTRY_COMPARE(publishSpy.size(), 1);
 
         VersionClient(mqttVersion, sub);
         sub.setClientId(QLatin1String("SubA"));
@@ -310,7 +310,7 @@ void Tst_QMqttClient::willMessage()
         else
             willClient.disconnectFromHost();
         QTest::qWait(500);
-        QTRY_COMPARE(messageSpy.count(), i);
+        QTRY_COMPARE(messageSpy.size(), i);
     }
 }
 
@@ -665,7 +665,7 @@ void Tst_QMqttClient::messageStatus()
 
     QSignalSpy publishSpy(&client, &QMqttClient::messageSent);
     client.publish(topic, QByteArray("someContent"), quint8(qos));
-    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish message");
+    QTRY_VERIFY2(publishSpy.size() == 1, "Could not publish message");
     QTRY_VERIFY2(expectedStatus.isEmpty(), "Did not receive all status updates.");
 }
 
@@ -718,8 +718,8 @@ void Tst_QMqttClient::messageStatusReceive()
     QSignalSpy receiveSpy(&subscriber, &QMqttClient::messageReceived);
 
     publisher.publish(topic, QByteArray("someContent"), quint8(qos));
-    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish message");
-    QTRY_VERIFY2(receiveSpy.count() == 1, "Did not receive message");
+    QTRY_VERIFY2(publishSpy.size() == 1, "Could not publish message");
+    QTRY_VERIFY2(receiveSpy.size() == 1, "Did not receive message");
 
     QTRY_VERIFY2(expectedStatus.isEmpty(), "Did not receive all status updates.");
 }
@@ -803,7 +803,7 @@ void Tst_QMqttClient::subscriptionIdsOverlap()
 
     QSignalSpy publishSpy(&pub, &QMqttClient::messageSent);
     pub.publish(topic, "SomeData", 1);
-    QTRY_VERIFY2(publishSpy.count() == 1, "Could not finalize publication.");
+    QTRY_VERIFY2(publishSpy.size() == 1, "Could not finalize publication.");
     QTRY_VERIFY2(receiveBCounter == 0, "Did not receive both messages.");
     QTRY_VERIFY2(receiveB2Counter == 0, "Did not receive both messages.");
     QTRY_VERIFY2(receiveACounter == 1, "Did not receive non-overlapping message.");
@@ -848,7 +848,7 @@ void Tst_QMqttClient::keepAlive()
 
     // Verify auto keep alive works
     QSignalSpy spy(&client, &QMqttClient::pingResponseReceived);
-    QTRY_VERIFY_WITH_TIMEOUT(spy.count() == 5, keepAlive * 1000 * 5 * 2);
+    QTRY_VERIFY_WITH_TIMEOUT(spy.size() == 5, keepAlive * 1000 * 5 * 2);
     spy.clear();
 
     client.disconnectFromHost();
@@ -880,7 +880,7 @@ void Tst_QMqttClient::keepAlive()
     client.connectToHost();
     QTRY_COMPARE(client.state(), QMqttClient::Connected);
 
-    QTRY_VERIFY_WITH_TIMEOUT(spy.count() == 5, keepAlive * 1000 * 5 * 2);
+    QTRY_VERIFY_WITH_TIMEOUT(spy.size() == 5, keepAlive * 1000 * 5 * 2);
 
     client.disconnectFromHost();
     QTRY_COMPARE(client.state(), QMqttClient::Disconnected);

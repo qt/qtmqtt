@@ -1599,7 +1599,7 @@ void QMqttConnection::finalize_publish()
 {
     // String topic
     QMqttTopicName topic = readBufferTyped<QString>(&m_missingData);
-    const int topicLength = topic.name().length();
+    const int topicLength = topic.name().size();
 
     quint16 id = 0;
     if (m_currentPublish.qos > 0)

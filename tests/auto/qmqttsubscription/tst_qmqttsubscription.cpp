@@ -192,7 +192,7 @@ void Tst_QMqttSubscription::reconnect()
     // [MQTT-4.1.0-2] A Session MUST last at least as long it has an active Network Connection.
     // All testbrokers delete the session at transport disconnect, regardless of DISCONNECT been
     // send before or not.
-    if (restoredSpy.count() > 0) {
+    if (restoredSpy.size() > 0) {
         QCOMPARE(reSub->state(), QMqttSubscription::Subscribed);
         pubSpy.clear();
         receivalSpy.clear();
@@ -388,13 +388,13 @@ void Tst_QMqttSubscription::noLocal()
     QSignalSpy receivalSpy(sub, SIGNAL(messageReceived(QMqttMessage)));
 
     client.publish(topic, "content", 1);
-    QTRY_VERIFY(publishSpy.count() == 1);
+    QTRY_VERIFY(publishSpy.size() == 1);
 
     if (version == QMqttClient::MQTT_3_1_1 || !non) { // 3.1.1 does not know NoLocal and sends to subscription
-        QTRY_VERIFY(receivalSpy.count() == 1);
+        QTRY_VERIFY(receivalSpy.size() == 1);
     } else {
         QTest::qWait(3000);
-        QCOMPARE(receivalSpy.count(), 0);
+        QCOMPARE(receivalSpy.size(), 0);
     }
 }
 

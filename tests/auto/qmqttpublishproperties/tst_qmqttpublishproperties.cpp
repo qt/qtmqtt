@@ -159,8 +159,8 @@ void tst_QMqttPublishProperties::propertyConsistency()
     QSignalSpy subscribeSpy(sub, SIGNAL(messageReceived(QMqttMessage)));
     client.publish(testTopic, pubProp, QByteArray("Some Content"), 1);
 
-    QTRY_COMPARE(publishSpy.count(), 1);
-    QTRY_COMPARE(subscribeSpy.count(), 1);
+    QTRY_COMPARE(publishSpy.size(), 1);
+    QTRY_COMPARE(subscribeSpy.size(), 1);
 
     auto msg = subscribeSpy.at(0).at(0).value<QMqttMessage>();
 
