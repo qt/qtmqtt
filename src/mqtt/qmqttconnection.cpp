@@ -1653,9 +1653,9 @@ void QMqttConnection::finalize_publish()
     // Store subscriptions in a temporary container as each messageReceived is allowed to subscribe
     // again and thus invalid the iterator of the loop.
     QList<QMqttSubscription *> subscribers;
-    for (auto sub = m_activeSubscriptions.constBegin(); sub != m_activeSubscriptions.constEnd(); sub++) {
-        if (sub.key().match(topic))
-            subscribers.append(sub.value());
+    for (const auto [key, value] : m_activeSubscriptions.asKeyValueRange()) {
+        if (key.match(topic))
+            subscribers.append(value);
     }
     for (const auto &s : subscribers)
         emit s->messageReceived(qmsg);
