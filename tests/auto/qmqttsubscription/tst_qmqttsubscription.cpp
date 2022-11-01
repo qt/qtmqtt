@@ -415,7 +415,7 @@ void Tst_QMqttSubscription::qtbug_106203()
         const QByteArray content = QString::fromLatin1("Content: %1").arg(i).toLocal8Bit();
 
         retainer.publish(topic + QString("/msg%1").arg(i), content, 1, true);
-        QTRY_VERIFY(publishSpy.count() == 1);
+        QTRY_VERIFY(publishSpy.size() == 1);
     }
 
     retainer.disconnectFromHost();
@@ -441,7 +441,7 @@ void Tst_QMqttSubscription::qtbug_106203()
 
     // We cannot use QTRY_ here as the bug is about receiving too many messages
     QTest::qWait(3000);
-    QVERIFY2(receiveSpy.count() == messageCount, "Received invalid amount of messages.");
+    QVERIFY2(receiveSpy.size() == messageCount, "Received invalid amount of messages.");
 
     sub->unsubscribe();
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Unsubscribed, "Client could not unsubscribe.");
