@@ -189,17 +189,17 @@ void tst_QMqttConnectionProperties::maximumPacketSize()
 
     QSignalSpy publishSpy(&client, SIGNAL(messageSent(qint32)));
     client.publish(topic, shortData, 1);
-    QTRY_COMPARE(publishSpy.count(), 1);
+    QTRY_COMPARE(publishSpy.size(), 1);
 
-    QTRY_COMPARE(subscribeSpy.count(), 1);
+    QTRY_COMPARE(subscribeSpy.size(), 1);
 
     client.publish(topic, overFlowData, 1);
-    QTRY_COMPARE(publishSpy.count(), 1);
+    QTRY_COMPARE(publishSpy.size(), 1);
 
     // We defined maximum size to receive is 500, hence the message should not be sent back
     // to us. Wait for some time and verify no message got sent to subscriber
     QTest::qWait(3000);
-    QTRY_COMPARE(subscribeSpy.count(), 1);
+    QTRY_COMPARE(subscribeSpy.size(), 1);
 }
 
 void tst_QMqttConnectionProperties::maximumTopicAlias()
@@ -240,9 +240,9 @@ void tst_QMqttConnectionProperties::maximumTopicAlias()
 
         QMqttTopicName topic(topicBase + QString::number(i));
         client.publish(topic, msgContent, 1);
-        QTRY_VERIFY(publishSpy.count() == 1);
+        QTRY_VERIFY(publishSpy.size() == 1);
 
-        QVERIFY(transportSpy.count() == 1);
+        QVERIFY(transportSpy.size() == 1);
         const int dataSize = transportSpy.at(0).at(0).toInt();
         if (publishTransportSize == 0) {
             publishTransportSize = dataSize;
@@ -256,8 +256,8 @@ void tst_QMqttConnectionProperties::maximumTopicAlias()
     QSignalSpy fullSpy(&client, SIGNAL(messageSent(qint32)));
     transportSpy.clear();
     client.publish(QLatin1String("Qt/connprop/alias/full/with/long/topic/to/verify/bigger/size"), msgContent, 1);
-    QTRY_VERIFY(fullSpy.count() == 1);
-    QVERIFY(transportSpy.count() == 1);
+    QTRY_VERIFY(fullSpy.size() == 1);
+    QVERIFY(transportSpy.size() == 1);
     QVERIFY(transportSpy.at(0).at(0).toInt() > publishTransportSize);
 
     // Verify alias is used at sending second time
@@ -265,8 +265,8 @@ void tst_QMqttConnectionProperties::maximumTopicAlias()
     fullSpy.clear();
 
     client.publish(topicBase + QLatin1String("0"), msgContent, 1);
-    QTRY_VERIFY(fullSpy.count() == 1);
-    QVERIFY(transportSpy.count() == 1);
+    QTRY_VERIFY(fullSpy.size() == 1);
+    QVERIFY(transportSpy.size() == 1);
     int usageSize = transportSpy.at(0).at(0).toInt();
     QVERIFY(usageSize < publishTransportSize);
 
@@ -277,16 +277,16 @@ void tst_QMqttConnectionProperties::maximumTopicAlias()
     fullSpy.clear();
     transportSpy.clear();
     client.publish(overwrite, overProp, msgContent, 1);
-    QTRY_VERIFY(fullSpy.count() == 1);
-    QVERIFY(transportSpy.count() == 1);
+    QTRY_VERIFY(fullSpy.size() == 1);
+    QVERIFY(transportSpy.size() == 1);
     const int overwriteSize = transportSpy.at(0).at(0).toInt();
     QVERIFY(overwriteSize > publishTransportSize);
     // After resend new alias should be used and msg size reduced
     fullSpy.clear();
     transportSpy.clear();
     client.publish(overwrite, msgContent, 1);
-    QTRY_VERIFY(fullSpy.count() == 1);
-    QVERIFY(transportSpy.count() == 1);
+    QTRY_VERIFY(fullSpy.size() == 1);
+    QVERIFY(transportSpy.size() == 1);
     usageSize = transportSpy.at(0).at(0).toInt();
     QVERIFY(usageSize < overwriteSize);
 }
@@ -333,12 +333,12 @@ void tst_QMqttConnectionProperties::maximumTopicAliasReceive()
     QSignalSpy publishSpy(&client, &QMqttClient::messageSent);
     //QLoggingCategory::setFilterRules("qt.mqtt.connection*=true");
     client.publish(topic, msgContent, 1);
-    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish");
+    QTRY_VERIFY2(publishSpy.size() == 1, "Could not publish");
     QTRY_VERIFY2(receiveCounter == 1, "Did not receive initial message");
 
     publishSpy.clear();
     client.publish(topic, msgContent, 1);
-    QTRY_VERIFY2(publishSpy.count() == 1, "Could not publish");
+    QTRY_VERIFY2(publishSpy.size() == 1, "Could not publish");
     QTRY_VERIFY2(receiveCounter == 2, "Did not receive second aliases message");
 }
 
