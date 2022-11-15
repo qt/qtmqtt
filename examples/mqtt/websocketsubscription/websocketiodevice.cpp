@@ -5,6 +5,8 @@
 
 #include <QtCore/QDebug>
 
+#include <QtWebSockets/qwebsockethandshakeoptions.h>
+
 WebSocketIODevice::WebSocketIODevice(QObject *parent)
     : QIODevice(parent)
 {
@@ -14,13 +16,10 @@ WebSocketIODevice::WebSocketIODevice(QObject *parent)
 
 bool WebSocketIODevice::open(QIODevice::OpenMode mode)
 {
-    // Cannot use an URL because of missing sub protocol support
-    // Have to use QNetworkRequest, see QTBUG-38742
-    QNetworkRequest request;
-    request.setUrl(m_url);
-    request.setRawHeader("Sec-WebSocket-Protocol", m_protocol.constData());
+    QWebSocketHandshakeOptions options;
+    options.setSubprotocols({m_protocol});
 
-    m_socket.open(request);
+    m_socket.open(m_url, options);
 
     return QIODevice::open(mode);
 }
