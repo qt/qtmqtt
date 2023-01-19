@@ -12,7 +12,7 @@ qt_internal_add_test(tst_qmqttclient
         ../../common/broker_connection.h
         tst_qmqttclient.cpp
     DEFINES
-        SRCDIR=\\\"${CMAKE_CURRENT_SOURCE_DIR}/\\\"
+        SRCDIR="${CMAKE_CURRENT_SOURCE_DIR}/"
     INCLUDE_DIRECTORIES
         ../../common
     LIBRARIES
