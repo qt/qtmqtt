@@ -1,8 +1,6 @@
 # Copyright (C) 2022 The Qt Company Ltd.
 # SPDX-License-Identifier: BSD-3-Clause
 
-# Generated from qtmqtt.pro.
-
 cmake_minimum_required(VERSION 3.16)
 
 include(.cmake.conf)
@@ -13,7 +11,7 @@ project(QtMqtt
     LANGUAGES CXX C
 )
 
-find_package(Qt6 ${PROJECT_VERSION} CONFIG REQUIRED COMPONENTS BuildInternals Core Network) # special case
-find_package(Qt6 ${PROJECT_VERSION} CONFIG OPTIONAL_COMPONENTS Quick WebSockets # For tests # special case
-                                                               Gui Widgets) # For examples # special case
+find_package(Qt6 ${PROJECT_VERSION} CONFIG REQUIRED COMPONENTS BuildInternals Core Network)
+find_package(Qt6 ${PROJECT_VERSION} CONFIG OPTIONAL_COMPONENTS Quick WebSockets # For tests
+                                                               Gui Widgets) # For examples
 qt_build_repo()
