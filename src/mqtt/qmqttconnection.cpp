@@ -291,6 +291,7 @@ bool QMqttConnection::sendControlAuthenticate(const QMqttAuthenticationPropertie
     switch (m_internalState) {
     case BrokerDisconnected:
     case BrokerConnecting:
+    case ClientDestruction:
         qCDebug(lcMqttConnection) << "Using AUTH while disconnected.";
         return false;
     case BrokerWaitForConnectAck:
@@ -601,7 +602,8 @@ bool QMqttConnection::sendControlDisconnect()
         qCDebug(lcMqttConnection) << "Failed to write DISCONNECT to transport.";
         return false;
     }
-    m_internalState = BrokerDisconnected;
+    if (m_internalState != ClientDestruction)
+        m_internalState = BrokerDisconnected;
 
     if (m_transport->waitForBytesWritten(30000)) {
         // MQTT-3.14.4-1 must disconnect
@@ -676,6 +678,8 @@ void QMqttConnection::transportConnectionClosed()
     m_readPosition = 0;
     m_pingTimer.stop();
     m_pingTimeout = 0;
+    if (m_internalState == ClientDestruction)
+        return;
     if (m_internalState == BrokerDisconnected) // We manually disconnected
         m_clientPrivate->setStateAndError(QMqttClient::Disconnected, QMqttClient::NoError);
     else
