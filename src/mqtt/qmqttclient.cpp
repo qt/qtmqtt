@@ -326,7 +326,11 @@ QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(thi
 */
 QMqttClient::~QMqttClient()
 {
-    disconnectFromHost();
+    Q_D(QMqttClient);
+    if (d->m_connection.internalState() == QMqttConnection::BrokerConnected) {
+        d->m_connection.setClientDestruction();
+        disconnectFromHost();
+    }
 }
 
 /*!
@@ -575,6 +579,7 @@ void QMqttClient::disconnectFromHost()
 
     switch (d->m_connection.internalState()) {
     case QMqttConnection::BrokerConnected:
+    case QMqttConnection::ClientDestruction:
         d->m_connection.sendControlDisconnect();
         break;
     case QMqttConnection::BrokerDisconnected:
