@@ -3,7 +3,8 @@
 
 /*!
     \example subscriptions
-    \title MQTT Subscriptions Example
+    \examplecategory {Connectivity}
+    \title MQTT Subscriptions
     \ingroup qtmqtt-examples
     \brief Creating a application that communicates with an MQTT broker.
 

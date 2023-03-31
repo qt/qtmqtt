@@ -47,8 +47,8 @@
     \printuntil }
 
     In this example, we subscribe to all topics. For more information about
-    how to receive messages on particular topics, see
-    \l {MQTT Subscriptions Example}.
+    how to receive messages on particular topics, see the
+    \l {MQTT Subscriptions} example.
 
     For an example of how to use the QMqttClient class in a Qt Quick
     application, see \l {Quick MQTT Example}.
