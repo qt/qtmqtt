@@ -48,6 +48,9 @@ void SubscriptionWindow::updateStatus(QMqttSubscription::SubscriptionState state
     case QMqttSubscription::Error:
         ui->labelStatus->setText(QLatin1String("Error"));
         break;
+    case QMqttSubscription::UnsubscriptionPending:
+        ui->labelStatus->setText(QLatin1String("Pending Unsubscription"));
+        break;
     default:
         ui->labelStatus->setText(QLatin1String("--Unknown--"));
         break;
