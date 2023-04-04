@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     m_client = new QMqttClient(this);
     m_client->setHostname(ui->lineEditHost->text());
-    m_client->setPort(ui->spinBoxPort->value());
+    m_client->setPort(static_cast<quint16>(ui->spinBoxPort->value()));
 
     connect(m_client, &QMqttClient::stateChanged, this, &MainWindow::updateLogStateChange);
     connect(m_client, &QMqttClient::disconnected, this, &MainWindow::brokerDisconnected);
@@ -86,7 +86,7 @@ void MainWindow::brokerDisconnected()
 
 void MainWindow::setClientPort(int p)
 {
-    m_client->setPort(p);
+    m_client->setPort(static_cast<quint16>(p));
 }
 
 void MainWindow::on_buttonPublish_clicked()
