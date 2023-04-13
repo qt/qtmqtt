@@ -3,7 +3,8 @@
 
 /*!
     \example simpleclient
-    \title Simple MQTT Client Example
+    \examplecategory {Connectivity}
+    \title Simple MQTT Client
     \ingroup qtmqtt-examples
     \brief Creating a minimalistic telemetry application.
 
