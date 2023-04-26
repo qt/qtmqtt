@@ -3,7 +3,8 @@
 
 /*!
     \example websocketsubscription
-    \title WebSockets MQTT Subscription Example
+    \examplecategory {Connectivity}
+    \title WebSockets MQTT Subscription
     \ingroup qtmqtt-examples
     \brief Combining an MQTT client with a web socket connection.
 
@@ -11,4 +12,37 @@
     QIODevice to combine a \l {Qt WebSockets}{web socket} connection with
     QMqttClient.
 
+    \section1 Creating a Custom QIODevice
+
+    The new custom device, \c WebSocketIODevice, has to be a subclass of
+    \l QIODevice:
+
+    \quotefromfile websocketsubscription/websocketiodevice.h
+    \skipto WebSocketIODevice
+    \printuntil }
+
+    \section1 Designing a Class to Manage the Connection and Subscription
+
+    \c WebSocketIODevice will be a private member of the \c ClientSubscription
+    class alongside the QMqttClient and the QMqttSubscription:
+
+    \quotefromfile websocketsubscription/clientsubscription.h
+    \skipto private
+    \printuntil m_version
+
+    \section1 Subscribing to and Receiving Messages
+
+    The main logic is implemented in the \c connectAndSubscribe() method of the
+    \c ClientSubscription class. You need to verify that the web socket has
+    successfully connected before you can initialize an MQTT connection over
+    it. After the MQTT connection has been established, the QMqttClient can
+    subscribe to the topic. If the subscription is successful, the
+    QMqttSubscription can be used to receive messages from the subscribed topic
+    that will be handled by the \c handleMessage() method of the
+    \c ClientSubscription class.
+
+    \quotefromfile websocketsubscription/clientsubscription.cpp
+    \skipto connectAndSubscribe
+    \printuntil Could
+    \printuntil }
 */
