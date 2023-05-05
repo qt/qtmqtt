@@ -4,6 +4,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(qtmqtt_pub_sub LANGUAGES CXX)
 
+if (ANDROID)
+    message(FATAL_ERROR "This project cannot be built on Android.")
+endif()
+
 set(CMAKE_AUTOMOC ON)
 
 if(NOT DEFINED INSTALL_EXAMPLESDIR)
