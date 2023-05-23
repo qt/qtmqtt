@@ -7,6 +7,8 @@
 #include <QQmlApplicationEngine>
 #include <QLoggingCategory>
 
+using namespace Qt::StringLiterals;
+
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
@@ -15,7 +17,7 @@ int main(int argc, char *argv[])
 
     qmlRegisterType<QmlMqttClient>("MqttClient", 1, 0, "MqttClient");
 
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+    engine.load(QUrl(u"qrc:/main.qml"_s));
     if (engine.rootObjects().isEmpty())
         return -1;
 

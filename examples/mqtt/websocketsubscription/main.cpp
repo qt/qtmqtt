@@ -7,32 +7,34 @@
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QLoggingCategory>
 
+using namespace Qt::StringLiterals;
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     QCoreApplication::setApplicationVersion("1.0");
 
     QCommandLineParser parser;
-    parser.setApplicationDescription(QLatin1String("Websocket MQTT subscription tool"));
+    parser.setApplicationDescription(u"Websocket MQTT subscription tool"_s);
     auto help = parser.addHelpOption();
 
     // Use http://www.hivemq.com/demos/websocket-client/ in browser to publish
     QCommandLineOption urlOption(QStringList() << "host" << "url" << "broker",
-                                 QStringLiteral("Host to connect to, eg ws://broker.hivemq.com:8000/mqtt"),
-                                 "host");
+                                 u"Host to connect to, eg ws://broker.hivemq.com:8000/mqtt"_s,
+                                 u"host"_s);
     parser.addOption(urlOption);
 
     QCommandLineOption subscriptionOption(QStringList() << "t" << "topic",
-                                          QStringLiteral("Topic to subscribe to"), "topic");
+                                          u"Topic to subscribe to"_s, u"topic"_s);
     parser.addOption(subscriptionOption);
 
     QCommandLineOption debugOption(QStringList() << "d" << "debug",
-                                   QStringLiteral("Enable Debug mode"));
+                                   u"Enable Debug mode"_s);
     parser.addOption(debugOption);
 
     QCommandLineOption versionOption(QStringList() << "v" << "version",
-                                     QStringLiteral("MQTT protocol version.\n3: MQTT 3.1\n4: MQTT 3.1.1"),
-                                     "version", "3");
+                                     u"MQTT protocol version.\n3: MQTT 3.1\n4: MQTT 3.1.1"_s,
+                                     u"version"_s, u"3"_s);
     parser.addOption(versionOption);
 
     parser.process(a.arguments());

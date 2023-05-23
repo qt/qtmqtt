@@ -7,6 +7,8 @@
 #include <QQmlApplicationEngine>
 #include <QLoggingCategory>
 
+using namespace Qt::StringLiterals;
+
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
@@ -14,9 +16,10 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     qmlRegisterType<QmlMqttClient>("MqttClient", 1, 0, "MqttClient");
-    qmlRegisterUncreatableType<QmlMqttSubscription>("MqttClient", 1, 0, "MqttSubscription", QLatin1String("Subscriptions are read-only"));
+    qmlRegisterUncreatableType<QmlMqttSubscription>("MqttClient", 1, 0, "MqttSubscription",
+                                                    u"Subscriptions are read-only"_s);
 
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+    engine.load(QUrl(u"qrc:/main.qml"_s));
     if (engine.rootObjects().isEmpty())
         return -1;
 
