@@ -4,6 +4,8 @@
 #include "subscriptionwindow.h"
 #include "ui_subscriptionwindow.h"
 
+using namespace Qt::StringLiterals;
+
 SubscriptionWindow::SubscriptionWindow(QMqttSubscription *sub, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SubscriptionWindow),
@@ -37,22 +39,22 @@ void SubscriptionWindow::updateStatus(QMqttSubscription::SubscriptionState state
 {
     switch (state) {
     case QMqttSubscription::Unsubscribed:
-        ui->labelStatus->setText(QLatin1String("Unsubscribed"));
+        ui->labelStatus->setText(u"Unsubscribed"_s);
         break;
     case QMqttSubscription::SubscriptionPending:
-        ui->labelStatus->setText(QLatin1String("Pending"));
+        ui->labelStatus->setText(u"Pending"_s);
         break;
     case QMqttSubscription::Subscribed:
-        ui->labelStatus->setText(QLatin1String("Subscribed"));
+        ui->labelStatus->setText(u"Subscribed"_s);
         break;
     case QMqttSubscription::Error:
-        ui->labelStatus->setText(QLatin1String("Error"));
+        ui->labelStatus->setText(u"Error"_s);
         break;
     case QMqttSubscription::UnsubscriptionPending:
-        ui->labelStatus->setText(QLatin1String("Pending Unsubscription"));
+        ui->labelStatus->setText(u"Pending Unsubscription"_s);
         break;
     default:
-        ui->labelStatus->setText(QLatin1String("--Unknown--"));
+        ui->labelStatus->setText(u"--Unknown--"_s);
         break;
     }
 }

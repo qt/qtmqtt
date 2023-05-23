@@ -9,6 +9,8 @@
 #include <QtMqtt/QMqttClient>
 #include <QtWidgets/QMessageBox>
 
+using namespace Qt::StringLiterals;
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -24,18 +26,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(m_client, &QMqttClient::messageReceived, this, [this](const QByteArray &message, const QMqttTopicName &topic) {
         const QString content = QDateTime::currentDateTime().toString()
-                    + QLatin1String(" Received Topic: ")
+                    + " Received Topic: "_L1
                     + topic.name()
-                    + QLatin1String(" Message: ")
+                    + " Message: "_L1
                     + message
-                    + QLatin1Char('\n');
+                    + u'\n';
         ui->editLog->insertPlainText(content);
     });
 
     connect(m_client, &QMqttClient::pingResponseReceived, this, [this]() {
         const QString content = QDateTime::currentDateTime().toString()
-                    + QLatin1String(" PingResponse")
-                    + QLatin1Char('\n');
+                    + " PingResponse\n"_L1;
         ui->editLog->insertPlainText(content);
     });
 
@@ -79,9 +80,9 @@ void MainWindow::on_buttonQuit_clicked()
 void MainWindow::updateLogStateChange()
 {
     const QString content = QDateTime::currentDateTime().toString()
-                    + QLatin1String(": State Change")
+                    + ": State Change"_L1
                     + QString::number(m_client->state())
-                    + QLatin1Char('\n');
+                    + u'\n';
     ui->editLog->insertPlainText(content);
 }
 
@@ -105,7 +106,7 @@ void MainWindow::on_buttonPublish_clicked()
                           static_cast<quint8>(ui->spinQoS_2->text().toUInt()),
                           ui->checkBoxRetain->isChecked())
         == -1)
-        QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not publish message"));
+        QMessageBox::critical(this, u"Error"_s, u"Could not publish message"_s);
 }
 
 void MainWindow::on_buttonSubscribe_clicked()
@@ -113,7 +114,8 @@ void MainWindow::on_buttonSubscribe_clicked()
     auto subscription = m_client->subscribe(ui->lineEditTopic->text(),
                                             static_cast<quint8>(ui->spinQoS->text().toUInt()));
     if (!subscription) {
-        QMessageBox::critical(this, QLatin1String("Error"), QLatin1String("Could not subscribe. Is there a valid connection?"));
+        QMessageBox::critical(this, u"Error"_s,
+                              u"Could not subscribe. Is there a valid connection?"_s);
         return;
     }
     auto subWindow = new SubscriptionWindow(subscription);
