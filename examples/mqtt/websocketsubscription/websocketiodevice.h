@@ -13,6 +13,9 @@ class WebSocketIODevice : public QIODevice
 public:
     WebSocketIODevice(QObject *parent = nullptr);
 
+    bool isSequential() const override;
+    qint64 bytesAvailable() const override;
+
     bool open(OpenMode mode) override;
     void close() override;
 

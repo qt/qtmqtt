@@ -14,6 +14,16 @@ WebSocketIODevice::WebSocketIODevice(QObject *parent)
     connect(&m_socket, &QWebSocket::binaryMessageReceived, this, &WebSocketIODevice::handleBinaryMessage);
 }
 
+bool WebSocketIODevice::isSequential() const
+{
+    return true;
+}
+
+qint64 WebSocketIODevice::bytesAvailable() const
+{
+    return static_cast<qint64>(m_buffer.size()) + QIODevice::bytesAvailable();
+}
+
 bool WebSocketIODevice::open(QIODevice::OpenMode mode)
 {
     QWebSocketHandshakeOptions options;
