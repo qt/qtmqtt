@@ -19,20 +19,19 @@ int main(int argc, char *argv[])
     auto help = parser.addHelpOption();
 
     // Use http://www.hivemq.com/demos/websocket-client/ in browser to publish
-    QCommandLineOption urlOption(QStringList() << "host" << "url" << "broker",
+    QCommandLineOption urlOption(QStringList{ u"host"_s, u"url"_s, u"broker"_s },
                                  u"Host to connect to, eg ws://broker.hivemq.com:8000/mqtt"_s,
                                  u"host"_s);
     parser.addOption(urlOption);
 
-    QCommandLineOption subscriptionOption(QStringList() << "t" << "topic",
+    QCommandLineOption subscriptionOption(QStringList{ u"t"_s, u"topic"_s },
                                           u"Topic to subscribe to"_s, u"topic"_s);
     parser.addOption(subscriptionOption);
 
-    QCommandLineOption debugOption(QStringList() << "d" << "debug",
-                                   u"Enable Debug mode"_s);
+    QCommandLineOption debugOption(QStringList{ u"d"_s, u"debug"_s }, u"Enable Debug mode"_s);
     parser.addOption(debugOption);
 
-    QCommandLineOption versionOption(QStringList() << "v" << "version",
+    QCommandLineOption versionOption(QStringList{ u"v"_s, u"version"_s },
                                      u"MQTT protocol version.\n3: MQTT 3.1\n4: MQTT 3.1.1"_s,
                                      u"version"_s, u"3"_s);
     parser.addOption(versionOption);
