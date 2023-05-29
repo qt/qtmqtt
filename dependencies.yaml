@@ -1,7 +1,7 @@
 dependencies:
   ../tqtc-qtbase:
-    ref: 5708f4f09389869fd2309cc8ddf49dc3407f81b0
+    ref: 16a7e8d3d55069d70ea414802821d259a733ab06
     required: true
   ../tqtc-qtdeclarative:
-    ref: 5838e319ce3a0bd2ac946480eb8c67e5c1b1e0f1
+    ref: 3444b35f942d72abc92d25251cb395b57fce10a3
     required: true
