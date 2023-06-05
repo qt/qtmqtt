@@ -1,24 +1,21 @@
 // Copyright (C) 2017 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
 
-#include "qmlmqttclient.h"
+#include <QtQml/qqmlapplicationengine.h>
+#include <QtGui/qguiapplication.h>
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QLoggingCategory>
+using namespace Qt::StringLiterals;
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
-
     QQmlApplicationEngine engine;
 
-    qmlRegisterType<QmlMqttClient>("MqttClient", 1, 0, "MqttClient");
-    qmlRegisterUncreatableType<QmlMqttSubscription>("MqttClient", 1, 0, "MqttSubscription", QLatin1String("Subscriptions are read-only"));
+    QObject::connect(
+            &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
+            []() { QCoreApplication::exit(EXIT_FAILURE); }, Qt::QueuedConnection);
 
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-    if (engine.rootObjects().isEmpty())
-        return -1;
+    engine.loadFromModule(u"subscription"_s, u"Main"_s);
 
-    return app.exec();
+    return QGuiApplication::exec();
 }
