@@ -8,12 +8,15 @@
 #include <QtMqtt/QMqttClient>
 #include <QtMqtt/QMqttSubscription>
 
+#include <QtQml/qqml.h>
+
 class QmlMqttClient;
 
 class QmlMqttSubscription : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QMqttTopicFilter topic MEMBER m_topic NOTIFY topicChanged)
+    QML_UNCREATABLE("Not intended to be creatable")
 public:
     QmlMqttSubscription(QMqttSubscription *s, QmlMqttClient *c);
     ~QmlMqttSubscription();
@@ -38,6 +41,7 @@ class QmlMqttClient : public QObject
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
     Q_PROPERTY(int port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(QMqttClient::ClientState state READ state WRITE setState NOTIFY stateChanged)
+    QML_NAMED_ELEMENT(MqttClient)
 public:
 
     QmlMqttClient(QObject *parent = nullptr);

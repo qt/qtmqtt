@@ -4,8 +4,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(quicksubscription LANGUAGES CXX)
 
-set(CMAKE_AUTOMOC ON)
-
 if(NOT DEFINED INSTALL_EXAMPLESDIR)
     set(INSTALL_EXAMPLESDIR "examples")
 endif()
@@ -14,21 +12,19 @@ set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/quicksubscription")
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Mqtt Qml Quick)
 
-qt_add_executable(quicksubscription
-    main.cpp
-    qmlmqttclient.cpp qmlmqttclient.h
-)
+qt_standard_project_setup(REQUIRES 6.5)
 
-set_target_properties(quicksubscription PROPERTIES
-    WIN32_EXECUTABLE TRUE
-    MACOSX_BUNDLE TRUE
+qt_add_executable(quicksubscription
+    WIN32
+    MACOSX_BUNDLE
+    main.cpp
 )
 
 target_compile_definitions(quicksubscription PUBLIC
     QT_DEPRECATED_WARNINGS
 )
 
-target_link_libraries(quicksubscription PUBLIC
+target_link_libraries(quicksubscription PRIVATE
     Qt::Core
     Qt::Gui
     Qt::Mqtt
@@ -36,16 +32,12 @@ target_link_libraries(quicksubscription PUBLIC
     Qt::Quick
 )
 
-# Resources:
-set(qml_resource_files
-    "main.qml"
-)
-
-qt6_add_resources(quicksubscription "qml"
-    PREFIX
-        "/"
-    FILES
-        ${qml_resource_files}
+qt_add_qml_module(quicksubscription
+    URI subscription
+    QML_FILES
+        "Main.qml"
+    SOURCES
+        qmlmqttclient.cpp qmlmqttclient.h
 )
 
 install(TARGETS quicksubscription
