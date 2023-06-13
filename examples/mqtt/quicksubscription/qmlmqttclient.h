@@ -42,6 +42,7 @@ class QmlMqttClient : public QObject
     Q_PROPERTY(int port READ port WRITE setPort NOTIFY portChanged)
     Q_PROPERTY(QMqttClient::ClientState state READ state WRITE setState NOTIFY stateChanged)
     QML_NAMED_ELEMENT(MqttClient)
+    QML_EXTENDED_NAMESPACE(QMqttClient)
 public:
 
     QmlMqttClient(QObject *parent = nullptr);
