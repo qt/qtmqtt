@@ -74,8 +74,8 @@ Window {
                 if (client.state === MqttClient.Connected) {
                     client.disconnectFromHost()
                     messageModel.clear()
-                    tempSubscription.destroy()
-                    tempSubscription = 0
+                    root.tempSubscription.destroy()
+                    root.tempSubscription = 0
                 } else
                     client.connectToHost()
             }
@@ -94,13 +94,13 @@ Window {
                 id: subField
                 placeholderText: "<Subscription topic>"
                 Layout.fillWidth: true
-                enabled: tempSubscription === 0
+                enabled: root.tempSubscription === 0
             }
 
             Button {
                 id: subButton
                 text: "Subscribe"
-                visible: tempSubscription === 0
+                visible: root.tempSubscription === 0
                 onClicked: {
                     if (subField.text.length === 0) {
                         console.log("No topic specified to subscribe to.")
@@ -115,19 +115,22 @@ Window {
         ListView {
             id: messageView
             model: messageModel
-            height: 300
-            width: 200
+            implicitHeight: 300
+            implicitWidth: 200
             Layout.columnSpan: 2
             Layout.fillHeight: true
             Layout.fillWidth: true
             clip: true
             delegate: Rectangle {
-                width: messageView.width
+                id: delegatedRectangle
+                required property int index
+                required property string payload
+                width: ListView.view.width
                 height: 30
                 color: index % 2 ? "#DDDDDD" : "#888888"
                 radius: 5
                 Text {
-                    text: payload
+                    text: delegatedRectangle.payload
                     anchors.centerIn: parent
                 }
             }
