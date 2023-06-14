@@ -1,7 +1,8 @@
 TEMPLATE = app
+TARGET = quickpublication
 
 QT += qml quick mqtt
-CONFIG += c++11
+CONFIG += qmltypes
 
 SOURCES += main.cpp \
     qmlmqttclient.cpp
@@ -9,10 +10,15 @@ SOURCES += main.cpp \
 HEADERS += \
     qmlmqttclient.h
 
-RESOURCES += qml.qrc
+qml_resources.files = Main.qml qmldir
+qml_resources.prefix = /qt/qml/publication
+
+RESOURCES += qml_resources
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH =
+QML_IMPORT_PATH = $$pwd/.
+QML_IMPORT_NAME = publication
+QML_IMPORT_MAJOR_VERSION = 1
 
 # Additional import path used to resolve QML modules just for Qt Quick Designer
 QML_DESIGNER_IMPORT_PATH =

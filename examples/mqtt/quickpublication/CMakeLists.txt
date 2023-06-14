@@ -4,8 +4,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(quickpublication LANGUAGES CXX)
 
-set(CMAKE_AUTOMOC ON)
-
 if(NOT DEFINED INSTALL_EXAMPLESDIR)
     set(INSTALL_EXAMPLESDIR "examples")
 endif()
@@ -14,9 +12,12 @@ set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/mqtt/quickpublication")
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Mqtt Qml Quick)
 
+qt_standard_project_setup(REQUIRES 6.5)
+
 qt_add_executable(quickpublication
+    WIN32
+    MACOSX_BUNDLE
     main.cpp
-    qmlmqttclient.cpp qmlmqttclient.h
 )
 
 set_target_properties(quickpublication PROPERTIES
@@ -28,7 +29,7 @@ target_compile_definitions(quickpublication PUBLIC
     QT_DEPRECATED_WARNINGS
 )
 
-target_link_libraries(quickpublication PUBLIC
+target_link_libraries(quickpublication PRIVATE
     Qt::Core
     Qt::Gui
     Qt::Mqtt
@@ -36,16 +37,12 @@ target_link_libraries(quickpublication PUBLIC
     Qt::Quick
 )
 
-# Resources:
-set(qml_resource_files
-    "main.qml"
-)
-
-qt6_add_resources(quickpublication "qml"
-    PREFIX
-        "/"
-    FILES
-        ${qml_resource_files}
+qt_add_qml_module(quickpublication
+    URI publication
+    QML_FILES
+        "Main.qml"
+    SOURCES
+        qmlmqttclient.cpp qmlmqttclient.h
 )
 
 install(TARGETS quickpublication
