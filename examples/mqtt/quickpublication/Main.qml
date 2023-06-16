@@ -130,7 +130,7 @@ Window {
                         return
                     }
                     client.publish(pubField.text, msgField.text, qosItems.currentText, retain.checked)
-                    addMessage(msgField.text)
+                    root.addMessage(msgField.text)
                 }
             }
         }
@@ -138,19 +138,22 @@ Window {
         ListView {
             id: messageView
             model: messageModel
-            height: 300
-            width: 200
+            implicitHeight: 300
+            implicitWidth: 200
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.columnSpan: 2
             clip: true
             delegate: Rectangle {
-                width: messageView.width
+                id: delegatedRectangle
+                required property int index
+                required property string payload
+                width: ListView.view.width
                 height: 30
                 color: index % 2 ? "#DDDDDD" : "#888888"
                 radius: 5
                 Text {
-                    text: payload
+                    text: delegatedRectangle.payload
                     anchors.centerIn: parent
                 }
             }
