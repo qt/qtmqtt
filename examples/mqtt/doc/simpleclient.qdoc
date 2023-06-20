@@ -52,5 +52,5 @@
     \l {MQTT Subscriptions} example.
 
     For an example of how to use the QMqttClient class in a Qt Quick
-    application, see \l {Quick MQTT Example}.
+    application, see \l {Qt Quick Subscription}.
 */
