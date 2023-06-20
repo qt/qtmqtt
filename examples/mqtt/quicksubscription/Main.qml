@@ -10,7 +10,7 @@ Window {
     visible: true
     width: 640
     height: 480
-    title: qsTr("Qt Quick MQTT Subscription Example")
+    title: qsTr("Qt Quick Subscription")
     id: root
 
     property var tempSubscription: 0

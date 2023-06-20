@@ -3,14 +3,15 @@
 
 /*!
     \example quicksubscription
-    \title Quick MQTT Example
+    \title Qt Quick Subscription
+    \examplecategory {Connectivity}
     \ingroup qtmqtt-examples
-    \brief Registering QMqttClient to QML and using it in a Qt Quick user
-    interface.
+    \brief Use Qt Quick Controls to create an application that can subscribe to MQTT
+    topics.
 
     \image quicksubscription.png
 
-    \e {Quick MQTT} demonstrates how to register QMqttClient as a QML type and
+    \e {Qt Quick Subscription} demonstrates how to register QMqttClient as a QML type and
     use it in a Qt Quick application.
 
     \l {Qt MQTT} does not provide a QML API in its current version. However,
@@ -18,23 +19,24 @@
 
     \section1 Creating a Client
 
-    We create a \c QmlMqttClient class with the QMqttClient class as a base
-    class:
+    Connect to QMqttSubscription::messageReceived( ) to receive all messages
+    sent to the broker:
 
     \quotefromfile quicksubscription/qmlmqttclient.cpp
+    \skipto QmlMqttSubscription
+    \printuntil }
+
+    Create a \c QmlMqttClient class with the QMqttClient class as a base
+    class:
+
     \skipto QmlMqttClient(
     \printuntil }
 
-    We use the \c subscribe() function to create a subscription object:
-
+    Use the \c subscribe() function to create a subscription object:
+    \skipto subscribe
     \printuntil }
 
-    We connect to QMqttSubscription::messageReceived( ) to receive all messages
-    sent to the broker:
-
-    \printuntil }
-
-    We use an QMqttMessage object to store the payload of a received
+    Use a QMqttMessage object to store the payload of a received
     message:
 
     \skipto handleMessage
@@ -42,22 +44,17 @@
 
     \section1 Registering Classes in QML
 
-    In the \c main.cpp file, we register the \c QmlMqttClient class as a
-    QML type, MqttClient:
+    In the \c main.cpp file, load the QML type Main from the module
+    subscription:
 
     \quotefromfile quicksubscription/main.cpp
-    \skipto main(int
-    \printuntil qmlRegisterType
+    \skipto (argc
+    \printuntil loadFromModule
 
-    In addition, we register the \c QmlMqttSubscription class as an uncreatable
-    type:
-
-    \printuntil qmlRegisterUncreatableType
-
-    We can now use the MqttClient type in the \c main.qml file to create an
+    Now use the MqttClient type in the \c Main.qml file to create an
     MQTT client:
 
-    \quotefromfile quicksubscription/main.qml
+    \quotefromfile quicksubscription/Main.qml
     \skipto MqttClient {
     \printuntil }
 */
