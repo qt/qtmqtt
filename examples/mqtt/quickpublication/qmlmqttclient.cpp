@@ -45,8 +45,6 @@ void QmlMqttClient::setPort(int newPort)
         return;
     }
     m_client.setPort(static_cast<quint16>(newPort));
-
-    m_client.state();
 }
 
 const QMqttClient::ClientState QmlMqttClient::state() const
