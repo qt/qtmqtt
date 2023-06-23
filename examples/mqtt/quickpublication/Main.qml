@@ -10,7 +10,7 @@ Window {
     visible: true
     width: 640
     height: 480
-    title: qsTr("Qt Quick MQTT Publish Example")
+    title: qsTr("Qt Quick Publication")
     id: root
 
     MqttClient {

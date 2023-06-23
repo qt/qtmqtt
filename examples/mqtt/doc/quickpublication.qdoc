@@ -1,0 +1,60 @@
+// Copyright (C) 2023 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only
+
+/*!
+    \example quickpublication
+    \title Qt Quick Publication
+    \examplecategory {Connectivity}
+    \ingroup qtmqtt-examples
+    \brief Use Qt Quick Controls to create an application that can publish on MQTT
+    topics.
+
+    \image quickpublication.png
+
+    \e {Qt Quick Publication} demonstrates how to register QMqttClient as a QML type and
+    use it in a Qt Quick application.
+
+    \l {Qt MQTT} does not provide a QML API in its current version. However,
+    you can make the C++ classes of the module available to QML.
+
+    \section1 Creating a Client
+
+    Create the wrapper class \c QmlMqttClient that has QMqttClient as a member:
+    \quotefromfile quickpublication/qmlmqttclient.h
+    \skipto private
+    \printuntil }
+
+    Connect the wrapper methods to the methods of QMqttClient in the constructor:
+    \quotefromfile quickpublication/qmlmqttclient.cpp
+    \skipto QmlMqttClient
+    \printuntil }
+
+    A wrapper method has the same name as the wrapped method. In the simplest case,
+    it is just a single method call:
+
+    \skipto connectToHost
+    \printuntil }
+
+    It is also possible to customize a wrapper method by extending it with some additional
+    functionality:
+
+    \skipto setPort
+    \printuntil );
+
+    \section1 Registering Classes in QML
+
+    In the \c main.cpp file, load the QML type Main from the module
+    publication:
+
+    \quotefromfile quickpublication/main.cpp
+    \skipto (argc
+    \printuntil loadFromModule
+
+
+    Now use the MqttClient type in the \c Main.qml file to create an
+    MQTT client:
+
+    \quotefromfile quickpublication/Main.qml
+    \skipto MqttClient {
+    \printuntil }
+*/
