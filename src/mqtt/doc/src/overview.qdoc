@@ -6,6 +6,7 @@
     \page qtmqtt-overview.html
     \title Qt MQTT Overview
     \brief Provides insight into the MQTT protocol and the Qt MQTT module.
+    \ingroup explanation
 
     Qt MQTT enables you to create applications and devices that can communicate
     over the MQ telemetry transport (MQTT) protocol. It fully complies to the
