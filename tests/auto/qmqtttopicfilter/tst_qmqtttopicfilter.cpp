@@ -47,6 +47,7 @@ void Tst_QMqttTopicFilter::checkValidity()
     QVERIFY(!QMqttTopicFilter("a+").isValid());
     QVERIFY(!QMqttTopicFilter("+a").isValid());
     QVERIFY(!QMqttTopicFilter("++").isValid());
+    QVERIFY(!QMqttTopicFilter("a/+/b/++/c").isValid());
 
     QVERIFY(!QMqttTopicFilter(QString(3, QChar(QChar::Null))).isValid());
 

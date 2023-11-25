@@ -173,7 +173,7 @@ bool QMqttTopicFilter::isValid() const
             || (singleLevelPosition < size - 1 && d->filter.at(singleLevelPosition + 1) != QLatin1Char('/'))) {
             return false;
         }
-        singleLevelPosition = d->filter.indexOf(QLatin1Char('#'), singleLevelPosition + 1);
+        singleLevelPosition = d->filter.indexOf(QLatin1Char('+'), singleLevelPosition + 1);
     }
 
     // Shared Subscription syntax
