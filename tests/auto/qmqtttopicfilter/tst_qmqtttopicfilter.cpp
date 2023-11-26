@@ -83,6 +83,12 @@ void Tst_QMqttTopicFilter::matches()
     QVERIFY(QMqttTopicFilter("/+").match(QMqttTopicName("/finance")));
     QVERIFY(!QMqttTopicFilter("+").match(QMqttTopicName("/finance")));
 
+    // QTBUG-104478
+    filter = QMqttTopicFilter("sport/+/player1/#");
+    QVERIFY(filter.match(QMqttTopicName("sport/tennis/player1/ranking")));
+    filter = QMqttTopicFilter("sport/+/+");
+    QVERIFY(filter.match(QMqttTopicName("sport/tennis/player2")));
+
     // Non normative comment's examples [4.7.2]
     QVERIFY(QMqttTopicFilter("#").match(QMqttTopicName("$SYS/foo")));
     QVERIFY(!QMqttTopicFilter("#").match(QMqttTopicName("$SYS/foo"), QMqttTopicFilter::WildcardsDontMatchDollarTopicMatchOption));

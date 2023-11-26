@@ -223,7 +223,7 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
             return false;
 
         for (int i = 0; i < filterLevels.size(); ++i) {
-            if (filterLevels.at(i) != topicLevels.at(i))
+            if (filterLevels.at(i) != topicLevels.at(i) && filterLevels.at(i) != QLatin1Char('+'))
                 return false;
         }
         return true;
