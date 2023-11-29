@@ -27,7 +27,6 @@ qt_internal_add_module(Mqtt
         Qt::Network
     PRIVATE_MODULE_INTERFACE
         Qt::CorePrivate
-    GENERATE_CPP_EXPORTS
 )
 qt_internal_add_docs(Mqtt
     doc/qtmqtt.qdocconf
