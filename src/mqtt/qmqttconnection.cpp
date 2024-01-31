@@ -1640,7 +1640,7 @@ void QMqttConnection::finalize_publish()
     m_missingData -= payloadLength;
 
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBLISH: topic:" << topic
-                                     << " payloadLength:" << payloadLength;;
+                                     << " payloadLength:" << payloadLength;
 
     emit m_clientPrivate->m_client->messageReceived(message, topic);
 
