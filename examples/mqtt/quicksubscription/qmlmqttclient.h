@@ -57,7 +57,7 @@ public:
     int port() const;
     void setPort(int newPort);
 
-    const QMqttClient::ClientState state() const;
+    QMqttClient::ClientState state() const;
     void setState(const QMqttClient::ClientState &newState);
 
 signals:
