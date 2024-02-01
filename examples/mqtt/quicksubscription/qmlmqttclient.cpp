@@ -70,7 +70,7 @@ void QmlMqttClient::setPort(int newPort)
     m_client.setPort(static_cast<quint16>(newPort));
 }
 
-const QMqttClient::ClientState QmlMqttClient::state() const
+QMqttClient::ClientState QmlMqttClient::state() const
 {
     return m_client.state();
 }
