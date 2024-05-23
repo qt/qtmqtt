@@ -82,6 +82,7 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
     \list
         \li 3: MQTT standard version 3.1.
         \li 4: MQTT standard version 3.1.1, often referred to MQTT 4.
+        \li 5: MQTT Standard 5.0.
     \endlist
 */
 
