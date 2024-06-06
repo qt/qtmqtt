@@ -64,7 +64,8 @@ public:
         BrokerDisconnected = 0,
         BrokerConnecting,
         BrokerWaitForConnectAck,
-        BrokerConnected
+        BrokerConnected,
+        ClientDestruction
     };
 
     explicit QMqttConnection(QObject *parent = nullptr);
@@ -93,6 +94,7 @@ public:
 
     inline quint16 unusedPacketIdentifier() const;
     inline InternalConnectionState internalState() const { return m_internalState; }
+    inline void setClientDestruction() { m_internalState = ClientDestruction; }
 
     void cleanSubscriptions();
 
