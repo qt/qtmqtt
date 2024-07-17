@@ -14,7 +14,12 @@ qhp.QtMqtt.virtualFolder       = qtmqtt
 qhp.QtMqtt.indexTitle          = Qt MQTT
 qhp.QtMqtt.indexRoot           =
 
-qhp.QtMqtt.subprojects         = classes examples
+qhp.QtMqtt.subprojects         = overview classes examples
+
+qhp.QtMqtt.subprojects.overview.title         = Overview
+qhp.QtMqtt.subprojects.overview.indexTitle    = Qt MQTT Overview
+qhp.QtMqtt.subprojects.overview.selectors     = group:none
+
 qhp.QtMqtt.subprojects.classes.title = C++ Classes
 qhp.QtMqtt.subprojects.classes.indexTitle = Qt MQTT C++ Classes
 qhp.QtMqtt.subprojects.classes.selectors = class fake:headerfile
@@ -22,7 +27,7 @@ qhp.QtMqtt.subprojects.classes.sortPages = true
 
 qhp.QtMqtt.subprojects.examples.title         = Examples
 qhp.QtMqtt.subprojects.examples.indexTitle    = Qt MQTT Examples
-qhp.QtMqtt.subprojects.examples.selectors     = fake:example
+qhp.QtMqtt.subprojects.examples.selectors     = example
 qhp.QtMqtt.subprojects.examples.sortPages     = true
 
 headerdirs  += ..
