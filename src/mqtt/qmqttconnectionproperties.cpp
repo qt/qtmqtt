@@ -5,13 +5,9 @@
 
 #include "qmqttconnectionproperties_p.h"
 
-#include <QtCore/QLoggingCategory>
-
 #include <limits>
 
 QT_BEGIN_NAMESPACE
-
-Q_DECLARE_LOGGING_CATEGORY(lcMqttConnection)
 
 /*!
     \class QMqttConnectionProperties

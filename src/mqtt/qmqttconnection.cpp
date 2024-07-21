@@ -19,7 +19,7 @@
 QT_BEGIN_NAMESPACE
 
 Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
-Q_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
+Q_STATIC_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
 template <typename T>
 T QMqttConnection::readBufferTyped(qint64 *dataSize)

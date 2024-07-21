@@ -18,7 +18,11 @@
 #include "qmqttconnectionproperties.h"
 #include "private/qglobal_p.h"
 
+#include <QtCore/QLoggingCategory>
+
 QT_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(lcMqttConnection)
 
 class QMqttLastWillPropertiesData : public QSharedData
 {
