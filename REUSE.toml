@@ -1,7 +1,7 @@
 version = 1
 
 [[annotations]]
-path = [".cmake.conf", "**.yaml", "**.json", "**.pro"]
+path = [".cmake.conf", "**.yaml", "**/ci_config_linux.json", "**.pro"]
 precedence = "closest"
 comment = "build system"
 SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
