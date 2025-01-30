@@ -199,7 +199,7 @@ bool QMqttTopicFilter::isValid() const
             || (singleLevelPosition < size - 1 && d->filter.at(singleLevelPosition + 1) != QLatin1Char('/'))) {
             return false;
         }
-        singleLevelPosition = d->filter.indexOf(QLatin1Char('#'), singleLevelPosition + 1);
+        singleLevelPosition = d->filter.indexOf(QLatin1Char('+'), singleLevelPosition + 1);
     }
 
     // Shared Subscription syntax
@@ -249,7 +249,7 @@ bool QMqttTopicFilter::match(const QMqttTopicName &name, MatchOptions matchOptio
             return false;
 
         for (int i = 0; i < filterLevels.size(); ++i) {
-            if (filterLevels.at(i) != topicLevels.at(i))
+            if (filterLevels.at(i) != topicLevels.at(i) && filterLevels.at(i) != QLatin1Char('+'))
                 return false;
         }
         return true;
