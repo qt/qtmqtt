@@ -30,6 +30,7 @@ private Q_SLOTS:
     void noLocal_data();
     void noLocal();
     void qtbug_106203();
+    void qtbug_104478();
 private:
     void createAndSubscribe(QMqttClient *c, QMqttSubscription **sub, const QString &topic);
     QProcess m_brokerProcess;
@@ -445,6 +446,37 @@ void Tst_QMqttSubscription::qtbug_106203()
 
     sub->unsubscribe();
     QTRY_VERIFY2(sub->state() == QMqttSubscription::Unsubscribed, "Client could not unsubscribe.");
+
+    client.disconnectFromHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect from broker.");
+}
+
+void Tst_QMqttSubscription::qtbug_104478()
+{
+    QMqttClient client;
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    auto singleWildcardSub = client.subscribe(QLatin1String("test/+/+/test2"));
+    QTRY_VERIFY2(singleWildcardSub->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic.");
+    QSignalSpy singleSpy(singleWildcardSub, SIGNAL(messageReceived(QMqttMessage)));
+
+    auto mixedWildcardSub = client.subscribe(QLatin1String("test/+/#"));
+    QTRY_VERIFY2(mixedWildcardSub->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic.");
+    QSignalSpy mixedSpy(mixedWildcardSub, SIGNAL(messageReceived(QMqttMessage)));
+
+
+    const QString topic(QLatin1String("test/foo/bar/test2"));
+
+    QSignalSpy pubSpy(&client, SIGNAL(messageSent(qint32)));
+    client.publish(topic, "Wildcard checks", 1);
+    QTRY_VERIFY2(pubSpy.size() == 1, "Could not publish message.");
+
+    QTRY_VERIFY2(singleSpy.count() == 1, "Did not receive message");
+    QTRY_VERIFY2(mixedSpy.count() == 1, "Did not receive message");
 
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect from broker.");

@@ -47,6 +47,7 @@ void Tst_QMqttTopicFilter::checkValidity()
     QVERIFY(!QMqttTopicFilter("a+").isValid());
     QVERIFY(!QMqttTopicFilter("+a").isValid());
     QVERIFY(!QMqttTopicFilter("++").isValid());
+    QVERIFY(!QMqttTopicFilter("a/+/b/++/c").isValid());
 
     QVERIFY(!QMqttTopicFilter(QString(3, QChar(QChar::Null))).isValid());
 
@@ -82,6 +83,12 @@ void Tst_QMqttTopicFilter::matches()
     QVERIFY(QMqttTopicFilter("+/+").match(QMqttTopicName("/finance")));
     QVERIFY(QMqttTopicFilter("/+").match(QMqttTopicName("/finance")));
     QVERIFY(!QMqttTopicFilter("+").match(QMqttTopicName("/finance")));
+
+    // QTBUG-104478
+    filter = QMqttTopicFilter("sport/+/player1/#");
+    QVERIFY(filter.match(QMqttTopicName("sport/tennis/player1/ranking")));
+    filter = QMqttTopicFilter("sport/+/+");
+    QVERIFY(filter.match(QMqttTopicName("sport/tennis/player2")));
 
     // Non normative comment's examples [4.7.2]
     QVERIFY(QMqttTopicFilter("#").match(QMqttTopicName("$SYS/foo")));
