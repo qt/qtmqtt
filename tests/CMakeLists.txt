@@ -26,6 +26,19 @@
 # Finally, we allow the test to override for individual test
 # cases, if wanted. This is mostly used for MQTT_TEST_TYPE
 #
+
+function(qtmqtt_is_mosquitto_installed result)
+    set(skip $ENV{COIN_NO_MOSQUITTO})
+    if(skip)
+       set(${result} FALSE PARENT_SCOPE)
+     elseif(EXISTS "/etc/mosquitto/conf.d/mqtt.conf" OR
+       EXISTS "C:\\Program Files\\mosquitto\\conf.d\\mqtt.conf")
+       set(${result} ON PARENT_SCOPE)
+    else()
+       set(${result} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
 function(qtmqtt_add_test)
 
     set(options)
@@ -43,8 +56,9 @@ function(qtmqtt_add_test)
     set(TYPES)
     set(PROTOCOLS)
 
-    if((EXISTS "/etc/mosquitto/conf.d/mqtt.conf") OR
-       (EXISTS "C:\\Program Files\\mosquitto\\conf.d\\mqtt.conf"))
+    qtmqtt_is_mosquitto_installed(is_installed)
+
+    if(${is_installed})
         if(WASM)
             if(TARGET Qt::WebSockets)
                 set(TYPES Ws Wss)
@@ -74,8 +88,7 @@ function(qtmqtt_add_test)
         foreach(PROTOCOL ${PROTOCOLS})
             set(EXTRA_DEFINES)
             set(EXTRA_LIBS)
-            if(EXISTS "/etc/mosquitto/conf.d/mqtt.conf" OR
-               EXISTS "C:\\Program Files\\mosquitto\\conf.d\\mqtt.conf")
+            if(${is_installed})
                 set(EXTRA_DEFINES MQTT_TEST_TYPE="${TYPE}" MQTT_TEST_PROTOCOL=${PROTOCOL} MQTT_TEST_BROKER="localhost")
             endif()
 
