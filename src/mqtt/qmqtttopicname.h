@@ -1,5 +1,5 @@
 // Copyright (C) 2017 Lorenz Haas
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial
 
 #ifndef QMQTTTOPICNAME_H
 #define QMQTTTOPICNAME_H
