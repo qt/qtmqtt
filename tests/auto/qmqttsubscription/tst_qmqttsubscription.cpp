@@ -31,6 +31,9 @@ private Q_SLOTS:
     void noLocal();
     void qtbug_106203();
     void qtbug_104478();
+    void qtbug_135653_connected();
+    void qtbug_135653_not_connected();
+    void qtbug_135653_not_unsubscribed();
 private:
     template<typename Client>
     void createAndSubscribe(Client *c, QMqttSubscription **sub, const QString &topic);
@@ -493,6 +496,89 @@ void Tst_QMqttSubscription::qtbug_104478()
 
     client.disconnectFromHost();
     QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect from broker.");
+}
+
+void Tst_QMqttSubscription::qtbug_135653_connected()
+{
+    VersionClient(QMqttClient::ProtocolVersion(0), client);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+    client.connectToHost();
+    QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+
+    const QString topic(QLatin1String("test/foo/bar/test3"));
+
+    QMqttSubscription *subscriptions[10] = { 0 };
+    for (int i = 0; i < 10; ++i) {
+        bool received = false;
+        subscriptions[i] = client.subscribe(topic);
+        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i], [&client, topic, &received](QMqttMessage msg) {
+            received = (msg.payload() == "Hello World");
+        });
+        client.publish(topic, QString(QLatin1String("Hello World")).toLocal8Bit(), 1, true);
+        QTRY_VERIFY2(received, "Could not receive message.");
+        client.unsubscribe(topic);
+        client.unsubscribe(topic);
+    }
+
+    for (int i = 0; i < 10; ++i) {
+        QVERIFY(subscriptions[i]);
+        for (int j = i + 1; j < 10; ++j)
+            QVERIFY(subscriptions[i] != subscriptions[j]);
+    }
+}
+
+void Tst_QMqttSubscription::qtbug_135653_not_connected()
+{
+    VersionClient(QMqttClient::ProtocolVersion(0), client);
+    client.setHostname(m_testBroker);
+    client.setPort(m_port);
+
+    const QString topic(QLatin1String("test/foo/bar/test4"));
+
+    QMqttSubscription *subscriptions[10] = { 0 };
+    for (int i = 0; i < 10; ++i) {
+        bool received = false;
+        client.connectToHost();
+        QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+        subscriptions[i] = client.subscribe(topic);
+        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i], [&client, topic, &received](QMqttMessage msg) {
+            received = (msg.payload() == "Hello World");
+        });
+        client.publish(topic, QString(QLatin1String("Hello World")).toLocal8Bit(), 1, true);
+        QTRY_VERIFY2(received, "Could not receive message.");
+        client.disconnectFromHost();
+        QTRY_VERIFY2(client.state() == QMqttClient::Disconnected, "Could not disconnect from broker.");
+        client.unsubscribe(topic);
+        client.unsubscribe(topic);
+    }
+    for (int i = 0; i < 10; ++i) {
+        QVERIFY(subscriptions[i]);
+        for (int j = i + 1; j < 10; ++j)
+            QVERIFY(subscriptions[i] != subscriptions[j]);
+    }
+}
+
+void Tst_QMqttSubscription::qtbug_135653_not_unsubscribed()
+{
+
+    const QString topic(QLatin1String("test/foo/bar/test5"));
+
+    QMqttSubscription *subscriptions[10] = { 0 };
+    for (int i = 0; i < 10; ++i) {
+        bool received = false;
+        VersionClient(QMqttClient::ProtocolVersion(0), client);
+        client.setHostname(m_testBroker);
+        client.setPort(m_port);
+        client.connectToHost();
+        QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
+        subscriptions[i] = client.subscribe(topic);
+        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i], [&client, topic, &received](QMqttMessage msg) {
+            received = (msg.payload() == "Hello World");
+        });
+        client.publish(topic, QString(QLatin1String("Hello World")).toLocal8Bit(), 1, true);
+        QTRY_VERIFY2(received, "Could not receive message.");
+    }
 }
 
 QTEST_MAIN(Tst_QMqttSubscription)
