@@ -58,6 +58,25 @@ QString QMqttConnection::readBufferTyped(qint64 *dataSize)
     return QString::fromUtf8(readBufferTyped<QByteArray>(dataSize));
 }
 
+bool QMqttConnection::isPendingUnsubscribe(QMqttSubscription *sub) const
+{
+    for (const auto [key, value] : m_pendingUnsubscriptions.asKeyValueRange()) {
+        if (value == sub)
+            return true;
+    }
+    return false;
+}
+
+QMqttSubscription *QMqttConnection::findActiveSubscription(const QMqttTopicFilter &topic) const
+{
+    const auto range = m_activeSubscriptions.equal_range(topic);
+    for (auto it = range.first; it != range.second; ++it) {
+        if (!isPendingUnsubscribe(it.value()))
+            return it.value();
+    }
+    return nullptr;
+}
+
 QMqttConnection::QMqttConnection(QObject *parent) : QObject(parent)
 {
 }
@@ -561,18 +580,18 @@ QMqttSubscription *QMqttConnection::sendControlSubscribe(const QMqttTopicFilter 
         const QString sharedSubscriptionName = topic.sharedSubscriptionName();
         if (!sharedSubscriptionName.isEmpty()) {
             const QMqttTopicFilter filter(topic.filter().section(QLatin1Char('/'), 2));
-            auto it = m_activeSubscriptions.constFind(filter);
-            if (it != m_activeSubscriptions.cend() && (*it)->sharedSubscriptionName() == sharedSubscriptionName)
-                return *it;
+            auto sub = findActiveSubscription(filter);
+            if (sub && (sub->sharedSubscriptionName() == sharedSubscriptionName))
+                return sub;
         } else {
-            auto it = m_activeSubscriptions.constFind(topic);
-            if (it != m_activeSubscriptions.cend() && !(*it)->isSharedSubscription())
-                return *it;
+            auto sub = findActiveSubscription(topic);
+            if (sub && !sub->isSharedSubscription())
+                return sub;
         }
     } else {
-        auto it = m_activeSubscriptions.constFind(topic);
-        if (it != m_activeSubscriptions.cend())
-            return *it;
+        auto sub = findActiveSubscription(topic);
+        if (sub)
+            return sub;
     }
 
     // has to have 0010 as bits 3-0, maybe update SUBSCRIBE instead?
@@ -624,11 +643,13 @@ bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic, cons
     if (!topic.isValid())
         return false;
 
-    if (!m_activeSubscriptions.contains(topic))
+    auto sub = findActiveSubscription(topic);
+    if (!sub)
+        // Already unsubscribed
         return false;
 
     if (m_internalState != QMqttConnection::BrokerConnected) {
-        m_activeSubscriptions.remove(topic);
+        m_activeSubscriptions.remove(topic, sub);
         return true;
     }
 
@@ -647,7 +668,6 @@ bool QMqttConnection::sendControlUnsubscribe(const QMqttTopicFilter &topic, cons
     }
 
     packet.append(topic.filter().toUtf8());
-    auto sub = m_activeSubscriptions[topic];
     sub->setState(QMqttSubscription::UnsubscriptionPending);
 
     if (!writePacketToTransport(packet))
@@ -1664,7 +1684,7 @@ void QMqttConnection::finalize_unsuback()
         return;
     }
 
-    m_activeSubscriptions.remove(sub->topic());
+    m_activeSubscriptions.remove(sub->topic(), sub);
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
         readSubscriptionProperties(sub);
