@@ -116,6 +116,9 @@ private:
     void closeConnection(QMqttClient::ClientError error);
     QByteArray readBuffer(quint64 size);
     template<typename T> T readBufferTyped(qint64 *dataSize = nullptr);
+    bool isPendingUnsubscribe(QMqttSubscription *) const;
+    QMqttSubscription *findActiveSubscription(const QMqttTopicFilter &topic) const;
+
     QByteArray m_readBuffer;
     int m_readPosition{0};
     qint64 m_missingData{0};
@@ -128,9 +131,13 @@ private:
     QMqttControlPacket::PacketType m_currentPacket{QMqttControlPacket::UNKNOWN};
 
     bool writePacketToTransport(const QMqttControlPacket &p);
+
+    // I: There can be many occurences of different QMqttSubscription * with
+    //    the same QMqttTopicFilter, but only one that is not in
+    //    m_pendingUnsubscriptions.
     QHash<quint16, QMqttSubscription *> m_pendingSubscriptionAck;
     QHash<quint16, QMqttSubscription *> m_pendingUnsubscriptions;
-    QHash<QMqttTopicFilter, QMqttSubscription *> m_activeSubscriptions;
+    QMultiHash<QMqttTopicFilter, QMqttSubscription *> m_activeSubscriptions;
     QHash<quint16, QSharedPointer<QMqttControlPacket>> m_pendingMessages;
     QHash<quint16, QSharedPointer<QMqttControlPacket>> m_pendingReleaseMessages;
     InternalConnectionState m_internalState{BrokerDisconnected};
