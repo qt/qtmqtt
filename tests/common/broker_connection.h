@@ -314,7 +314,14 @@ Q_DECLARE_METATYPE(QMqttClient::ProtocolVersion)
   VersionClientBase(MQTTVERSION, CLIENTNAME, qgetenv("MQTT_TEST_BROKER_TYPE"))
 #endif
 
-
+#ifdef MQTT_TEST_PROTOCOL
+#define DefaultVersionTestData(FUNCTION) \
+void FUNCTION() \
+{ \
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion"); \
+    QTest::newRow("V0") << QMqttClient::ProtocolVersion(0); \
+}
+#else
 #define DefaultVersionTestData(FUNCTION) \
 void FUNCTION() \
 { \
@@ -326,3 +333,4 @@ void FUNCTION() \
         QTest::newRow("V5.0.0") << QMqttClient::MQTT_5_0; \
     } \
 }
+#endif

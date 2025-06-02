@@ -56,6 +56,13 @@ public:
         return static_cast<qint64>(m_buffer.size()) + QIODevice::bytesAvailable();
     }
 
+    bool waitForBytesWritten(int msecs) override
+    {
+        Q_UNUSED(msecs);
+        m_socket->flush();
+        return true;
+    }
+
     bool isConnected() const
     {
         return (m_socket->state() == QAbstractSocket::ConnectedState);
