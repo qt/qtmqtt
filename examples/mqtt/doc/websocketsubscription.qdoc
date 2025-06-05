@@ -12,6 +12,9 @@
     QIODevice to combine a \l {Qt WebSockets}{web socket} connection with
     QMqttClient.
 
+    \note Since Qt 6.10, WebSockets are supported natively by Qt MQTT.
+    This example is retained to demonstrate how to implement a custom transport.
+
     \section1 Creating a Custom QIODevice
 
     The new custom device, \c WebSocketIODevice, has to be a subclass of
