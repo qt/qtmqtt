@@ -114,13 +114,12 @@ public:
     quint16 keepAlive() const;
     ProtocolVersion protocolVersion() const;
 
-    Q_INVOKABLE void connectToHostWebSocket(QWebSocket *webSocket = nullptr);
-    Q_INVOKABLE void connectToHostWebSocketEncrypted(QWebSocket *webSocket = nullptr);
-
     Q_INVOKABLE void connectToHost();
 #ifndef QT_NO_SSL
     void connectToHostEncrypted(const QSslConfiguration &conf);
 #endif
+    Q_INVOKABLE void connectToHostWebSocket(QWebSocket *webSocket = nullptr);
+    Q_INVOKABLE void connectToHostWebSocketEncrypted(QWebSocket *webSocket = nullptr);
     Q_INVOKABLE void disconnectFromHost();
 
     ClientState state() const;
