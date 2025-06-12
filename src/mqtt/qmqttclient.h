@@ -33,13 +33,13 @@ public:
         AbstractSocket,
         SecureSocket,
         WebSocket,
-        SecureWebSocket
+        SecureWebSocket,
     };
 
     enum ClientState {
         Disconnected = 0,
         Connecting,
-        Connected
+        Connected,
     };
     Q_ENUM(ClientState)
 
@@ -55,14 +55,14 @@ public:
         TransportInvalid       = 256,
         ProtocolViolation,
         UnknownError,
-        Mqtt5SpecificError
+        Mqtt5SpecificError,
     };
     Q_ENUM(ClientError)
 
     enum ProtocolVersion {
         MQTT_3_1 = 3,
         MQTT_3_1_1 = 4,
-        MQTT_5_0 = 5
+        MQTT_5_0 = 5,
     };
     Q_ENUM(ProtocolVersion)
 
