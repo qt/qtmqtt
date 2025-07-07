@@ -4,40 +4,40 @@ version = 1
 path = [".cmake.conf", "**.yaml", "**/ci_config_linux.json", "**.pro", ".tag"]
 precedence = "closest"
 comment = "build system"
-SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
+SPDX-FileCopyrightText = "Copyright (C) The Qt Company Ltd."
 SPDX-License-Identifier = "BSD-3-Clause"
 
 [[annotations]]
 path = ["**/.gitattributes", "**.gitignore", "**.gitreview"]
 precedence = "closest"
 comment = "version control system. Infrastructure"
-SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
+SPDX-FileCopyrightText = "Copyright (C) The Qt Company Ltd."
 SPDX-License-Identifier = "LicenseRef-Qt-Commercial OR BSD-3-Clause"
 
 [[annotations]]
 path = ["**/doc/images/**", "examples/**"]
 comment = "this must be after the build system table because example and snippets take precedence over build system"
 precedence = "closest"
-SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
+SPDX-FileCopyrightText = "Copyright (C) The Qt Company Ltd."
 SPDX-License-Identifier = "LicenseRef-Qt-Commercial OR BSD-3-Clause"
 
 [[annotations]]
 path = ["**.qdocconf",  "src/mqtt/doc/style/style.css", "tests/README.txt"]
 comment = "documentation"
 precedence = "closest"
-SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
+SPDX-FileCopyrightText = "Copyright (C) The Qt Company Ltd."
 SPDX-License-Identifier = "LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only"
 
 [[annotations]]
 path = ["**.toml", "licenseRule.json"]
 comment = "infrastructure"
 precedence = "override"
-SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
+SPDX-FileCopyrightText = "Copyright (C) The Qt Company Ltd."
 SPDX-License-Identifier = "LicenseRef-Qt-Commercial OR BSD-3-Clause"
 
 [[annotations]]
 path = ["**/qt_attribution.json"]
 comment = "currently not needed, but ready if such file is added. documentation."
 precedence = "override"
-SPDX-FileCopyrightText = "Copyright (C) 2024 The Qt Company Ltd."
+SPDX-FileCopyrightText = "Copyright (C) The Qt Company Ltd."
 SPDX-License-Identifier = "LicenseRef-Qt-Commercial OR GFDL-1.3-no-invariants-only"
