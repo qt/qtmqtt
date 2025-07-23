@@ -1081,10 +1081,7 @@ QMqttClientPrivate::QMqttClientPrivate(QMqttClient *c)
     : QObjectPrivate()
 {
     m_client = c;
-    m_clientId = QUuid::createUuid().toString();
-    m_clientId.remove(QLatin1Char('{'));
-    m_clientId.remove(QLatin1Char('}'));
-    m_clientId.remove(QLatin1Char('-'));
+    m_clientId = QUuid::createUuid().toString(QUuid::Id128);
     m_clientId.resize(23);
 #ifdef QT_BUILD_INTERNAL
     // Some test servers require a username token
