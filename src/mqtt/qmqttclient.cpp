@@ -170,9 +170,11 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
     \value SecureSocket
            The transport uses a class based on a QSslSocket.
     \value [since 6.10] WebSocket
-        The transport uses a class based on a QIODevice.
+           The transport uses a class based on a QIODevice,
+           which uses a QWebSocket internally.
     \value [since 6.10] SecureWebSocket
-        The transport uses a class based on a QIODevice.
+           The transport uses a class based on a QIODevice,
+           which uses a secure QWebSocket internally.
 */
 
 /*!
