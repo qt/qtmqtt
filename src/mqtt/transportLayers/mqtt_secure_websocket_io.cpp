@@ -1,5 +1,6 @@
 // Copyright (C) 2024 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+// Qt-Security score:significant reason:default
 #include "mqtt_secure_websocket_io_p.h"
 
 #ifdef QT_MQTT_WITH_WEBSOCKETS
