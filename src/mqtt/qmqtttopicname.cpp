@@ -1,5 +1,6 @@
 // Copyright (C) 2017 Lorenz Haas
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial
+// Qt-Security score:significant reason:default
 
 #include "qmqtttopicname.h"
 
