@@ -1,5 +1,5 @@
 // Copyright (C) 2017 Lorenz Haas
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
 
 #ifndef QMQTTTOPICFILTER_H
 #define QMQTTTOPICFILTER_H
