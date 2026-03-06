@@ -10,6 +10,8 @@
     topics.
 
     \image quicksubscription.png
+           {MQTT subscription interface with Hostname, Port, Topic fields, Connect
+           and Subscribe buttons}
 
     \e {Qt Quick Subscription} demonstrates how to register QMqttClient as a QML type and
     use it in a Qt Quick application.
