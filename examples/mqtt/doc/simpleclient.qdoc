@@ -9,6 +9,8 @@
     \brief Creating a minimalistic telemetry application.
 
     \image simpleclient.png
+           {MQTT client with Host, Port, Protocol fields, WebSockets and Secure
+           options, Topic and Message inputs, and log showing state changes}
 
     \e {Simple MQTT Client} demonstrates how to create a minimalistic client
     application.

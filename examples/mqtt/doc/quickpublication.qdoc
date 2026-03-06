@@ -10,6 +10,8 @@
     topics.
 
     \image quickpublication.png
+           {MQTT publishing interface with Hostname, Port, Topic, Message, QoS,
+           and Retain fields}
 
     \e {Qt Quick Publication} demonstrates how to register QMqttClient as a QML type and
     use it in a Qt Quick application.

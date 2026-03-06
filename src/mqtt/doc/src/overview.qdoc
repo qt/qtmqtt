@@ -21,7 +21,8 @@
     broker. The other clients can subscribe to notifications on particular
     topics sent by the client.
 
-    \image mqtt.png
+    \image mqtt.png {Broker distributing messages from Client 1 to Client 2
+           (Topic A) and Client 3 (Topics A and B)}
 
     For example, if \e {Client 2} subscribes to messages on \e {Topic A}, it
     receives a notification when \e {Client 1} sends a message on that topic.

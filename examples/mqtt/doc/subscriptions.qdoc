@@ -9,6 +9,8 @@
     \brief Creating a application that communicates with an MQTT broker.
 
     \image subscriptions.png
+           {Main window with connection and publishing controls, and two
+           subscription windows showing received messages on qtmqtt/topic1}
 
     \e {MQTT Subscriptions} shows how to create an application that communicates
     with an MQTT broker. A new dialog opens for each subscription, where you can
