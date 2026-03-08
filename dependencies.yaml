@@ -1,10 +1,10 @@
 dependencies:
   ../qtbase:
-    ref: b4a3163b27639a5f90b9d702bbf908f3357ca206
+    ref: 694b1a55619c4cfa8f2f8097ceb85e8ff729ad89
     required: true
   ../qtdeclarative:
-    ref: 1a1b799b7a2f4c8a576b6cb5398965724a258d78
+    ref: 40c25b9ae1c2f6bb2e42ff572e6110d4934c261d
     required: true
   ../qtwebsockets:
-    ref: e45e7f25f633c91d6124b4050bbabf90ab7e1f13
+    ref: 98c97e03b7250a095af3412b3bd415a22fc1f436
     required: false
