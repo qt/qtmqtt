@@ -512,7 +512,8 @@ void Tst_QMqttSubscription::qtbug_135653_connected()
     for (int i = 0; i < 10; ++i) {
         bool received = false;
         subscriptions[i] = client.subscribe(topic);
-        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i], [&client, topic, &received](QMqttMessage msg) {
+        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i],
+                [topic, &received](QMqttMessage msg) {
             received = (msg.payload() == "Hello World");
         });
         client.publish(topic, QString(QLatin1String("Hello World")).toLocal8Bit(), 1, true);
@@ -542,7 +543,8 @@ void Tst_QMqttSubscription::qtbug_135653_not_connected()
         client.connectToHost();
         QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
         subscriptions[i] = client.subscribe(topic);
-        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i], [&client, topic, &received](QMqttMessage msg) {
+        connect(subscriptions[i], &QMqttSubscription::messageReceived,
+                subscriptions[i], [topic, &received](QMqttMessage msg) {
             received = (msg.payload() == "Hello World");
         });
         client.publish(topic, QString(QLatin1String("Hello World")).toLocal8Bit(), 1, true);
@@ -573,7 +575,8 @@ void Tst_QMqttSubscription::qtbug_135653_not_unsubscribed()
         client.connectToHost();
         QTRY_VERIFY2(client.state() == QMqttClient::Connected, "Could not connect to broker.");
         subscriptions[i] = client.subscribe(topic);
-        connect(subscriptions[i], &QMqttSubscription::messageReceived, subscriptions[i], [&client, topic, &received](QMqttMessage msg) {
+        connect(subscriptions[i], &QMqttSubscription::messageReceived,
+                subscriptions[i], [topic, &received](QMqttMessage msg) {
             received = (msg.payload() == "Hello World");
         });
         client.publish(topic, QString(QLatin1String("Hello World")).toLocal8Bit(), 1, true);
