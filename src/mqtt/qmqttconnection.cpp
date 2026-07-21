@@ -771,15 +771,15 @@ quint16 QMqttConnection::unusedPacketIdentifier() const
 
 void QMqttConnection::cleanSubscriptions()
 {
-    for (auto item : m_pendingSubscriptionAck)
+    for (auto item : std::as_const(m_pendingSubscriptionAck))
         item->setState(QMqttSubscription::Unsubscribed);
     m_pendingSubscriptionAck.clear();
 
-    for (auto item : m_pendingUnsubscriptions)
+    for (auto item : std::as_const(m_pendingUnsubscriptions))
         item->setState(QMqttSubscription::Unsubscribed);
     m_pendingUnsubscriptions.clear();
 
-    for (auto item : m_activeSubscriptions)
+    for (auto item : std::as_const(m_activeSubscriptions))
         item->setState(QMqttSubscription::Unsubscribed);
     m_activeSubscriptions.clear();
 }
@@ -1390,7 +1390,8 @@ QByteArray QMqttConnection::writePublishProperties(const QMqttPublishProperties 
 
     // 3.3.2.3.8 Subscription Identifier
     if (properties.availableProperties() & QMqttPublishProperties::SubscriptionIdentifier) {
-        for (auto id : properties.subscriptionIdentifiers()) {
+        const auto subscriptionIds = properties.subscriptionIdentifiers();
+        for (auto id : subscriptionIds) {
             qCDebug(lcMqttConnectionVerbose) << "Publish Properties: Subscription ID:" << id;
             packet.append(char(0x0b));
             packet.appendRawVariableInteger(id);
