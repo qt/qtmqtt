@@ -69,9 +69,6 @@ public:
 
 private:
     Q_OBJECT
-    Q_ENUMS(ClientState)
-    Q_ENUMS(ClientError)
-    Q_ENUMS(ProtocolVersion)
     Q_PROPERTY(QString clientId READ clientId WRITE setClientId NOTIFY clientIdChanged)
     Q_PROPERTY(QString hostname READ hostname WRITE setHostname NOTIFY hostnameChanged)
     Q_PROPERTY(quint16 port READ port WRITE setPort NOTIFY portChanged)
