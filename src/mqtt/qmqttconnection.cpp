@@ -1566,6 +1566,10 @@ void QMqttConnection::finalize_connack()
     // MQTT 5.0 has variable part != 2 in the header
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
         readConnackProperties(m_clientPrivate->m_serverConnectionProperties);
+        // readConnackProperties() might have closed the connection due to a malformed
+        // property length. Do not overwrite the state of a connection which is gone.
+        if (m_internalState == BrokerDisconnected)
+            return;
         m_receiveAliases.resize(m_clientPrivate->m_serverConnectionProperties.maximumTopicAlias());
         m_publishAliases.resize(m_clientPrivate->m_connectionProperties.maximumTopicAlias());
 
