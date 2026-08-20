@@ -41,6 +41,11 @@ private Q_SLOTS:
     void reconnect_QTBUG65726();
     void openIODevice_QTBUG66955_data();
     void openIODevice_QTBUG66955();
+    void subackLongRemainingLength();
+    void pubackLongRemainingLength();
+    void pubrelWithReasonCode();
+    void shortRemainingLength_data();
+    void shortRemainingLength();
     void staticProperties_QTBUG_67176_data();
     void staticProperties_QTBUG_67176();
     void authentication();
@@ -174,7 +179,7 @@ void Tst_QMqttClient::sendReceive()
     bool verified = false;
     auto sub = subscriber.subscribe(testTopic, 1);
     QVERIFY(sub);
-    connect(sub, &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
+    connect(sub, &QMqttSubscription::messageReceived, sub, [&](QMqttMessage msg) {
         verified = msg.payload() == data;
         received = true;
     });
@@ -227,7 +232,8 @@ void Tst_QMqttClient::retainMessage()
         sub.setClientId(QLatin1String("SubA"));
         sub.setHostname(m_testBroker);
         sub.setPort(m_port);
-        connect(&sub, &QMqttClient::messageReceived, [&msgCount, testMessage](const QByteArray &msg) {
+        connect(&sub, &QMqttClient::messageReceived, &sub,
+                [&msgCount, testMessage](const QByteArray &msg) {
             if (msg == testMessage)
                 msgCount++;
         });
@@ -275,7 +281,8 @@ void Tst_QMqttClient::willMessage()
         QSKIP("This test is only for tcp");
 
     auto client1Sub = client1.subscribe(willTopic, 1);
-    connect(client1Sub, &QMqttSubscription::messageReceived, [=](QMqttMessage message) {
+    connect(client1Sub, &QMqttSubscription::messageReceived,
+            client1Sub, [=](QMqttMessage message) {
         Q_UNUSED(message);
         // Just debug purposes
         //qDebug() << "Got something:" << message;
@@ -363,7 +370,8 @@ void Tst_QMqttClient::compliantTopic()
 
     bool received = false;
     bool verified = false;
-    connect(&subscriber, &QMqttClient::messageReceived, [&](const QByteArray &, const QMqttTopicName &t) {
+    connect(&subscriber, &QMqttClient::messageReceived,
+            &subscriber, [&](const QByteArray &, const QMqttTopicName &t) {
         received = true;
         verified = t == truncTopic;
     });
@@ -421,7 +429,8 @@ void Tst_QMqttClient::dataIncludingZero()
     const QString testTopic(QLatin1String("Qt/QMqttClient/some/topic"));
     auto sub = client.subscribe(testTopic, 1);
     QVERIFY(sub);
-    connect(sub, &QMqttSubscription::messageReceived, [&](QMqttMessage msg) {
+    connect(sub, &QMqttSubscription::messageReceived,
+            sub, [&](QMqttMessage msg) {
         verified = msg.payload() == data;
         correctSize = msg.payload().size() == dataSize;
         received = true;
@@ -465,14 +474,25 @@ public:
         connect(server, &QTcpServer::newConnection, this, &FakeServer::createSocket);
         server->listen(QHostAddress::Any, 5726);
     }
+    // Sends raw bytes to the client, so a test can drive the parser with an exact
+    // byte sequence.
+    void send(const QByteArray &data) { socket->write(data); }
 public slots:
     void createSocket() {
         socket = server->nextPendingConnection();
+        connectionAcknowledged = false;
+        lastRequest.clear();
         connect(socket, &QTcpSocket::readyRead, this, &FakeServer::connectionRequested);
     }
 
     void connectionRequested() {
-        // We assume it is always a connect statement, so no verification is done
+        // We assume the first packet is always a connect statement, so no verification
+        // is done. Everything after that is recorded for the test to answer itself.
+        if (connectionAcknowledged) {
+            lastRequest.append(socket->readAll());
+            return;
+        }
+        connectionAcknowledged = true;
         socket->readAll();
         QByteArray response;
         response += 0x20;
@@ -496,6 +516,8 @@ public:
     QTcpSocket *socket;
     QMqttClient::ProtocolVersion version{QMqttClient::MQTT_3_1_1};
     bool connectionSuccess{false};
+    bool connectionAcknowledged{false};
+    QByteArray lastRequest;
 };
 
 DefaultVersionTestData(Tst_QMqttClient::reconnect_QTBUG65726_data)
@@ -566,6 +588,220 @@ void Tst_QMqttClient::openIODevice_QTBUG66955()
     QTRY_COMPARE(trans.written, 1);
 }
 
+// A reason string property (0x1f) of the requested content length.
+static QByteArray reasonStringProperty(quint16 length)
+{
+    QByteArray property;
+    property.append(char(0x1f));
+    property.append(char(length >> 8));
+    property.append(char(length & 0xff));
+    property.append(QByteArray(length, 'r'));
+    return property;
+}
+
+// The packet identifier of a packet the client wrote, skipping the packet type and
+// its variable byte remaining length.
+static quint16 packetIdentifier(const QByteArray &packet)
+{
+    qsizetype pos = 1;
+    while (pos < packet.size() && (packet.at(pos) & 128) != 0)
+        ++pos;
+    Q_ASSERT(pos < packet.size() - 2);
+    ++pos;
+    return quint16(quint8(packet.at(pos)) << 8 | quint8(packet.at(pos + 1)));
+}
+
+static void appendPacketIdentifier(QByteArray *payload, quint16 id)
+{
+    payload->append(char(id >> 8));
+    payload->append(char(id & 0xff));
+}
+
+// MQTT-2.2.3 (3.1.1) / MQTT-2.1.4 (5.0) The remaining length is a variable byte
+// integer, so a packet longer than 127 bytes carries a two byte length whose first
+// byte has the continuation bit set. Reading only that first byte consumes one byte
+// too few and leaves the rest of the payload to be parsed as the next packet's
+// fixed header.
+void Tst_QMqttClient::subackLongRemainingLength()
+{
+    FakeServer server;
+    server.version = QMqttClient::MQTT_5_0;
+    server.connectionSuccess = true;
+
+    VersionClient(QMqttClient::MQTT_5_0, client);
+    if (!client.isTcp())
+        QSKIP("This test is only for tcp");
+    client.setHostname(QLatin1String("localhost"));
+    client.setPort(5726);
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    auto sub = client.subscribe(QMqttTopicFilter(QLatin1String("a/b")), 1);
+    QVERIFY(sub);
+    QTRY_VERIFY(server.lastRequest.size() >= 4); // The SUBSCRIBE arrived
+
+    // SUBACK with a reason string, which pushes the remaining length past 127.
+    QByteArray payload;
+    appendPacketIdentifier(&payload, packetIdentifier(server.lastRequest));
+    const QByteArray properties = reasonStringProperty(123);
+    payload.append(char(properties.size())); // Property length, 126
+    payload.append(properties);
+    payload.append(char(0x01)); // Reason code: maximum QoS 1
+    QCOMPARE(payload.size(), 130);
+
+    QByteArray packet;
+    packet.append(char(0x90));
+    packet.append(char(0x82)); // Remaining length 130, low seven bits plus continuation
+    packet.append(char(0x01)); // Remaining length 130, remaining bits
+    packet.append(payload);
+    server.send(packet);
+
+    QTRY_COMPARE(sub->state(), QMqttSubscription::Subscribed);
+    QCOMPARE(client.state(), QMqttClient::Connected);
+    QCOMPARE(client.error(), QMqttClient::NoError);
+}
+
+void Tst_QMqttClient::pubackLongRemainingLength()
+{
+    FakeServer server;
+    server.version = QMqttClient::MQTT_5_0;
+    server.connectionSuccess = true;
+
+    VersionClient(QMqttClient::MQTT_5_0, client);
+    if (!client.isTcp())
+        QSKIP("This test is only for tcp");
+    client.setHostname(QLatin1String("localhost"));
+    client.setPort(5726);
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    const qint32 id = client.publish(QMqttTopicName(QLatin1String("a/b")), QByteArray("x"), 1);
+    QVERIFY(id > 0);
+    QTRY_VERIFY(server.lastRequest.size() >= 4); // The PUBLISH arrived
+
+    QSignalSpy sentSpy(&client, &QMqttClient::messageSent);
+
+    // PUBACK with a reason string, which pushes the remaining length past 127.
+    QByteArray payload;
+    appendPacketIdentifier(&payload, quint16(id));
+    payload.append(char(0x00)); // Reason code: Success
+    const QByteArray properties = reasonStringProperty(123);
+    payload.append(char(properties.size())); // Property length, 126
+    payload.append(properties);
+    QCOMPARE(payload.size(), 130);
+
+    QByteArray packet;
+    packet.append(char(0x40));
+    packet.append(char(0x82)); // Remaining length 130, low seven bits plus continuation
+    packet.append(char(0x01)); // Remaining length 130, remaining bits
+    packet.append(payload);
+    server.send(packet);
+
+    QTRY_COMPARE(sentSpy.count(), 1);
+    QCOMPARE(sentSpy.at(0).at(0).toInt(), id);
+    QCOMPARE(client.state(), QMqttClient::Connected);
+    QCOMPARE(client.error(), QMqttClient::NoError);
+}
+
+// MQTT-3.6.2, MQTT-3.6.2.1 In MQTT 5.0 the PUBREL variable header holds a reason
+// code and properties in addition to the packet identifier. A remaining length of 2
+// only occurs when both are omitted, so a longer PUBREL must be accepted.
+void Tst_QMqttClient::pubrelWithReasonCode()
+{
+    FakeServer server;
+    server.version = QMqttClient::MQTT_5_0;
+    server.connectionSuccess = true;
+
+    VersionClient(QMqttClient::MQTT_5_0, client);
+    if (!client.isTcp())
+        QSKIP("This test is only for tcp");
+    client.setHostname(QLatin1String("localhost"));
+    client.setPort(5726);
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    QMqtt::MessageStatus status = QMqtt::MessageStatus::Unknown;
+    QString reasonString;
+    connect(&client, &QMqttClient::messageStatusChanged, &client,
+            [&](qint32, QMqtt::MessageStatus s, const QMqttMessageStatusProperties &properties)
+    {
+        status = s;
+        reasonString = properties.reason();
+    });
+
+    // PUBLISH, QoS 2, topic "a/b", packet identifier 7, no properties, payload "x".
+    // The client answers with a PUBREC, which puts it in the middle of the QoS 2
+    // exchange and makes it expect a PUBREL.
+    server.send(QByteArray::fromHex("34090003612f6200070078"));
+    QTRY_VERIFY(server.lastRequest.size() >= 4); // The PUBREC arrived
+
+    // PUBREL, packet identifier 7, reason code Success, and a reason string. Remaining
+    // length 12: 2 identifier + 1 reason code + 1 property length + 8 property bytes.
+    server.send(QByteArray::fromHex("620c000700081f000568656c6c6f"));
+
+    QTRY_COMPARE(status, QMqtt::MessageStatus::Released);
+    QCOMPARE(reasonString, QLatin1String("hello"));
+    QCOMPARE(client.state(), QMqttClient::Connected);
+    QCOMPARE(client.error(), QMqttClient::NoError);
+}
+
+// The remaining length counts the bytes that follow the fixed header, so a packet
+// declaring less than the fields the specification requires is malformed. Accepting
+// one leaves the parser reading past the end of the packet: the reason code loops in
+// finalize_suback() and finalize_unsuback() read at least once regardless of what is
+// left, and finalize_pubAckRecRelComp() always reads a packet identifier. Each of
+// these packets must be rejected as a protocol violation instead.
+void Tst_QMqttClient::shortRemainingLength_data()
+{
+    QTest::addColumn<QMqttClient::ProtocolVersion>("mqttVersion");
+    QTest::addColumn<QByteArray>("packet");
+
+    // SUBACK, packet identifier 7, and nothing else. MQTT-3.9.3 requires at least one
+    // reason code, so the shortest legal remaining length is 3.
+    QTest::newRow("SUBACK 3.1.1, no reason code")
+            << QMqttClient::MQTT_3_1_1 << QByteArray::fromHex("90020007");
+    // The same, plus an empty property block. MQTT-3.9.2.1 makes the property length
+    // mandatory in MQTT 5.0, so the shortest legal remaining length is 4.
+    QTest::newRow("SUBACK 5.0, no reason code")
+            << QMqttClient::MQTT_5_0 << QByteArray::fromHex("9003000700");
+    // UNSUBACK, packet identifier 7, empty property block, no reason code. The
+    // property length is mandatory (MQTT-3.11.2.1) and at least one reason code is
+    // required (MQTT-3.11.3), so the shortest legal remaining length is 4.
+    QTest::newRow("UNSUBACK 5.0, no reason code")
+            << QMqttClient::MQTT_5_0 << QByteArray::fromHex("b003000700");
+    // PUBACK with half a packet identifier. The reason code and the property length may
+    // both be omitted (MQTT-3.4.2.1), but the identifier may not, so the shortest legal
+    // remaining length is 2.
+    QTest::newRow("PUBACK 5.0, truncated packet identifier")
+            << QMqttClient::MQTT_5_0 << QByteArray::fromHex("400100");
+    // The same for PUBREL, MQTT-3.6.2.1.
+    QTest::newRow("PUBREL 5.0, truncated packet identifier")
+            << QMqttClient::MQTT_5_0 << QByteArray::fromHex("620100");
+}
+
+void Tst_QMqttClient::shortRemainingLength()
+{
+    QFETCH(QMqttClient::ProtocolVersion, mqttVersion);
+    QFETCH(QByteArray, packet);
+
+    FakeServer server;
+    server.version = mqttVersion;
+    server.connectionSuccess = true;
+
+    VersionClient(mqttVersion, client);
+    if (!client.isTcp())
+        QSKIP("This test is only for tcp");
+    client.setHostname(QLatin1String("localhost"));
+    client.setPort(5726);
+    client.connectToHost();
+    QTRY_COMPARE(client.state(), QMqttClient::Connected);
+
+    server.send(packet);
+
+    QTRY_COMPARE(client.state(), QMqttClient::Disconnected);
+    QCOMPARE(client.error(), QMqttClient::ProtocolViolation);
+}
+
 DefaultVersionTestData(Tst_QMqttClient::staticProperties_QTBUG_67176_data)
 
 void Tst_QMqttClient::staticProperties_QTBUG_67176()
@@ -621,12 +857,14 @@ void Tst_QMqttClient::authentication()
     connectionProperties.setAuthenticationMethod(QLatin1String("SCRAM-SHA-1"));
     client.setConnectionProperties(connectionProperties);
 
-    connect(&client, &QMqttClient::authenticationRequested, [](const QMqttAuthenticationProperties &prop)
+    connect(&client, &QMqttClient::authenticationRequested, &client,
+            [](const QMqttAuthenticationProperties &prop)
     {
         qDebug() << "Authentication requested:" << prop.authenticationMethod();
     });
 
-    connect(&client, &QMqttClient::authenticationFinished, [](const QMqttAuthenticationProperties &prop)
+    connect(&client, &QMqttClient::authenticationFinished, &client,
+            [](const QMqttAuthenticationProperties &prop)
     {
         qDebug() << "Authentication finished:" << prop.authenticationMethod();
     });
@@ -666,7 +904,8 @@ void Tst_QMqttClient::messageStatus()
 
     const QString topic = QLatin1String("Qt/client/statusCheck");
 
-    connect(&client, &QMqttClient::messageStatusChanged, [&expectedStatus](qint32,
+    connect(&client, &QMqttClient::messageStatusChanged,
+            &client, [&expectedStatus](qint32,
                 QMqtt::MessageStatus s,
                 const QMqttMessageStatusProperties &)
     {
@@ -715,9 +954,8 @@ void Tst_QMqttClient::messageStatusReceive()
     QTRY_VERIFY2(subscription->state() == QMqttSubscription::Subscribed, "Could not subscribe to topic");
     QVERIFY(subscription->qos() >= qos);
 
-    connect(&subscriber, &QMqttClient::messageStatusChanged, [&expectedStatus](qint32,
-                QMqtt::MessageStatus s,
-                const QMqttMessageStatusProperties &)
+    connect(&subscriber, &QMqttClient::messageStatusChanged, &subscriber,
+            [&expectedStatus](qint32, QMqtt::MessageStatus s, const QMqttMessageStatusProperties &)
     {
         QCOMPARE(s, expectedStatus.first());
         expectedStatus.takeFirst();
@@ -767,7 +1005,8 @@ void Tst_QMqttClient::subscriptionIdsOverlap()
     QTRY_VERIFY2(subA->state() == QMqttSubscription::Subscribed, "Could not subscibe A.");
 
     int receiveACounter = 0;
-    connect(subA, &QMqttSubscription::messageReceived, [&receiveACounter](QMqttMessage msg) {
+    connect(subA, &QMqttSubscription::messageReceived, subA,
+            [&receiveACounter](QMqttMessage msg) {
         qDebug() << "Sub A received:" << msg.publishProperties().subscriptionIdentifiers();
         // ### TODO: Wait for fix at https://github.com/eclipse/paho.mqtt.testing/issues/56
         //QVERIFY(msg.publishProperties().subscriptionIdentifiers().size() == 1);
@@ -789,7 +1028,8 @@ void Tst_QMqttClient::subscriptionIdsOverlap()
     QTRY_VERIFY2(subB->state() == QMqttSubscription::Subscribed, "Could not subscibe A.");
 
     int receiveBCounter = 2;
-    connect(subB, &QMqttSubscription::messageReceived, [&receiveBCounter](QMqttMessage msg) {
+    connect(subB, &QMqttSubscription::messageReceived,
+            subB, [&receiveBCounter](QMqttMessage msg) {
         qDebug() << "Sub B received:" << msg.publishProperties().subscriptionIdentifiers();
         QVERIFY(msg.publishProperties().subscriptionIdentifiers().size() > 0);
         receiveBCounter -= msg.publishProperties().subscriptionIdentifiers().size();
@@ -801,7 +1041,8 @@ void Tst_QMqttClient::subscriptionIdsOverlap()
     QTRY_VERIFY2(subB2->state() == QMqttSubscription::Subscribed, "Could not subscibe A.");
 
     int receiveB2Counter = 2;
-    connect(subB2, &QMqttSubscription::messageReceived, [&receiveB2Counter](QMqttMessage msg) {
+    connect(subB2, &QMqttSubscription::messageReceived,
+            subB2, [&receiveB2Counter](QMqttMessage msg) {
         qDebug() << "Sub B2 received:" << msg.publishProperties().subscriptionIdentifiers();
         QVERIFY(msg.publishProperties().subscriptionIdentifiers().size() > 0);
         receiveB2Counter -= msg.publishProperties().subscriptionIdentifiers().size();
@@ -875,11 +1116,11 @@ void Tst_QMqttClient::keepAlive()
     QTimer t;
     t.setInterval(keepAlive * 1000);
     t.setSingleShot(false);
-    t.connect(&t, &QTimer::timeout, [&client]() {
+    t.connect(&t, &QTimer::timeout, &client, [&client]() {
         client.requestPing();
     });
 
-    connect(&client, &QMqttClient::connected, [&t]() {
+    connect(&client, &QMqttClient::connected, &t, [&t]() {
         t.start();
     });
 
