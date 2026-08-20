@@ -1863,8 +1863,8 @@ void QMqttConnection::finalize_pubAckRecRelComp()
                 return;
             }
         }
-
-        readMessageStatusProperties(properties);
+        if (m_missingData > 0)
+            readMessageStatusProperties(properties);
     }
 
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREL) {
@@ -2022,7 +2022,30 @@ bool QMqttConnection::processDataHelper()
     }
     case QMqttControlPacket::SUBACK: {
         qCDebug(lcMqttConnectionVerbose) << "Received SUBACK";
-        const quint8 remaining = readBufferTyped<quint8>();
+        // We cannot use quint8 here, because quint8 is one byte while MQTT 3.1.1 section
+        // 3.9.1 says the remaining length of a SUBACK is "the length of variable header
+        // (2 bytes) plus the length of the payload". The payload carries one reason code
+        // per topic filter, so 126 filters already exceed one byte. MQTT 5.0 section
+        // 3.9.1 adds properties on top, which exceed it on their own.
+        const qint32 remaining = readVariableByteInteger();
+        if (remaining < 0)
+            return false; // Connection closed inside readVariableByteInteger
+        // The remaining length counts the bytes that follow the fixed header, so the
+        // smallest value a SUBACK may declare is the size of its shortest legal body:
+        //     2 bytes  packet identifier                             MQTT-3.9.2
+        //   + 1 byte   property length, MQTT 5.0 only, mandatory
+        //              even when there are no properties             MQTT-3.9.2.1
+        //   + 1 byte   reason code, at least one is required         MQTT-3.9.3
+        //   = 3 for MQTT 3.1.1, 4 for MQTT 5.0
+        // A smaller value leaves the reason code loop in finalize_suback() with
+        // nothing to read.
+        const qint32 minimumRemainingLength =
+                m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 ? 4 : 3;
+        if (remaining < minimumRemainingLength) {
+            qCDebug(lcMqttConnection) << "Received SUBACK with invalid remaining length.";
+            closeConnection(QMqttClient::ProtocolViolation);
+            return false;
+        }
         m_missingData = remaining;
         break;
     }
@@ -2050,18 +2073,37 @@ bool QMqttConnection::processDataHelper()
 
     case QMqttControlPacket::PUBREL: {
         qCDebug(lcMqttConnectionVerbose) << "Received PUBREL";
-        const quint8 remaining = readBufferTyped<quint8>();
-        if (remaining != 0x02) {
-            qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
+        // We cannot use quint8 here, because quint8 is one byte while the remaining
+        // length is a variable byte integer of up to four, MQTT 5.0 section 2.1.4. In
+        // MQTT 3.1.1 a PUBREL carried nothing but the packet identifier, so the value
+        // was always 2 (section 3.6.1) and one byte was always enough. MQTT 5.0 changed
+        // that by adding an optional reason code and properties, section 3.6.2.
+        const qint32 remaining = readVariableByteInteger();
+        if (remaining < 0)
+            return false; // Connection closed inside readVariableByteInteger
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            // MQTT-3.6.1 Always exactly the packet identifier.
+            if (remaining != 0x02) {
+                qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
+                closeConnection(QMqttClient::ProtocolViolation);
+                return false;
+            }
+        } else if (remaining < 2) {
+            // MQTT-3.6.2.1 The reason code and the property length may both be omitted
+            // when the reason code would be Success and there are no properties, and
+            // only then is the value 2. A longer PUBREL is legal and must be accepted;
+            // rejecting it broke interoperability with compliant MQTT 5.0 brokers.
+            qCDebug(lcMqttConnection) << "Received PUBREL with invalid remaining length.";
             closeConnection(QMqttClient::ProtocolViolation);
             return false;
         }
+        // MQTT-3.6.1-1 The fixed header flags of a PUBREL are reserved and must be 0010.
         if ((m_currentPacket & 0x0F) != 0x02) {
             qCDebug(lcMqttConnection) << "Malformed fixed header for PUBREL.";
             closeConnection(QMqttClient::ProtocolViolation);
             return false;
         }
-        m_missingData = 2;
+        m_missingData = remaining;
         break;
     }
 
@@ -2075,11 +2117,43 @@ bool QMqttConnection::processDataHelper()
             closeConnection(QMqttClient::ProtocolViolation);
             return false;
         }
-        const quint8 remaining = readBufferTyped<quint8>();
-        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0 && remaining != 0x02) {
-            qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
-            closeConnection(QMqttClient::ProtocolViolation);
-            return false;
+        // We cannot use quint8 here, because quint8 is one byte while the remaining
+        // length is a variable byte integer of up to four, MQTT 5.0 section 2.1.4. In
+        // MQTT 3.1.1 these packets carried nothing but the packet identifier, so the
+        // value was always 2 (sections 3.4.1, 3.5.1, 3.7.1 and 3.11.1) and one byte was
+        // always enough. MQTT 5.0 changed that by adding a reason code and properties,
+        // and a reason string or user properties push the value past 127.
+        const qint32 remaining = readVariableByteInteger();
+        if (remaining < 0)
+            return false; // Connection closed inside readVariableByteInteger
+        if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
+            // MQTT-3.4.1, MQTT-3.5.1, MQTT-3.7.1, MQTT-3.11.1 Always exactly the packet
+            // identifier.
+            if (remaining != 0x02) {
+                qCDebug(lcMqttConnection) << "Received 2 byte message with invalid remaining length.";
+                closeConnection(QMqttClient::ProtocolViolation);
+                return false;
+            }
+        } else {
+            // The smallest remaining length the specification permits, i.e. the size of
+            // the shortest legal body:
+            //   PUBACK/PUBREC/PUBCOMP: 2 bytes packet identifier. The reason code and
+            //     property length may both be omitted when the reason code would be
+            //     Success and there are no properties.            MQTT-3.4.2.1
+            //   UNSUBACK: 2 bytes packet identifier
+            //     + 1 byte property length, mandatory even when
+            //       there are no properties                       MQTT-3.11.2.1
+            //     + 1 byte reason code, at least one is required  MQTT-3.11.3
+            //     = 4 bytes. Anything shorter leaves the reason code loop in
+            //       finalize_unsuback() with nothing to read.
+            const qint32 minimumRemainingLength =
+                    (m_currentPacket & 0xF0) == QMqttControlPacket::UNSUBACK ? 4 : 2;
+            if (remaining < minimumRemainingLength) {
+                qCDebug(lcMqttConnection) << "Received UNSUBACK/PUBACK/PUBREC/PUBCOMP with "
+                                             "invalid remaining length.";
+                closeConnection(QMqttClient::ProtocolViolation);
+                return false;
+            }
         }
         m_missingData = remaining;
         break;
