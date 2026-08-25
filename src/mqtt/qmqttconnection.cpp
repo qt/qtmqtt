@@ -1921,6 +1921,9 @@ bool QMqttConnection::processDataHelper()
         if ((m_readBuffer.size() - m_readPosition) < m_missingData)
             return false;
 
+        // MQTT-2.1.4 The remaining length in the fixed header says where the message ends.
+        const qint64 packetEnd = qint64(m_readPosition) + m_missingData;
+
         switch (m_currentPacket & 0xF0) {
         case QMqttControlPacket::AUTH:
             finalize_auth();
@@ -1955,9 +1958,16 @@ bool QMqttConnection::processDataHelper()
         if (m_internalState == BrokerDisconnected)
             return false;
 
-        Q_ASSERT(m_missingData == 0);
+        // Report bytes that no handler read.
+        if (m_readPosition != packetEnd) {
+            qCDebug(lcMqttConnection) << "Packet type" << (m_currentPacket & 0xF0)
+                                      << "left" << (packetEnd - m_readPosition)
+                                      << "bytes unread; resynchronizing.";
+        }
 
-        m_readBuffer = m_readBuffer.mid(m_readPosition);
+        m_missingData = 0;
+        // A handler may stop reading early, so continue at the end of the message.
+        m_readBuffer = m_readBuffer.mid(packetEnd);
         m_readPosition = 0;
     }
 
