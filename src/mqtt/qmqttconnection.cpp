@@ -32,10 +32,16 @@ T QMqttConnection::readBufferTyped(qint64 *dataSize)
     T result = 0;
     if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(sizeof(result)))) {
         qCWarning(lcMqttConnection) << "Attempt to read past the data";
+        *dataSize = 0;
         return result;
     }
-    if (readBuffer(reinterpret_cast<char *>(&result), sizeof(result)) && dataSize != nullptr)
-        *dataSize -= sizeof(result);
+    const bool isOk = readBuffer(reinterpret_cast<char *>(&result), sizeof(result));
+    if (dataSize != nullptr) {
+        if (isOk)
+            *dataSize -= sizeof(result);
+        else
+            *dataSize = 0;
+    }
     return qFromBigEndian(result);
 }
 
@@ -45,10 +51,17 @@ QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
     const quint16 size = readBufferTyped<quint16>(dataSize);
     if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(size))) {
         qCWarning(lcMqttConnection) << "Attempt to read past the data";
+        *dataSize = 0;
         return QByteArray();
     }
     QByteArray ba(int(size), Qt::Uninitialized);
-    if (readBuffer(ba.data(), size) && dataSize != nullptr)
+    const bool isOk = readBuffer(ba.data(), size);
+    if (!isOk) {
+        if (dataSize != nullptr)
+            *dataSize = 0;
+        return QByteArray();
+    }
+    if (dataSize != nullptr)
         *dataSize -= size;
     return ba;
 }
