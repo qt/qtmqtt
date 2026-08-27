@@ -844,15 +844,15 @@ qint32 QMqttConnection::readVariableByteInteger(qint64 *dataSize)
     quint8 b = 0;
     quint8 iteration = 0;
     do {
-        b = readBufferTyped<quint8>(dataSize);
-        msgLength += (b & 127) * multiplier;
-        multiplier *= 128;
         iteration++;
         if (iteration > 4) {
             qCDebug(lcMqttConnection) << "Overflow trying to read variable integer.";
             closeConnection(QMqttClient::ProtocolViolation);
             return -1;
         }
+        b = readBufferTyped<quint8>(dataSize);
+        msgLength += (b & 127) * multiplier;
+        multiplier *= 128;
     } while ((b & 128) != 0);
     return msgLength;
 }
