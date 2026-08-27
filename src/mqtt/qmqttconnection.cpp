@@ -885,6 +885,8 @@ QByteArray QMqttConnection::readBuffer(quint64 size)
 void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    if (propertyLength < 0) // Connection closed inside readVariableByteInteger
+        return;
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
@@ -926,6 +928,8 @@ void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properti
 void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    if (propertyLength < 0) // Connection closed inside readVariableByteInteger
+        return;
     m_missingData -= propertyLength;
 
     properties.serverData->valid = true;
@@ -1047,6 +1051,8 @@ void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &pro
 void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    if (propertyLength < 0) // Connection closed inside readVariableByteInteger
+        return;
     m_missingData -= propertyLength;
 
     while (propertyLength > 0) {
@@ -1073,6 +1079,8 @@ void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &
 void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    if (propertyLength < 0) // Connection closed inside readVariableByteInteger
+        return;
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
@@ -1140,6 +1148,8 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
+    if (propertyLength < 0) // Connection closed inside readVariableByteInteger
+        return;
     m_missingData -= propertyLength;
 
     while (propertyLength > 0) {
@@ -1970,6 +1980,8 @@ bool QMqttConnection::processDataHelper()
         }
 
         qint32 payloadSize = readVariableByteInteger();
+        if (payloadSize < 0) // Connection closed inside readVariableByteInteger
+            return false;
         if (m_clientPrivate->m_protocolVersion != QMqttClient::MQTT_5_0) {
             if (payloadSize != 2) {
                 qCDebug(lcMqttConnection) << "Unexpected FRAME size in CONNACK.";
