@@ -1912,7 +1912,10 @@ void QMqttConnection::finalize_pingresp()
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
-    m_pingTimeout--;
+
+    // Unexpected PINGRESP from the network should not push the counter below zero.
+    if (m_pingTimeout > 0)
+        m_pingTimeout--;
     emit m_clientPrivate->m_client->pingResponseReceived();
 }
 
