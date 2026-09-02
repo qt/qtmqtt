@@ -25,7 +25,7 @@ Q_LOGGING_CATEGORY(lcMqttConnection, "qt.mqtt.connection")
 Q_STATIC_LOGGING_CATEGORY(lcMqttConnectionVerbose, "qt.mqtt.connection.verbose");
 
 template <typename T>
-T QMqttConnection::readBufferTyped(qint64 *dataSize)
+std::optional<T> QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
     Q_STATIC_ASSERT(std::is_integral<T>::value);
 
@@ -33,43 +33,49 @@ T QMqttConnection::readBufferTyped(qint64 *dataSize)
     if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(sizeof(result)))) {
         qCWarning(lcMqttConnection) << "Attempt to read past the data";
         *dataSize = 0;
-        return result;
+        return std::nullopt;
     }
     const bool isOk = readBuffer(reinterpret_cast<char *>(&result), sizeof(result));
-    if (dataSize != nullptr) {
-        if (isOk)
-            *dataSize -= sizeof(result);
-        else
+    if (!isOk) {
+        if (dataSize != nullptr)
             *dataSize = 0;
+        return std::nullopt;
     }
+    if (dataSize != nullptr)
+        *dataSize -= sizeof(result);
     return qFromBigEndian(result);
 }
 
 template<>
-QByteArray QMqttConnection::readBufferTyped(qint64 *dataSize)
+std::optional<QByteArray> QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
-    const quint16 size = readBufferTyped<quint16>(dataSize);
-    if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(size))) {
+    const std::optional<quint16> size = readBufferTyped<quint16>(dataSize);
+    if (!size)
+        return std::nullopt;
+    if (Q_UNLIKELY(dataSize != nullptr && *dataSize < qint64(*size))) {
         qCWarning(lcMqttConnection) << "Attempt to read past the data";
         *dataSize = 0;
-        return QByteArray();
+        return std::nullopt;
     }
-    QByteArray ba(int(size), Qt::Uninitialized);
-    const bool isOk = readBuffer(ba.data(), size);
+    QByteArray ba(qsizetype(*size), Qt::Uninitialized);
+    const bool isOk = readBuffer(ba.data(), *size);
     if (!isOk) {
         if (dataSize != nullptr)
             *dataSize = 0;
-        return QByteArray();
+        return std::nullopt;
     }
     if (dataSize != nullptr)
-        *dataSize -= size;
+        *dataSize -= *size;
     return ba;
 }
 
 template<>
-QString QMqttConnection::readBufferTyped(qint64 *dataSize)
+std::optional<QString> QMqttConnection::readBufferTyped(qint64 *dataSize)
 {
-    return QString::fromUtf8(readBufferTyped<QByteArray>(dataSize));
+    const std::optional<QByteArray> ba = readBufferTyped<QByteArray>(dataSize);
+    if (!ba)
+        return std::nullopt;
+    return QString::fromUtf8(*ba);
 }
 
 bool QMqttConnection::isPendingUnsubscribe(QMqttSubscription *sub) const
@@ -889,19 +895,26 @@ qint32 QMqttConnection::readVariableByteInteger(qint64 *dataSize)
 {
     quint32 multiplier = 1;
     qint32 msgLength = 0;
-    quint8 b = 0;
+    std::optional<quint8> b = 0;
     quint8 iteration = 0;
     do {
         iteration++;
         if (iteration > 4) {
-            qCDebug(lcMqttConnection) << "Overflow trying to read variable integer.";
+            qCWarning(lcMqttConnection) << "Overflow trying to read variable integer.";
             closeConnection(QMqttClient::ProtocolViolation);
             return -1;
         }
         b = readBufferTyped<quint8>(dataSize);
-        msgLength += (b & 127) * multiplier;
+        if (!b) {
+            qCWarning(lcMqttConnection) << "Variable byte integer is truncated.";
+            // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (2.2.3, Malformed Remaining Length).
+            // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Variable Byte Integer, 1.5.5).
+            closeOnMalformedPacket();
+            return -1;
+        }
+        msgLength += (*b & 127) * multiplier;
         multiplier *= 128;
-    } while ((b & 128) != 0);
+    } while ((*b & 128) != 0);
     return msgLength;
 }
 
@@ -918,6 +931,26 @@ void QMqttConnection::closeConnection(QMqttClient::ClientError error)
     m_clientPrivate->setStateAndError(QMqttClient::Disconnected, error);
 }
 
+// A malformed packet (MQTT 5.0, 1.2) is a protocol error. MQTT 5.0, 4.13.1: the client
+// SHOULD send DISCONNECT with Reason Code 0x81 (Malformed Packet) before closing the
+// network connection. MQTT 3.1.1 has no reason codes, the connection is only closed
+// (MQTT-4.8.0-1). Nothing is done if the connection is already gone, for example because
+// readBuffer() has closed it.
+void QMqttConnection::closeOnMalformedPacket()
+{
+    if (m_internalState == BrokerDisconnected)
+        return;
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+        // Set the error first: sendControlDisconnect() closes the transport, which
+        // reports Disconnected through transportConnectionClosed().
+        m_clientPrivate->m_client->setError(QMqttClient::ProtocolViolation);
+        if (sendControlDisconnect(QMqtt::ReasonCode::MalformedPacket))
+            return;
+    }
+    // MQTT 3.1.1, or DISCONNECT could not be sent: close the connection here.
+    closeConnection(QMqttClient::ProtocolViolation);
+}
+
 QByteArray QMqttConnection::readBuffer(quint64 size)
 {
     if (Q_UNLIKELY(quint64(m_readBuffer.size() - m_readPosition) < size)) {
@@ -930,191 +963,264 @@ QByteArray QMqttConnection::readBuffer(quint64 size)
     return res;
 }
 
-void QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properties)
+bool QMqttConnection::readAuthProperties(QMqttAuthenticationProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
     if (propertyLength < 0) // Connection closed inside readVariableByteInteger
-        return;
+        return false;
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
+    const auto handleTruncatedProperty = [&](const char *property) {
+        qCWarning(lcMqttConnection) << "Truncated property block in AUTH:" << property;
+        // MQTT 5.0 only: SHOULD close, 4.13.1 (Malformed Packet, 1.2).
+        closeOnMalformedPacket();
+        return false;
+    };
     while (propertyLength > 0) {
-        quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
+        const std::optional<quint8> propertyId = readBufferTyped<quint8>(&propertyLength);
+        if (!propertyId)
+            return handleTruncatedProperty("Property ID");
 
-        switch (propertyId) {
+        switch (*propertyId) {
         case 0x15: { //3.15.2.2.2 Authentication Method
-            const QString method = readBufferTyped<QString>(&propertyLength);
-            properties.setAuthenticationMethod(method);
+            const std::optional<QString> method = readBufferTyped<QString>(&propertyLength);
+            if (!method)
+                return handleTruncatedProperty("Authentication Method");
+            properties.setAuthenticationMethod(*method);
             break;
         }
         case 0x16: { // 3.15.2.2.3 Authentication Data
-            const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
-            properties.setAuthenticationData(data);
+            const std::optional<QByteArray> data = readBufferTyped<QByteArray>(&propertyLength);
+            if (!data)
+                return handleTruncatedProperty("Authentication Data");
+            properties.setAuthenticationData(*data);
             break;
         }
         case 0x1F: { // 3.15.2.2.4 Reason String
-            const QString reasonString = readBufferTyped<QString>(&propertyLength);
-            properties.setReason(reasonString);
+            const std::optional<QString> reasonString = readBufferTyped<QString>(&propertyLength);
+            if (!reasonString)
+                return handleTruncatedProperty("Reason String");
+            properties.setReason(*reasonString);
             break;
         }
         case 0x26: { // 3.15.2.2.5 User property
-            const QString propertyName = readBufferTyped<QString>(&propertyLength);
-            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
-
-            userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            const std::optional<QString> propertyName = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> propertyValue = readBufferTyped<QString>(&propertyLength);
+            if (!propertyName || !propertyValue)
+                return handleTruncatedProperty("User Property");
+            userProperties.append(QMqttStringPair(*propertyName, *propertyValue));
             break;
         }
         default:
-            qCDebug(lcMqttConnection) << "Unknown property id in AUTH:" << propertyId;
+            qCDebug(lcMqttConnection) << "Unknown property id in AUTH:" << int(*propertyId);
             break;
         }
     }
     if (!userProperties.isEmpty())
         properties.setUserProperties(userProperties);
+    return true;
 }
 
-void QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
+bool QMqttConnection::readConnackProperties(QMqttServerConnectionProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
     if (propertyLength < 0) // Connection closed inside readVariableByteInteger
-        return;
+        return false;
     m_missingData -= propertyLength;
 
     properties.serverData->valid = true;
 
+    const auto handleTruncatedProperty = [&](const char *property) {
+        qCWarning(lcMqttConnection) << "Truncated property block in CONNACK:" << property;
+        // MQTT 5.0 only: SHOULD close, 4.13.1 (Malformed Packet, 1.2).
+        closeOnMalformedPacket();
+        return false;
+    };
     while (propertyLength > 0) {
-        quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
-        switch (propertyId) {
+        const std::optional<quint8> propertyId = readBufferTyped<quint8>(&propertyLength);
+        if (!propertyId)
+            return handleTruncatedProperty("Property ID");
+
+        switch (*propertyId) {
         case 0x11: { // 3.2.2.3.2 Session Expiry Interval
-            const quint32 expiryInterval = readBufferTyped<quint32>(&propertyLength);
+            const std::optional<quint32> expiryInterval = readBufferTyped<quint32>(&propertyLength);
+            if (!expiryInterval)
+                return handleTruncatedProperty("Session Expiry Interval");
             properties.serverData->details |= QMqttServerConnectionProperties::SessionExpiryInterval;
-            properties.setSessionExpiryInterval(expiryInterval);
+            properties.setSessionExpiryInterval(*expiryInterval);
             break;
         }
         case 0x21: { // 3.2.2.3.3 Receive Maximum
-            const quint16 receiveMaximum = readBufferTyped<quint16>(&propertyLength);
+            const std::optional<quint16> receiveMaximum = readBufferTyped<quint16>(&propertyLength);
+            if (!receiveMaximum)
+                return handleTruncatedProperty("Receive Maximum");
             properties.serverData->details |= QMqttServerConnectionProperties::MaximumReceive;
-            properties.setMaximumReceive(receiveMaximum);
+            properties.setMaximumReceive(*receiveMaximum);
             break;
         }
         case 0x24: { // 3.2.2.3.4 Maximum QoS Level
-            const quint8 maxQoS = readBufferTyped<quint8>(&propertyLength);
+            const std::optional<quint8> maxQoS = readBufferTyped<quint8>(&propertyLength);
+            if (!maxQoS)
+                return handleTruncatedProperty("Maximum QoS Level");
             properties.serverData->details |= QMqttServerConnectionProperties::MaximumQoS;
-            properties.serverData->maximumQoS = maxQoS;
+            properties.serverData->maximumQoS = *maxQoS;
             break;
         }
         case 0x25: { // 3.2.2.3.5 Retain available
-            const quint8 retainAvailable = readBufferTyped<quint8>(&propertyLength);
+            const std::optional<quint8> retainAvailable = readBufferTyped<quint8>(&propertyLength);
+            if (!retainAvailable)
+                return handleTruncatedProperty("Retain available");
             properties.serverData->details |= QMqttServerConnectionProperties::RetainAvailable;
-            properties.serverData->retainAvailable = retainAvailable == 1;
+            properties.serverData->retainAvailable = *retainAvailable == 1;
             break;
         }
         case 0x27: { // 3.2.2.3.6 Maximum packet size
-            const quint32 maxPacketSize = readBufferTyped<quint32>(&propertyLength);
+            const std::optional<quint32> maxPacketSize = readBufferTyped<quint32>(&propertyLength);
+            if (!maxPacketSize)
+                return handleTruncatedProperty("Maximum packet size");
             properties.serverData->details |= QMqttServerConnectionProperties::MaximumPacketSize;
-            properties.setMaximumPacketSize(maxPacketSize);
+            properties.setMaximumPacketSize(*maxPacketSize);
             break;
         }
         case 0x12: { // 3.2.2.3.7 Assigned clientId
-            const QString assignedClientId = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> assignedClientId = readBufferTyped<QString>(&propertyLength);
+            if (!assignedClientId)
+                return handleTruncatedProperty("Assigned clientId");
             properties.serverData->details |= QMqttServerConnectionProperties::AssignedClientId;
-            m_clientPrivate->setClientId(assignedClientId);
+            m_clientPrivate->setClientId(*assignedClientId);
             break;
         }
         case 0x22: { // 3.2.2.3.8 Topic Alias Maximum
-            const quint16 topicAliasMaximum = readBufferTyped<quint16>(&propertyLength);
+            const std::optional<quint16> topicAliasMaximum = readBufferTyped<quint16>(&propertyLength);
+            if (!topicAliasMaximum)
+                return handleTruncatedProperty("Topic Alias Maximum");
             properties.serverData->details |= QMqttServerConnectionProperties::MaximumTopicAlias;
-            properties.setMaximumTopicAlias(topicAliasMaximum);
+            properties.setMaximumTopicAlias(*topicAliasMaximum);
             break;
         }
         case 0x1F: { // 3.2.2.3.9 Reason String
-            const QString reasonString = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> reasonString = readBufferTyped<QString>(&propertyLength);
+            if (!reasonString)
+                return handleTruncatedProperty("Reason String");
             properties.serverData->details |= QMqttServerConnectionProperties::ReasonString;
-            properties.serverData->reasonString = reasonString;
+            properties.serverData->reasonString = *reasonString;
             break;
         }
         case 0x26: { // 3.2.2.3.10 User property
-            const QString propertyName = readBufferTyped<QString>(&propertyLength);
-            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
-
+            const std::optional<QString> propertyName = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> propertyValue = readBufferTyped<QString>(&propertyLength);
+            if (!propertyName || !propertyValue)
+                return handleTruncatedProperty("User property");
             properties.serverData->details |= QMqttServerConnectionProperties::UserProperty;
-            properties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            properties.data->userProperties.append(QMqttStringPair(*propertyName, *propertyValue));
             break;
         }
         case 0x28: { // 3.2.2.3.11 Wildcard subscriptions available
-            const quint8 available = readBufferTyped<quint8>(&propertyLength);
+            const std::optional<quint8> available = readBufferTyped<quint8>(&propertyLength);
+            if (!available)
+                return handleTruncatedProperty("Wildcard subscriptions available");
             properties.serverData->details |= QMqttServerConnectionProperties::WildCardSupported;
-            properties.serverData->wildcardSupported = available == 1;
+            properties.serverData->wildcardSupported = *available == 1;
             break;
         }
         case 0x29: { // 3.2.2.3.12 Subscription identifiers available
-            const quint8 available = readBufferTyped<quint8>(&propertyLength);
+            const std::optional<quint8> available = readBufferTyped<quint8>(&propertyLength);
+            if (!available)
+                return handleTruncatedProperty("Subscription identifiers available");
             properties.serverData->details |= QMqttServerConnectionProperties::SubscriptionIdentifierSupport;
-            properties.serverData->subscriptionIdentifierSupported = available == 1;
+            properties.serverData->subscriptionIdentifierSupported = *available == 1;
             break;
         }
         case 0x2A: { // 3.2.2.3.13 Shared subscriptions available
-            const quint8 available = readBufferTyped<quint8>(&propertyLength);
+            const std::optional<quint8> available = readBufferTyped<quint8>(&propertyLength);
+            if (!available)
+                return handleTruncatedProperty("Shared subscriptions available");
             properties.serverData->details |= QMqttServerConnectionProperties::SharedSubscriptionSupport;
-            properties.serverData->sharedSubscriptionSupported = available == 1;
+            properties.serverData->sharedSubscriptionSupported = *available == 1;
             break;
         }
         case 0x13: { // 3.2.2.3.14 Server Keep Alive
-            const quint16 serverKeepAlive = readBufferTyped<quint16>(&propertyLength);
+            const std::optional<quint16> serverKeepAlive = readBufferTyped<quint16>(&propertyLength);
+            if (!serverKeepAlive)
+                return handleTruncatedProperty("Server Keep Alive");
             properties.serverData->details |= QMqttServerConnectionProperties::ServerKeepAlive;
-            m_clientPrivate->m_client->setKeepAlive(serverKeepAlive);
+            m_clientPrivate->m_client->setKeepAlive(*serverKeepAlive);
             break;
         }
         case 0x1A: { // 3.2.2.3.15 Response information
-            const QString responseInfo = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> responseInfo = readBufferTyped<QString>(&propertyLength);
+            if (!responseInfo)
+                return handleTruncatedProperty("Response information");
             properties.serverData->details |= QMqttServerConnectionProperties::ResponseInformation;
-            properties.serverData->responseInformation = responseInfo;
+            properties.serverData->responseInformation = *responseInfo;
             break;
         }
         case 0x1C: { // 3.2.2.3.16 Server reference
-            const QString serverReference = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> serverReference = readBufferTyped<QString>(&propertyLength);
+            if (!serverReference)
+                return handleTruncatedProperty("Server reference");
             properties.serverData->details |= QMqttServerConnectionProperties::ServerReference;
-            properties.serverData->serverReference = serverReference;
+            properties.serverData->serverReference = *serverReference;
             break;
         }
         case 0x15: { // 3.2.2.3.17 Authentication method
-            const QString method = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> method = readBufferTyped<QString>(&propertyLength);
+            if (!method)
+                return handleTruncatedProperty("Authentication method");
             properties.serverData->details |= QMqttServerConnectionProperties::AuthenticationMethod;
-            properties.data->authenticationMethod = method;
+            properties.data->authenticationMethod = *method;
             break;
         }
         case 0x16: { // 3.2.2.3.18 Authentication data
-            const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
+            const std::optional<QByteArray> data = readBufferTyped<QByteArray>(&propertyLength);
+            if (!data)
+                return handleTruncatedProperty("Authentication data");
             properties.serverData->details |= QMqttServerConnectionProperties::AuthenticationData;
-            properties.data->authenticationData = data;
+            properties.data->authenticationData = *data;
             break;
         }
         default:
-            qCDebug(lcMqttConnection) << "Unknown property id in CONNACK:" << int(propertyId);
+            qCDebug(lcMqttConnection) << "Unknown property id in CONNACK:" << int(*propertyId);
             break;
         }
     }
+    return true;
 }
 
-void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &properties)
+bool QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
     if (propertyLength < 0) // Connection closed inside readVariableByteInteger
-        return;
+        return false;
     m_missingData -= propertyLength;
 
+    const auto handleTruncatedProperty = [&](const char *property) {
+        qCWarning(lcMqttConnection) << "Truncated property block in PUBACK/PUBREC/PUBREL/PUBCOMP:"
+                                    << property;
+        // MQTT 5.0 only: SHOULD close, 4.13.1 (Malformed Packet, 1.2).
+        closeOnMalformedPacket();
+        return false;
+    };
     while (propertyLength > 0) {
-        const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
-        switch (propertyId) {
+        const std::optional<quint8> propertyId = readBufferTyped<quint8>(&propertyLength);
+        if (!propertyId)
+            return handleTruncatedProperty("Property ID");
+
+        switch (*propertyId) {
         case 0x1f: { // 3.4.2.2.2 Reason String
-            const QString content = readBufferTyped<QString>(&propertyLength);
-            properties.data->reasonString = content;
+            const std::optional<QString> content = readBufferTyped<QString>(&propertyLength);
+            if (!content)
+                return handleTruncatedProperty("Reason String");
+            properties.data->reasonString = *content;
             break;
         }
         case 0x26: { // 3.4.2.2.3 User Properites
-            const QString propertyName = readBufferTyped<QString>(&propertyLength);
-            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
-            properties.data->userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            const std::optional<QString> propertyName = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> propertyValue = readBufferTyped<QString>(&propertyLength);
+            if (!propertyName || !propertyValue)
+                return handleTruncatedProperty("User property");
+            properties.data->userProperties.append(QMqttStringPair(*propertyName, *propertyValue));
             break;
         }
         default:
@@ -1122,63 +1228,87 @@ void QMqttConnection::readMessageStatusProperties(QMqttMessageStatusProperties &
             break;
         }
     }
+    return true;
 }
 
-void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
+bool QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
     if (propertyLength < 0) // Connection closed inside readVariableByteInteger
-        return;
+        return false;
     m_missingData -= propertyLength;
 
     QMqttUserProperties userProperties;
     QList<quint32> subscriptionIds;
 
+    const auto handleTruncatedProperty = [&](const char *property) {
+        qCWarning(lcMqttConnection) << "Truncated property block in PUBLISH:" << property;
+        // MQTT 5.0 only: SHOULD close, 4.13.1 (Malformed Packet, 1.2).
+        closeOnMalformedPacket();
+        return false;
+    };
     while (propertyLength > 0) {
-        const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
-        switch (propertyId) {
+        const std::optional<quint8> propertyId = readBufferTyped<quint8>(&propertyLength);
+        if (!propertyId)
+            return handleTruncatedProperty("Property ID");
+
+        switch (*propertyId) {
         case 0x01: { // 3.3.2.3.2 Payload Format Indicator
-            const quint8 format = readBufferTyped<quint8>(&propertyLength);
-            if (format == 1)
+            const std::optional<quint8> format = readBufferTyped<quint8>(&propertyLength);
+            if (!format)
+                return handleTruncatedProperty("Payload Format Indicator");
+            if (*format == 1)
                 properties.setPayloadFormatIndicator(QMqtt::PayloadFormatIndicator::UTF8Encoded);
             break;
         }
         case 0x02: { // 3.3.2.3.3 Message Expiry Interval
-            const quint32 interval = readBufferTyped<quint32>(&propertyLength);
-            properties.setMessageExpiryInterval(interval);
+            const std::optional<quint32> interval = readBufferTyped<quint32>(&propertyLength);
+            if (!interval)
+                return handleTruncatedProperty("Message Expiry Interval");
+            properties.setMessageExpiryInterval(*interval);
             break;
         }
         case 0x23: { // 3.3.2.3.4 Topic alias
-            const quint16 alias = readBufferTyped<quint16>(&propertyLength);
-            properties.setTopicAlias(alias);
+            const std::optional<quint16> alias = readBufferTyped<quint16>(&propertyLength);
+            if (!alias)
+                return handleTruncatedProperty("Topic alias");
+            properties.setTopicAlias(*alias);
             break;
         }
         case 0x08: { // 3.3.2.3.5 Response Topic
-            const QString responseTopic = readBufferTyped<QString>(&propertyLength);
-            properties.setResponseTopic(responseTopic);
+            const std::optional<QString> responseTopic = readBufferTyped<QString>(&propertyLength);
+            if (!responseTopic)
+                return handleTruncatedProperty("Response Topic");
+            properties.setResponseTopic(*responseTopic);
             break;
         }
         case 0x09: { // 3.3.2.3.6 Correlation Data
-            const QByteArray data = readBufferTyped<QByteArray>(&propertyLength);
-            properties.setCorrelationData(data);
+            const std::optional<QByteArray> data = readBufferTyped<QByteArray>(&propertyLength);
+            if (!data)
+                return handleTruncatedProperty("Correlation Data");
+            properties.setCorrelationData(*data);
             break;
         }
         case 0x26: { // 3.3.2.3.7 User property
-            const QString propertyName = readBufferTyped<QString>(&propertyLength);
-            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
-            userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            const std::optional<QString> propertyName = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> propertyValue = readBufferTyped<QString>(&propertyLength);
+            if (!propertyName || !propertyValue)
+                return handleTruncatedProperty("User property");
+            userProperties.append(QMqttStringPair(*propertyName, *propertyValue));
             break;
         }
         case 0x0b: { // 3.3.2.3.8 Subscription Identifier
             qint32 id = readVariableByteInteger(&propertyLength);
             if (id < 0)
-                return; // readVariableByteInteger closes connection
+                return false; // readVariableByteInteger closes connection
             subscriptionIds.append(quint32(id));
             break;
         }
         case 0x03: { // 3.3.2.3.9 Content Type
-            const QString content = readBufferTyped<QString>(&propertyLength);
-            properties.setContentType(content);
+            const std::optional<QString> content = readBufferTyped<QString>(&propertyLength);
+            if (!content)
+                return handleTruncatedProperty("Content Type");
+            properties.setContentType(*content);
             break;
         }
         default:
@@ -1191,28 +1321,42 @@ void QMqttConnection::readPublishProperties(QMqttPublishProperties &properties)
 
     if (!subscriptionIds.isEmpty())
         properties.setSubscriptionIdentifiers(subscriptionIds);
+    return true;
 }
 
-void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
+bool QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
 {
     qint64 propertyLength = readVariableByteInteger(&m_missingData);
     if (propertyLength < 0) // Connection closed inside readVariableByteInteger
-        return;
+        return false;
     m_missingData -= propertyLength;
 
+    const auto handleTruncatedProperty = [&](const char *property) {
+        qCWarning(lcMqttConnection) << "Truncated property block in SUBACK/UNSUBACK:"
+                                    << property;
+        // MQTT 5.0 only: SHOULD close, 4.13.1 (Malformed Packet, 1.2).
+        closeOnMalformedPacket();
+        return false;
+    };
     while (propertyLength > 0) {
-        const quint8 propertyId = readBufferTyped<quint8>(&propertyLength);
-        switch (propertyId) {
+        const std::optional<quint8> propertyId = readBufferTyped<quint8>(&propertyLength);
+        if (!propertyId)
+            return handleTruncatedProperty("Property ID");
+
+        switch (*propertyId) {
         case 0x1f: { // 3.9.2.1.2 Reason String
-            const QString content = readBufferTyped<QString>(&propertyLength);
-            sub->d_func()->m_reasonString = content;
+            const std::optional<QString> content = readBufferTyped<QString>(&propertyLength);
+            if (!content)
+                return handleTruncatedProperty("Reason String");
+            sub->d_func()->m_reasonString = *content;
             break;
         }
         case 0x26: { // 3.9.2.1.3
-            const QString propertyName = readBufferTyped<QString>(&propertyLength);
-            const QString propertyValue = readBufferTyped<QString>(&propertyLength);
-
-            sub->d_func()->m_userProperties.append(QMqttStringPair(propertyName, propertyValue));
+            const std::optional<QString> propertyName = readBufferTyped<QString>(&propertyLength);
+            const std::optional<QString> propertyValue = readBufferTyped<QString>(&propertyLength);
+            if (!propertyName || !propertyValue)
+                return handleTruncatedProperty("User property");
+            sub->d_func()->m_userProperties.append(QMqttStringPair(*propertyName, *propertyValue));
             break;
         }
         default:
@@ -1220,6 +1364,7 @@ void QMqttConnection::readSubscriptionProperties(QMqttSubscription *sub)
             break;
         }
     }
+    return true;
 }
 
 QByteArray QMqttConnection::writeConnectProperties()
@@ -1556,8 +1701,18 @@ void QMqttConnection::finalize_auth()
     // is 0x00 (Success) and there are no Properties. In this case the AUTH has a
     // Remaining Length of 0.
     if (m_missingData > 0) {
-        authReason = readBufferTyped<quint8>(&m_missingData);
-        readAuthProperties(authProperties);
+        const std::optional<quint8> reason = readBufferTyped<quint8>(&m_missingData);
+        if (!reason) {
+            qCWarning(lcMqttConnection) << "AUTH is missing its reason code.";
+            // MQTT 5.0 only: SHOULD close, 4.13.1 (3.15.2.1, AUTH reason code).
+            // For AUTH, sending DISCONNECT before closing is only a MAY.
+            // Not reachable: read only if data is left.
+            closeConnection(QMqttClient::ProtocolViolation);
+            return;
+        }
+        authReason = *reason;
+        if (!readAuthProperties(authProperties))
+            return;
     }
 
     // 3.15.2.1
@@ -1580,16 +1735,16 @@ void QMqttConnection::finalize_connack()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize CONNACK";
 
-    const quint8 ackFlags = readBufferTyped<quint8>(&m_missingData);
-
-    if (ackFlags > 1) { // MQTT-3.2.2.1
-        qCDebug(lcMqttConnection) << "Unexpected CONNACK Flags specified:" << QString::number(ackFlags);
+    const std::optional<quint8> ackFlags = readBufferTyped<quint8>(&m_missingData);
+    if (!ackFlags || *ackFlags > 1) { // MQTT-3.2.2.1
+        qCWarning(lcMqttConnection) << "Unexpected CONNACK flags:"
+                                    << (!ackFlags ? QString::fromLatin1("null") : QString::number(*ackFlags));
         readBuffer(quint64(m_missingData));
         m_missingData = 0;
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }
-    bool sessionPresent = ackFlags == 1;
+    bool sessionPresent = *ackFlags == 1;
 
     // MQTT-3.2.2-1 & MQTT-3.2.2-2
     if (sessionPresent) {
@@ -1602,7 +1757,16 @@ void QMqttConnection::finalize_connack()
         cleanSubscriptions();
     }
 
-    quint8 connectResultValue = readBufferTyped<quint8>(&m_missingData);
+    const std::optional<quint8> reasonCode = readBufferTyped<quint8>(&m_missingData);
+    if (!reasonCode) {
+        qCWarning(lcMqttConnection) << "CONNACK is missing its reason code.";
+        // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.2.2.3, return code).
+        // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.2.2.2 Connect Reason Code).
+        // Cannot happen in 3.1.1: the remaining length is checked before this.
+        closeOnMalformedPacket();
+        return;
+    }
+    const quint8 connectResultValue = *reasonCode;
     QMqttServerConnectionProperties serverProp;
     serverProp.serverData->reasonCode = QMqtt::ReasonCode(connectResultValue);
     m_clientPrivate->m_serverConnectionProperties = serverProp;
@@ -1614,10 +1778,9 @@ void QMqttConnection::finalize_connack()
 
     // MQTT 5.0 has variable part != 2 in the header
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        readConnackProperties(m_clientPrivate->m_serverConnectionProperties);
-        // readConnackProperties() might have closed the connection due to a malformed
-        // property length. Do not overwrite the state of a connection which is gone.
-        if (m_internalState == BrokerDisconnected)
+        // readConnackProperties() closes the connection on a malformed property block.
+        // Do not overwrite the state of a connection which is gone.
+        if (!readConnackProperties(m_clientPrivate->m_serverConnectionProperties))
             return;
         // MQTT 5.0, 3.1.2.11.5 and 3.2.2.3.8: the two Topic Alias Maximum values are
         // directional. The value this client sent in CONNECT bounds the aliases the
@@ -1687,7 +1850,16 @@ void QMqttConnection::finalize_connack()
 
 void QMqttConnection::finalize_suback()
 {
-    const quint16 id = readBufferTyped<quint16>(&m_missingData);
+    const std::optional<quint16> packetId = readBufferTyped<quint16>(&m_missingData);
+    if (!packetId) {
+        qCWarning(lcMqttConnection) << "SUBACK is missing its packet identifier.";
+        // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.9.2, packet identifier).
+        // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.9.2).
+        // Cannot happen in 3.1.1: the remaining length is checked before this.
+        closeOnMalformedPacket();
+        return;
+    }
+    const quint16 id = *packetId;
 
     auto sub = m_pendingSubscriptionAck.take(id);
     if (Q_UNLIKELY(sub == nullptr)) {
@@ -1695,13 +1867,24 @@ void QMqttConnection::finalize_suback()
         return;
     }
 
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
-        readSubscriptionProperties(sub);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0
+            && !readSubscriptionProperties(sub)) {
+        return;
+    }
 
     // 3.9.3 - The Payload contains a list of Reason Codes. Each Reason Code corresponds to a Topic Filter in the SUBSCRIBE packet being acknowledged.
     // Whereas 3.8.3 states "The Payload MUST contain at least one Topic Filter and Subscription Options pair. A SUBSCRIBE packet with no Payload is a Protocol Error."
     do {
-        quint8 reason = readBufferTyped<quint8>(&m_missingData);
+        const std::optional<quint8> reasonCode = readBufferTyped<quint8>(&m_missingData);
+        if (!reasonCode) {
+            qCWarning(lcMqttConnection) << "SUBACK is missing a reason code.";
+            // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.9.3, at least one return code).
+            // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.9.3).
+            // Cannot happen in 3.1.1: the remaining length is checked before this.
+            closeOnMalformedPacket();
+            return;
+        }
+        const quint8 reason = *reasonCode;
 
         sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reason);
 
@@ -1747,7 +1930,16 @@ void QMqttConnection::finalize_suback()
 
 void QMqttConnection::finalize_unsuback()
 {
-    const quint16 id = readBufferTyped<quint16>(&m_missingData);
+    const std::optional<quint16> packetId = readBufferTyped<quint16>(&m_missingData);
+    if (!packetId) {
+        qCWarning(lcMqttConnection) << "UNSUBACK is missing its packet identifier.";
+        // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.11.2, packet identifier).
+        // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.11.2).
+        // Cannot happen in 3.1.1: the remaining length is checked before this.
+        closeOnMalformedPacket();
+        return;
+    }
+    const quint16 id = *packetId;
     qCDebug(lcMqttConnectionVerbose) << "Finalize UNSUBACK: " << id;
 
     auto sub = m_pendingUnsubscriptions.take(id);
@@ -1759,7 +1951,8 @@ void QMqttConnection::finalize_unsuback()
     m_activeSubscriptions.remove(sub->topic(), sub);
 
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
-        readSubscriptionProperties(sub);
+        if (!readSubscriptionProperties(sub))
+            return;
     } else {
         // 3.11.3 - The UNSUBACK Packet has no payload.
         // emulate successful unsubscription
@@ -1771,7 +1964,15 @@ void QMqttConnection::finalize_unsuback()
     // 3.1.3 - The Payload contains a list of Reason Codes. Each Reason Code corresponds to a Topic Filter in the UNSUBSCRIBE packet being acknowledged.
     // Whereas 3.10.3 states "The Payload of an UNSUBSCRIBE packet MUST contain at least one Topic Filter. An UNSUBSCRIBE packet with no Payload is a Protocol Error."
     do {
-        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
+        const std::optional<quint8> reason = readBufferTyped<quint8>(&m_missingData);
+        if (!reason) {
+            qCWarning(lcMqttConnection) << "UNSUBACK is missing a reason code.";
+            // MQTT 5.0 only: SHOULD close, 4.13.1 (3.11.3, at least one reason code).
+            // In 3.1.1 UNSUBACK has no payload.
+            closeOnMalformedPacket();
+            return;
+        }
+        const quint8 reasonCode = *reason;
         sub->d_func()->m_reasonCode = QMqtt::ReasonCode(reasonCode);
 
         // 3.11.3
@@ -1799,16 +2000,35 @@ void QMqttConnection::finalize_unsuback()
 void QMqttConnection::finalize_publish()
 {
     // String topic
-    QMqttTopicName topic = readBufferTyped<QString>(&m_missingData);
+    const std::optional<QString> topicName = readBufferTyped<QString>(&m_missingData);
+    if (!topicName) {
+        qCWarning(lcMqttConnection) << "PUBLISH is missing its topic name.";
+        // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.3.2.1, topic name MUST be present [MQTT-3.3.2-1]).
+        // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.3.2.1 [MQTT-3.3.2-1]).
+        closeOnMalformedPacket();
+        return;
+    }
+    QMqttTopicName topic = *topicName;
     const int topicLength = topic.name().size();
 
     quint16 id = 0;
-    if (m_currentPublish.qos > 0)
-        id = readBufferTyped<quint16>(&m_missingData);
+    if (m_currentPublish.qos > 0) {
+        const std::optional<quint16> packetId = readBufferTyped<quint16>(&m_missingData);
+        if (!packetId) {
+            qCWarning(lcMqttConnection) << "PUBLISH is missing its packet identifier.";
+            // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.3.2.2, id present for QoS 1/2).
+            // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.3.2.2).
+            closeOnMalformedPacket();
+            return;
+        }
+        id = *packetId;
+    }
 
     QMqttPublishProperties publishProperties;
-    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0)
-        readPublishProperties(publishProperties);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0
+            && !readPublishProperties(publishProperties)) {
+        return;
+    }
 
     if (publishProperties.availableProperties() & QMqttPublishProperties::TopicAlias) {
         const quint16 topicAlias = publishProperties.topicAlias();
@@ -1872,12 +2092,31 @@ void QMqttConnection::finalize_publish()
 void QMqttConnection::finalize_pubAckRecRelComp()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize PUBACK/REC/REL/COMP";
-    const quint16 id = readBufferTyped<quint16>(&m_missingData);
+    const std::optional<quint16> packetId = readBufferTyped<quint16>(&m_missingData);
+    if (!packetId) {
+        qCWarning(lcMqttConnection)
+            << "PUBACK/PUBREC/PUBREL/PUBCOMP is missing its packet identifier.";
+        // MQTT 3.1.1: MUST close, [MQTT-4.8.0-1] (3.4.2/3.5.2/3.6.2/3.7.2, packet identifier).
+        // MQTT 5.0: SHOULD close, 4.13.1 (Malformed Packet, 3.4.2).
+        // Cannot happen in 3.1.1: the remaining length is checked before this.
+        closeOnMalformedPacket();
+        return;
+    }
+    const quint16 id = *packetId;
 
     QMqttMessageStatusProperties properties;
     if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && m_missingData > 0) {
         // Reason Code (1byte)
-        const quint8 reasonCode = readBufferTyped<quint8>(&m_missingData);
+        const std::optional<quint8> reason = readBufferTyped<quint8>(&m_missingData);
+        if (!reason) {
+            qCWarning(lcMqttConnection)
+                << "PUBACK/PUBREC/PUBREL/PUBCOMP is missing its reason code.";
+            // MQTT 5.0 only: SHOULD close, 4.13.1 (3.4.2.1, reason code).
+            // Not reachable: read only if data is left.
+            closeOnMalformedPacket();
+            return;
+        }
+        const quint8 reasonCode = *reason;
         properties.data->reasonCode = QMqtt::ReasonCode(reasonCode);
 
         if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBACK || (m_currentPacket & 0xF0) == QMqttControlPacket::PUBREC) {
@@ -1910,8 +2149,8 @@ void QMqttConnection::finalize_pubAckRecRelComp()
                 return;
             }
         }
-        if (m_missingData > 0)
-            readMessageStatusProperties(properties);
+        if (m_missingData > 0 && !readMessageStatusProperties(properties))
+            return;
     }
 
     if ((m_currentPacket & 0xF0) == QMqttControlPacket::PUBREL) {
@@ -1951,10 +2190,10 @@ void QMqttConnection::finalize_pubAckRecRelComp()
 void QMqttConnection::finalize_pingresp()
 {
     qCDebug(lcMqttConnectionVerbose) << "Finalize PINGRESP";
-    const quint8 v = readBufferTyped<quint8>(&m_missingData);
-
-    if (v != 0) {
-        qCDebug(lcMqttConnection) << "Received a PINGRESP including payload.";
+    const std::optional<quint8> v = readBufferTyped<quint8>(&m_missingData);
+    if (!v || *v != 0) {
+        qCWarning(lcMqttConnection)
+            << (v ? "Received a PINGRESP including payload." : "PINGRESP is truncated.");
         closeConnection(QMqttClient::ProtocolViolation);
         return;
     }

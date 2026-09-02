@@ -109,11 +109,11 @@ private:
     bool processDataHelper();
     bool readBuffer(char *data, quint64 size);
     qint32 readVariableByteInteger(qint64 *dataSize = nullptr);
-    void readAuthProperties(QMqttAuthenticationProperties &properties);
-    void readConnackProperties(QMqttServerConnectionProperties &properties);
-    void readMessageStatusProperties(QMqttMessageStatusProperties &properties);
-    void readPublishProperties(QMqttPublishProperties &properties);
-    void readSubscriptionProperties(QMqttSubscription *sub);
+    bool readAuthProperties(QMqttAuthenticationProperties &properties);
+    bool readConnackProperties(QMqttServerConnectionProperties &properties);
+    bool readMessageStatusProperties(QMqttMessageStatusProperties &properties);
+    bool readPublishProperties(QMqttPublishProperties &properties);
+    bool readSubscriptionProperties(QMqttSubscription *sub);
     QByteArray writeConnectProperties();
     QByteArray writeLastWillProperties() const;
     QByteArray writePublishProperties(const QMqttPublishProperties &properties);
@@ -121,8 +121,9 @@ private:
     QByteArray writeUnsubscriptionProperties(const QMqttUnsubscriptionProperties &properties);
     QByteArray writeAuthenticationProperties(const QMqttAuthenticationProperties &properties);
     void closeConnection(QMqttClient::ClientError error);
+    void closeOnMalformedPacket();
     QByteArray readBuffer(quint64 size);
-    template<typename T> T readBufferTyped(qint64 *dataSize = nullptr);
+    template<typename T> std::optional<T> readBufferTyped(qint64 *dataSize = nullptr);
     bool isPendingUnsubscribe(QMqttSubscription *) const;
     QMqttSubscription *findActiveSubscription(const QMqttTopicFilter &topic) const;
     template <typename T>
