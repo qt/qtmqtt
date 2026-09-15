@@ -28,6 +28,7 @@
 #include <QtCore/QtEndian>
 
 #include <memory>
+#include <optional>
 
 QT_BEGIN_NAMESPACE
 
@@ -67,7 +68,7 @@ public:
     QMqttSubscription *sendControlSubscribe(const QMqttTopicFilter &topic, quint8 qos, const QMqttSubscriptionProperties &properties);
     bool sendControlUnsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties);
     bool sendControlPingRequest(bool isAuto = true);
-    bool sendControlDisconnect();
+    bool sendControlDisconnect(std::optional<QMqtt::ReasonCode> reasonCode = std::nullopt);
 
     void setClientPrivate(QMqttClientPrivate *clientPrivate);
 
