@@ -69,7 +69,7 @@ public:
     bool sendControlUnsubscribe(const QMqttTopicFilter &topic, const QMqttUnsubscriptionProperties &properties);
     bool sendControlPingRequest(bool isAuto = true);
     bool sendControlDisconnect(std::optional<QMqtt::ReasonCode> reasonCode = std::nullopt);
-
+    void setReadBufferSize(qint64 size);
     void setClientPrivate(QMqttClientPrivate *clientPrivate);
 
     inline quint16 unusedPacketIdentifier() const;
@@ -125,6 +125,12 @@ private:
     template<typename T> T readBufferTyped(qint64 *dataSize = nullptr);
     bool isPendingUnsubscribe(QMqttSubscription *) const;
     QMqttSubscription *findActiveSubscription(const QMqttTopicFilter &topic) const;
+    template <typename T>
+    void setSocketBufferSize(qint64 size) {
+        auto *socket = qobject_cast<T *>(m_transport.get());
+        Q_ASSERT(socket);
+        socket->setReadBufferSize(size);
+    }
 
     QByteArray m_readBuffer;
     int m_readPosition{0};

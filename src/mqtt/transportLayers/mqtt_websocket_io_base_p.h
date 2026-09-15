@@ -77,6 +77,11 @@ public:
     {
         return m_externalSocket;
     }
+
+    void setReadBufferSize(qint64 size)
+    {
+        m_socket->setReadBufferSize(size);
+    }
 Q_SIGNALS:
     void disconnected();
     void errorOccurred(QAbstractSocket::SocketError error);

@@ -158,6 +158,21 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
 */
 
 /*!
+    \property QMqttClient::readBufferSize
+    \since 6.13
+    \brief This property holds the size of the internal read buffer.
+
+    The property limits the amount of data that the client can receive
+    before you call read() or readAll().
+
+    A read buffer size of 0 (the default) means that the buffer has no size
+    limit, ensuring that no data is lost.
+
+    \note The limit is not applicable for a plain \c TransportType::IODevice
+    transport type.
+*/
+
+/*!
     \enum QMqttClient::TransportType
 
     This enum type specifies the connection method to be used to instantiate a
@@ -325,6 +340,15 @@ Q_LOGGING_CATEGORY(lcMqttClient, "qt.mqtt.client")
 */
 
 /*!
+    \since 6.13
+    \fn QMqttClient::readBufferSizeChanged(qint64 size)
+
+    This signal is emitted when the \a size of internal read buffer is changed.
+
+    \sa readBufferSize()
+*/
+
+/*!
     Creates a new MQTT client instance with the specified \a parent.
  */
 QMqttClient::QMqttClient(QObject *parent) : QObject(*(new QMqttClientPrivate(this)), parent)
@@ -368,6 +392,8 @@ void QMqttClient::setTransport(QIODevice *device, QMqttClient::TransportType tra
         return;
     }
     d->m_connection.setTransport(device, transport);
+    // Set the currently active buffer size for a new transport.
+    d->m_connection.setReadBufferSize(d->m_readBufferSize);
 }
 
 /*!
@@ -377,6 +403,74 @@ QIODevice *QMqttClient::transport() const
 {
     Q_D(const QMqttClient);
     return d->m_connection.transport();
+}
+
+/*!
+    \since 6.13
+
+    Limits the read buffer of the transport used by this client to
+    \a size bytes. Triggers warning message if the limit could not
+    be applied.
+
+    The transport does not buffer more than \a size bytes: it stops
+    reading from the network until the client has taken the data out of
+    the buffer. Use this function to protect the application against a
+    broker that sends more data than the application can handle, which
+    could make it run out of memory. A size of \c 0 means that the buffer
+    has no size limit, which is the default of the underlying transport.
+
+    \code
+    QMqttClient client;
+    client.setHostname(QStringLiteral("broker.example.com"));
+    client.setPort(1883);
+    client.setReadBufferSize(64 * 1024);
+    client.connectToHost();
+    \endcode
+
+    The size can be set before connecting. It is applied to the transport
+    when connectToHost() creates it, or when setTransport() sets it. The size
+    has no effect if the transport is a plain \l QMqttClient::IODevice.
+
+    Before Qt 6.13, the \c QMqttClient class provided no way to limit the
+    amount of incoming data. However, applications using older versions of
+    \c QMqttClient with certain types of transport, such as transports derived
+    from \c AbstractSocket, can protect themselves against memory exhaustion
+    caused by a broker, as shown in the example below:
+    \code
+    QMqttClient client;
+    client.setHostname(QStringLiteral("broker.example.com"));
+    client.setPort(1883);
+    QObject::connect(&client, &QMqttClient::connected, &client, [&client]() {
+        QAbstractSocket *socket = dynamic_cast<QAbstractSocket *>(client.transport());
+        if (socket)
+            socket->setReadBufferSize(64 * 1024);
+    });
+    client.connectToHost();
+    \endcode
+
+    \note If you use a custom QIODevice-based transport, implement
+    support for a read buffer limit in the device and configure it
+    before calling setTransport(). Some devices already support it.
+    For example, \l QSerialPort provides QSerialPort::setReadBufferSize().
+
+    \note This limit and the MQTT 5 maximum packet size protect against
+    different things. The maximum packet size limits the size of an
+    individual packet, not the total size of a buffer.
+
+    \sa setTransport(), QMqttConnectionProperties::setMaximumPacketSize()
+ */
+void QMqttClient::setReadBufferSize(qint64 size)
+{
+    Q_D(QMqttClient);
+
+    if (d->m_readBufferSize == size)
+        return;
+
+    // Store the size even if there is no transport yet. setTransport() and
+    // connectToHost() apply it to the transport they set or create.
+    d->m_readBufferSize = size;
+    d->m_connection.setReadBufferSize(size);
+    emit readBufferSizeChanged(d->m_readBufferSize);
 }
 
 /*!
@@ -630,6 +724,11 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
         return;
     }
 
+    // We can safely set the active buffer size for the new transport here,
+    // as the transport type has been determined by ensureTransport() or
+    // connectToHostWebSocket()/connectToHostWebSocketEncrypted() at this point.
+    d->m_connection.setReadBufferSize(d->m_readBufferSize);
+
     // Once transport has connected, it will invoke
     // QMqttConnection::sendControlConnect to
     // handshake with the broker
@@ -713,6 +812,12 @@ bool QMqttClient::autoKeepAlive() const
 {
     Q_D(const QMqttClient);
     return d->m_autoKeepAlive;
+}
+
+qint64 QMqttClient::readBufferSize() const
+{
+    Q_D(const QMqttClient);
+    return d->m_readBufferSize;
 }
 
 /*!

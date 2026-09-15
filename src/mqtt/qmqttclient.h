@@ -84,12 +84,15 @@ private:
     Q_PROPERTY(quint8 willQoS READ willQoS WRITE setWillQoS NOTIFY willQoSChanged)
     Q_PROPERTY(bool willRetain READ willRetain WRITE setWillRetain NOTIFY willRetainChanged)
     Q_PROPERTY(bool autoKeepAlive READ autoKeepAlive WRITE setAutoKeepAlive NOTIFY autoKeepAliveChanged)
+    Q_PROPERTY(qint64 readBufferSize READ readBufferSize WRITE setReadBufferSize NOTIFY readBufferSizeChanged)
+
 public:
     explicit QMqttClient(QObject *parent = nullptr);
     ~QMqttClient() override;
 
     void setTransport(QIODevice *device, TransportType transport);
     QIODevice *transport() const;
+    void setReadBufferSize(qint64 size);
 
     QMqttSubscription *subscribe(const QMqttTopicFilter &topic, quint8 qos = 0);
     QMqttSubscription *subscribe(const QMqttTopicFilter &topic,
@@ -132,6 +135,7 @@ public:
     QByteArray willMessage() const;
     bool willRetain() const;
     bool autoKeepAlive() const;
+    qint64 readBufferSize() const;
 
     void setConnectionProperties(const QMqttConnectionProperties &prop);
     QMqttConnectionProperties connectionProperties() const;
@@ -167,6 +171,7 @@ Q_SIGNALS:
     void willMessageChanged(QByteArray willMessage);
     void willRetainChanged(bool willRetain);
     void autoKeepAliveChanged(bool autoKeepAlive);
+    void readBufferSizeChanged(qint64 size);
 
     void authenticationRequested(const QMqttAuthenticationProperties &p);
     void authenticationFinished(const QMqttAuthenticationProperties &p);

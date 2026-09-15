@@ -420,6 +420,33 @@ bool QMqttConnection::sendControlConnect()
     return true;
 }
 
+void QMqttConnection::setReadBufferSize(qint64 size)
+{
+    // Nothing to apply yet. QMqttClient applies the size again once a transport is
+    // set or created.
+    if (!m_transport)
+        return;
+    switch (m_transportType) {
+    case QMqttClient::TransportType::IODevice:
+        if (size != 0)
+            qCWarning(lcMqttClient) << "TransportType::IODevice doesn't support a read buffer limit.";
+        break;
+    case QMqttClient::TransportType::AbstractSocket:
+    case QMqttClient::TransportType::SecureSocket:
+        // QSslSocket is a QAbstractSocket and setReadBufferSize() is declared on the
+        // base class, so this also works in a build without SSL support.
+        setSocketBufferSize<QAbstractSocket>(size);
+        break;
+    case QMqttClient::TransportType::WebSocket:
+    case QMqttClient::TransportType::SecureWebSocket:
+#ifdef QT_MQTT_WITH_WEBSOCKETS
+        // Both web socket transports share the base class holding the QWebSocket.
+        setSocketBufferSize<QMqttWebSocketIOBase>(size);
+#endif
+        break;
+    }
+}
+
 bool QMqttConnection::sendControlAuthenticate(const QMqttAuthenticationProperties &properties)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO;

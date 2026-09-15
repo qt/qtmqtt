@@ -48,6 +48,7 @@ public:
     quint8 m_willQoS{0};
     bool m_willRetain{false};
     bool m_autoKeepAlive{true};
+    qint64 m_readBufferSize{0};
     QString m_username;
     QString m_password;
     bool m_cleanSession{true};
