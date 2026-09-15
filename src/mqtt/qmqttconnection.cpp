@@ -726,7 +726,7 @@ bool QMqttConnection::sendControlPingRequest(bool isAuto)
     return true;
 }
 
-bool QMqttConnection::sendControlDisconnect()
+bool QMqttConnection::sendControlDisconnect(std::optional<QMqtt::ReasonCode> reasonCode)
 {
     qCDebug(lcMqttConnection) << Q_FUNC_INFO;
 
@@ -738,7 +738,13 @@ bool QMqttConnection::sendControlDisconnect()
     m_receiveAliases.clear();
     m_publishAliases.clear();
 
-    const QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
+    QMqttControlPacket packet(QMqttControlPacket::DISCONNECT);
+    if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0 && reasonCode) {
+        // MQTT-3.14.2 The Disconnect Reason Code is a part of the variable header.
+        // Reason codes exist in MQTT 5.0 only, so this is never used for an older version.
+        packet.append(char(quint8(*reasonCode)));
+        packet.append(char(0)); // MQTT-3.14.2.2 property length, we send no properties
+    }
     if (!writePacketToTransport(packet)) {
         qCDebug(lcMqttConnection) << "Failed to write DISCONNECT to transport.";
         return false;
@@ -1935,11 +1941,26 @@ void QMqttConnection::finalize_pingresp()
 bool QMqttConnection::processDataHelper()
 {
     if (m_missingData > 0) {
-        if ((m_readBuffer.size() - m_readPosition) < m_missingData)
-            return false;
-
         // MQTT-2.1.4 The remaining length in the fixed header says where the message ends.
         const qint64 packetEnd = qint64(m_readPosition) + m_missingData;
+        // 3.1.2.11.4 Maximum Packet Size
+        // If client receives a packet whose size exceeds this limit,
+        // this is a Protocol Error, the Client uses DISCONNECT with
+        // Reason Code 0x95 (Packet too large),
+        if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0
+            && (m_internalState == BrokerConnected
+                || m_internalState == BrokerWaitForConnectAck)) {
+            const quint32 maxSize = m_clientPrivate->m_connectionProperties.maximumPacketSize();
+            if (maxSize > 0 && packetEnd > maxSize) {
+                qCDebug(lcMqttConnection) << "Packet size exceeds the announced maximum.";
+                m_clientPrivate->m_client->setError(QMqttClient::ProtocolViolation);
+                sendControlDisconnect(QMqtt::ReasonCode::PacketTooLarge);
+                return false;
+            }
+        }
+
+        if ((m_readBuffer.size() - m_readPosition) < m_missingData)
+            return false;
 
         switch (m_currentPacket & 0xF0) {
         case QMqttControlPacket::AUTH:
