@@ -179,4 +179,18 @@
     discarded. The broker \e{should} store the last message, but \e{may}
     also discard it. This depends on the implementation of the broker.
 
+    \section1 Threading and Blocking Operations
+
+    Consider running \l QMqttClient and its related classes in a thread
+    separate from the UI thread.\l QMqttClient uses a \l QIODevice as
+    its transport, and some transport operations may block. For example,
+    QMqttClient::disconnectFromHost() may wait synchronously for pending
+    data to be written, with a timeout of up to 30 seconds. Calling it from
+    the UI thread can therefore block the UI event loop and make the
+    application unresponsive. Keeping the MQTT client and its transport in
+    a dedicated thread helps prevent potentially blocking I/O from affecting
+    UI responsiveness. Use signals and slots or other mechanisms that queue
+    work to the target thread to communicate between the MQTT thread and
+    the UI thread.
+
 */
