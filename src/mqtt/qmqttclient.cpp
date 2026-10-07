@@ -637,6 +637,11 @@ void QMqttClient::connectToHost(bool encrypted, const QString &sslPeerName)
 
 /*!
     Disconnects from the MQTT broker.
+
+    \note This function may block while waiting for pending data
+    to be written to the transport.
+    See \l {Threading and Blocking Operations} for recommended approaches
+    on handling it.
  */
 void QMqttClient::disconnectFromHost()
 {
