@@ -304,6 +304,11 @@ void QMqttConnectionProperties::setMaximumReceive(quint16 maximumReceive)
 
     If no maximum packet size is specified, no limit is imposed beyond the
     limitations of the protocol itself.
+
+    \note Since Qt 6.13, this limit can be applied to incoming packets
+    when using MQTT 3.1 or MQTT 3.1.1. These protocol versions cannot announce
+    the limit to the broker, but the client closes the connection with
+    \l QMqttClient::ProtocolViolation when it receives a larger packet.
 */
 void QMqttConnectionProperties::setMaximumPacketSize(quint32 packetSize)
 {

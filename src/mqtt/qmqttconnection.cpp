@@ -1970,18 +1970,25 @@ bool QMqttConnection::processDataHelper()
     if (m_missingData > 0) {
         // MQTT-2.1.4 The remaining length in the fixed header says where the message ends.
         const qint64 packetEnd = qint64(m_readPosition) + m_missingData;
-        // 3.1.2.11.4 Maximum Packet Size
-        // If client receives a packet whose size exceeds this limit,
-        // this is a Protocol Error, the Client uses DISCONNECT with
-        // Reason Code 0x95 (Packet too large),
-        if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0
-            && (m_internalState == BrokerConnected
-                || m_internalState == BrokerWaitForConnectAck)) {
+        if (m_internalState == BrokerConnected || m_internalState == BrokerWaitForConnectAck) {
             const quint32 maxSize = m_clientPrivate->m_connectionProperties.maximumPacketSize();
             if (maxSize > 0 && packetEnd > maxSize) {
-                qCDebug(lcMqttConnection) << "Packet size exceeds the announced maximum.";
-                m_clientPrivate->m_client->setError(QMqttClient::ProtocolViolation);
-                sendControlDisconnect(QMqtt::ReasonCode::PacketTooLarge);
+                qCDebug(lcMqttConnection) << "Packet size exceeds the maximum packet size.";
+                if (m_clientPrivate->m_protocolVersion == QMqttClient::MQTT_5_0) {
+                    // MQTT 5: 3.1.2.11.4 Maximum Packet Size
+                    // If client receives a packet whose size exceeds this limit,
+                    // this is a Protocol Error, the Client uses DISCONNECT with
+                    // Reason Code 0x95 (Packet too large).
+                    m_clientPrivate->m_client->setError(QMqttClient::ProtocolViolation);
+                    sendControlDisconnect(QMqtt::ReasonCode::PacketTooLarge);
+                } else {
+                    // MQTT 3.1 and 3.1.1 do not define a maximum packet size property, but we
+                    // can still enforce the limit locally and close the connection if the broker
+                    // attempts to send a packet that exceeds it.
+                    // There are no reason codes before MQTT 5.0, and a DISCONNECT is not
+                    // required. Just close the connection.
+                    closeConnection(QMqttClient::ProtocolViolation);
+                }
                 return false;
             }
         }
