@@ -22,7 +22,7 @@ qhp.QtMqtt.subprojects.overview.selectors     = group:none
 
 qhp.QtMqtt.subprojects.classes.title = C++ Classes
 qhp.QtMqtt.subprojects.classes.indexTitle = Qt MQTT C++ Classes
-qhp.QtMqtt.subprojects.classes.selectors = class fake:headerfile
+qhp.QtMqtt.subprojects.classes.selectors = class namespace headerfile
 qhp.QtMqtt.subprojects.classes.sortPages = true
 
 qhp.QtMqtt.subprojects.examples.title         = Examples
